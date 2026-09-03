@@ -25,9 +25,53 @@ import type { Perk, PerkDiscountCode } from '@/lib/types';
 import type { Tier } from '@/lib/types';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
+import {
+  PERK_HERO_IMAGE_DISPLAY_HEIGHT,
+  PERK_HERO_IMAGE_DISPLAY_WIDTH,
+  PERK_HERO_IMAGE_RECOMMENDED_ASPECT,
+  PERK_HERO_IMAGE_RECOMMENDED_HEIGHT,
+  PERK_HERO_IMAGE_RECOMMENDED_WIDTH,
+  PERK_THUMBNAIL_IMAGE_DISPLAY_SIZE,
+  PERK_THUMBNAIL_IMAGE_RECOMMENDED_ASPECT,
+  PERK_THUMBNAIL_IMAGE_RECOMMENDED_HEIGHT,
+  PERK_THUMBNAIL_IMAGE_RECOMMENDED_WIDTH,
+} from '@/lib/constants';
 
 /** Default City value for perks that apply everywhere (software, online, etc.). */
 const GLOBAL_CITY = 'Global';
+
+/** Crop preview matching the live rewards page (`object-cover` in a fixed frame). */
+function PerkCropPreview({
+  src,
+  alt,
+  width,
+  height,
+  className,
+  unoptimized = false,
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  className?: string;
+  unoptimized?: boolean;
+}) {
+  return (
+    <div
+      className={`relative overflow-hidden border bg-[#EDEDED] ${className ?? ''}`}
+      style={{ width, height }}
+    >
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className="object-cover"
+        sizes={`${width}px`}
+        unoptimized={unoptimized}
+      />
+    </div>
+  );
+}
 
 /** Shape returned by /api/cities and /api/categories (slug-keyed lookups). */
 type CitiesAndCategoriesOption = {
@@ -772,14 +816,19 @@ export default function AdminPerksPage() {
                     onChange={handleThumbnailChange}
                     className="mt-1"
                   />
+                  <p className="mt-1 text-sm text-gray-600">
+                    Recommended {PERK_THUMBNAIL_IMAGE_RECOMMENDED_ASPECT}{' '}
+                    (square), {PERK_THUMBNAIL_IMAGE_RECOMMENDED_WIDTH} ×{' '}
+                    {PERK_THUMBNAIL_IMAGE_RECOMMENDED_HEIGHT}
+                  </p>
                   {thumbnailPreview && (
                     <div className="mt-2">
-                      <Image
+                      <PerkCropPreview
                         src={thumbnailPreview}
                         alt="Thumbnail preview"
-                        width={300}
-                        height={192}
-                        className="max-w-xs max-h-48 object-cover rounded-md border"
+                        width={PERK_THUMBNAIL_IMAGE_DISPLAY_SIZE}
+                        height={PERK_THUMBNAIL_IMAGE_DISPLAY_SIZE}
+                        className="rounded-lg"
                         unoptimized
                       />
                     </div>
@@ -789,12 +838,12 @@ export default function AdminPerksPage() {
                       <p className="text-sm text-gray-600 mb-1">
                         Current thumbnail:
                       </p>
-                      <Image
+                      <PerkCropPreview
                         src={formData.thumbnail_url}
                         alt="Current thumbnail"
-                        width={300}
-                        height={192}
-                        className="max-w-xs max-h-48 object-cover rounded-md border"
+                        width={PERK_THUMBNAIL_IMAGE_DISPLAY_SIZE}
+                        height={PERK_THUMBNAIL_IMAGE_DISPLAY_SIZE}
+                        className="rounded-lg"
                       />
                     </div>
                   )}
@@ -809,14 +858,18 @@ export default function AdminPerksPage() {
                     onChange={handleHeroChange}
                     className="mt-1"
                   />
+                  <p className="mt-1 text-sm text-gray-600">
+                    Recommended {PERK_HERO_IMAGE_RECOMMENDED_ASPECT},{' '}
+                    {PERK_HERO_IMAGE_RECOMMENDED_WIDTH} ×{' '}
+                    {PERK_HERO_IMAGE_RECOMMENDED_HEIGHT}
+                  </p>
                   {heroPreview && (
                     <div className="mt-2">
-                      <Image
+                      <PerkCropPreview
                         src={heroPreview}
                         alt="Hero image preview"
-                        width={300}
-                        height={192}
-                        className="max-w-xs max-h-48 object-cover rounded-md border"
+                        width={PERK_HERO_IMAGE_DISPLAY_WIDTH}
+                        height={PERK_HERO_IMAGE_DISPLAY_HEIGHT}
                         unoptimized
                       />
                     </div>
@@ -826,12 +879,11 @@ export default function AdminPerksPage() {
                       <p className="text-sm text-gray-600 mb-1">
                         Current hero image:
                       </p>
-                      <Image
+                      <PerkCropPreview
                         src={formData.hero_image}
                         alt="Current hero image"
-                        width={300}
-                        height={192}
-                        className="max-w-xs max-h-48 object-cover rounded-md border"
+                        width={PERK_HERO_IMAGE_DISPLAY_WIDTH}
+                        height={PERK_HERO_IMAGE_DISPLAY_HEIGHT}
                       />
                     </div>
                   )}

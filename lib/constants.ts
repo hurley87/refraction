@@ -24,6 +24,24 @@ export const MAX_LOCATION_DESCRIPTION_LENGTH = 500;
 /** Matches `player_custom_lists.description VARCHAR(500)`. */
 export const MAX_PLAYER_LIST_DESCRIPTION_LENGTH = 500;
 
+/**
+ * 2× export for the reward details modal hero (`393×212` CSS, `object-cover`).
+ * Aspect is ~1.85:1 (393:212).
+ */
+export const PERK_HERO_IMAGE_DISPLAY_WIDTH = 393;
+export const PERK_HERO_IMAGE_DISPLAY_HEIGHT = 212;
+export const PERK_HERO_IMAGE_RECOMMENDED_WIDTH = 786;
+export const PERK_HERO_IMAGE_RECOMMENDED_HEIGHT = 424;
+export const PERK_HERO_IMAGE_RECOMMENDED_ASPECT = '1.85:1';
+
+/**
+ * 2× export for the rewards overview thumbnail (`107×107` CSS, `object-cover`).
+ */
+export const PERK_THUMBNAIL_IMAGE_DISPLAY_SIZE = 107;
+export const PERK_THUMBNAIL_IMAGE_RECOMMENDED_WIDTH = 214;
+export const PERK_THUMBNAIL_IMAGE_RECOMMENDED_HEIGHT = 214;
+export const PERK_THUMBNAIL_IMAGE_RECOMMENDED_ASPECT = '1:1';
+
 // Location system constants
 export const MAX_LOCATIONS_PER_WEEK = 300;
 
