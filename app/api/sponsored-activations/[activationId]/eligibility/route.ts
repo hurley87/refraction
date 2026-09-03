@@ -62,7 +62,7 @@ async function resolvePlayerForEligibility(
   const normalized = tryNormalizeEvmAddress(trimmed) ?? trimmed;
   const privyUser = await getPrivyUserFromRequest(request);
   const player = privyUser
-    ? await resolvePlayerForPrivyUser(normalized, privyUser)
+    ? (await resolvePlayerForPrivyUser(normalized, privyUser)).player
     : await (async () => {
         let row = await getPlayerByWallet(normalized);
         if (!row?.id) {

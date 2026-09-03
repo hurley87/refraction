@@ -251,13 +251,22 @@ export function isInitialized(): boolean {
 }
 
 /**
- * Wait for Mixpanel initialization to complete
- * Useful for ensuring initialization is done before tracking events
+ * Wait for Mixpanel initialization to complete.
+ * Polls briefly when init has not started yet (e.g. event fires before provider mounts).
  */
 export async function waitForInitialization(): Promise<void> {
   if (typeof window === 'undefined') return;
   if (_mixpanelInitialized) return;
   if (_initPromise) {
     await _initPromise;
+    return;
+  }
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (_mixpanelInitialized) return;
+    if (_initPromise) {
+      await _initPromise;
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }

@@ -11,9 +11,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import {
   clearSignupFromGate,
   markSignupFromGate,
+  peekSignupFromGate,
 } from '@/lib/analytics/attribution';
 import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import { apiClientBearerGet } from '@/lib/api/privy-bearer-client';
@@ -73,6 +75,17 @@ function contributorLineForLocation(
   return guideContributors.join(', ');
 }
 
+function locationsUnlockPath(slug: string): string {
+  const base = `/api/city-guides/${encodeURIComponent(slug)}/locations`;
+  const intent = peekSignupFromGate();
+  if (!intent) return base;
+  const params = new URLSearchParams({
+    from_gate: '1',
+    guide_slug: intent.guide_slug,
+  });
+  return `${base}?${params.toString()}`;
+}
+
 export function CityGuideLocationsSection({
   slug,
   city,
@@ -83,6 +96,7 @@ export function CityGuideLocationsSection({
   locationGate,
 }: CityGuideLocationsSectionProps) {
   const { authenticated, ready, getAccessToken } = usePrivy();
+  const walletAddress = useEvmWalletAddress();
   const { trackEvent } = useAnalytics();
   const [fullLocations, setFullLocations] =
     useState<FullLocationsResponse | null>(null);
@@ -102,7 +116,9 @@ export function CityGuideLocationsSection({
       reopenGateAfterPrivyRef.current = false;
     },
     onError: () => {
-      clearSignupFromGate();
+      // Do not clear gate intent here. Privy can emit errors during modal
+      // teardown after a successful login, which previously wiped attribution
+      // before the unlock API could fire signup_from_gate.
       if (!reopenGateAfterPrivyRef.current) return;
       reopenGateAfterPrivyRef.current = false;
       setIsGateOpen(true);
@@ -116,8 +132,19 @@ export function CityGuideLocationsSection({
     []
   );
 
+  /**
+   * Wait for an EVM wallet so the unlock API can upsert `players` with the
+   * Privy login email and fire `signup_from_gate` for net-new players
+   * (guides never force username / POST /api/player).
+   */
   useEffect(() => {
-    if (!ready || !authenticated || !locationGate || requestedRef.current) {
+    if (
+      !ready ||
+      !authenticated ||
+      !locationGate ||
+      !walletAddress ||
+      requestedRef.current
+    ) {
       return;
     }
 
@@ -127,18 +154,22 @@ export function CityGuideLocationsSection({
       try {
         const token = await getAccessToken();
         if (!token) throw new Error('Missing access token');
+        const hadGateIntent = Boolean(peekSignupFromGate());
         const response = await apiClientBearerGet<FullLocationsResponse>(
           token,
-          `/api/city-guides/${encodeURIComponent(slug)}/locations`
+          locationsUnlockPath(slug)
         );
         setFullLocations(response);
+        // Intent was delivered to the unlock API; clear regardless of whether
+        // the server created a new player (returning users should not keep it).
+        if (hadGateIntent) clearSignupFromGate();
       } catch {
         requestedRef.current = false;
       } finally {
         setIsUnlocking(false);
       }
     })();
-  }, [authenticated, getAccessToken, locationGate, ready, slug]);
+  }, [authenticated, getAccessToken, locationGate, ready, slug, walletAddress]);
 
   const sections = fullLocations?.locationSections ?? initialLocationSections;
   const overrides =

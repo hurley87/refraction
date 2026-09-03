@@ -167,8 +167,10 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
 
   const trackEvent = useCallback(
     (eventName: string, properties?: Record<string, any>) => {
-      if (!isInitialized()) return;
-      trackEventClient(eventName, properties);
+      void waitForInitialization().then(() => {
+        if (!isInitialized()) return;
+        trackEventClient(eventName, properties);
+      });
     },
     []
   );

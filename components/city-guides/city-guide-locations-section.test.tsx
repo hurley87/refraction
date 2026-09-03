@@ -8,10 +8,12 @@ const mockLogin = vi.fn();
 const mockGetAccessToken = vi.fn();
 const mockBearerGet = vi.fn();
 const mockTrackEvent = vi.fn();
-let loginOnComplete: ((params: { isNewUser: boolean }) => void) | undefined;
+let loginOnComplete: (() => void) | undefined;
 let loginOnError: ((error: string) => void) | undefined;
 let authenticated = false;
 let ready = true;
+let walletAddress: string | undefined =
+  '0x4D418f71c531465337b65127B207aa849Fa5a9e3';
 let setSentinelIntersecting: ((isIntersecting: boolean) => void) | null = null;
 
 vi.mock('@privy-io/react-auth', () => ({
@@ -21,7 +23,7 @@ vi.mock('@privy-io/react-auth', () => ({
     getAccessToken: mockGetAccessToken,
   }),
   useLogin: (callbacks?: {
-    onComplete?: (params: { isNewUser: boolean }) => void;
+    onComplete?: () => void;
     onError?: (error: string) => void;
   }) => {
     loginOnComplete = callbacks?.onComplete;
@@ -32,6 +34,10 @@ vi.mock('@privy-io/react-auth', () => ({
 
 vi.mock('@/hooks/useAnalytics', () => ({
   useAnalytics: () => ({ trackEvent: mockTrackEvent }),
+}));
+
+vi.mock('@/hooks/use-evm-wallet-address', () => ({
+  useEvmWalletAddress: () => walletAddress,
 }));
 
 vi.mock('@/lib/api/privy-bearer-client', () => ({
@@ -85,10 +91,12 @@ describe('CityGuideLocationsSection', () => {
     vi.clearAllMocks();
     authenticated = false;
     ready = true;
+    walletAddress = '0x4D418f71c531465337b65127B207aa849Fa5a9e3';
     setSentinelIntersecting = null;
     loginOnComplete = undefined;
     loginOnError = undefined;
     mockGetAccessToken.mockResolvedValue('token');
+    localStorage.clear();
 
     vi.stubGlobal(
       'IntersectionObserver',
@@ -175,7 +183,7 @@ describe('CityGuideLocationsSection', () => {
 
   it('marks gate signup intent when Become a Member is clicked', async () => {
     const user = userEvent.setup();
-    sessionStorage.clear();
+    localStorage.clear();
     render(<CityGuideLocationsSection {...baseProps} />);
 
     act(() => setSentinelIntersecting?.(true));
@@ -185,19 +193,50 @@ describe('CityGuideLocationsSection', () => {
       expect(mockLogin).toHaveBeenCalledOnce();
     });
 
-    const raw = sessionStorage.getItem('irl_signup_from_gate_v1');
+    const raw = localStorage.getItem('irl_signup_from_gate_v1');
     expect(raw).toBeTruthy();
     expect(JSON.parse(raw!)).toMatchObject({ guide_slug: 'berlin' });
-    // Real signup_from_gate fires server-side on new player create.
+  });
+
+  it('passes gate attribution on unlock and clears intent after success', async () => {
+    const user = userEvent.setup();
+    localStorage.clear();
+    mockBearerGet.mockResolvedValue({
+      locationSections: [section('Public spot'), section('Hidden spot')],
+      locationContributorByPlaceId: {},
+      contributorNames: ['Alice'],
+    });
+    const { rerender } = render(<CityGuideLocationsSection {...baseProps} />);
+
+    act(() => setSentinelIntersecting?.(true));
+    await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledOnce();
+    });
+    expect(localStorage.getItem('irl_signup_from_gate_v1')).toBeTruthy();
+
+    authenticated = true;
+    rerender(<CityGuideLocationsSection {...baseProps} />);
+
+    await waitFor(() => {
+      expect(mockBearerGet).toHaveBeenCalledWith(
+        'token',
+        '/api/city-guides/berlin/locations?from_gate=1&guide_slug=berlin'
+      );
+    });
+    await waitFor(() => {
+      expect(localStorage.getItem('irl_signup_from_gate_v1')).toBeNull();
+    });
+    // signup_from_gate is server-fired on net-new player create — not client Mixpanel.
     expect(mockTrackEvent).not.toHaveBeenCalledWith(
       'signup_from_gate',
       expect.anything()
     );
   });
 
-  it('clears gate signup intent when the Privy flow is abandoned', async () => {
+  it('re-opens the gate when the reader abandons the Privy flow without clearing intent', async () => {
     const user = userEvent.setup();
-    sessionStorage.clear();
+    localStorage.clear();
     render(<CityGuideLocationsSection {...baseProps} />);
 
     act(() => setSentinelIntersecting?.(true));
@@ -205,11 +244,12 @@ describe('CityGuideLocationsSection', () => {
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledOnce();
     });
-    expect(sessionStorage.getItem('irl_signup_from_gate_v1')).toBeTruthy();
+    expect(localStorage.getItem('irl_signup_from_gate_v1')).toBeTruthy();
 
     act(() => loginOnError?.('exited_auth_flow'));
 
-    expect(sessionStorage.getItem('irl_signup_from_gate_v1')).toBeNull();
+    // Intent must survive Privy teardown errors so unlock can still attribute.
+    expect(localStorage.getItem('irl_signup_from_gate_v1')).toBeTruthy();
     expect(await screen.findByRole('dialog')).toBeTruthy();
   });
 

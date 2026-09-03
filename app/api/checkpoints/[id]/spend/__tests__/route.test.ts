@@ -48,9 +48,12 @@ describe('checkpoint spend route', () => {
       linkedAccounts: [],
     } as never);
     vi.mocked(resolvePlayerForPrivyUser).mockResolvedValue({
-      id: 1,
-      wallet_address: walletAddress,
-      total_points: 200,
+      player: {
+        id: 1,
+        wallet_address: walletAddress,
+        total_points: 200,
+      },
+      created: false,
     } as never);
   });
 

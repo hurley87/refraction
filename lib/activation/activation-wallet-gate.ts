@@ -34,7 +34,8 @@ export async function resolvePlayerForWallet(
   privyUser?: User | null
 ): Promise<{ playerId: number }> {
   const player = privyUser
-    ? await resolvePlayerForPrivyUser(normalizedWalletAddress, privyUser)
+    ? (await resolvePlayerForPrivyUser(normalizedWalletAddress, privyUser))
+        .player
     : await (async () => {
         let row = await getPlayerByWallet(normalizedWalletAddress);
         if (!row?.id) {
