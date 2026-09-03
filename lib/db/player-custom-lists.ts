@@ -465,13 +465,19 @@ export const addLocationToLists = async (
 };
 
 /**
- * Update title and/or privacy for a custom list owned by the player.
- * Title changes rotate the share slug and record a permanent redirect.
+ * Update title, description, thumbnail, and/or privacy for a custom list
+ * owned by the player. Title changes rotate the share slug and record a
+ * permanent redirect.
  */
 export async function updateCustomList(
   playerId: number,
   listId: string,
-  input: { title?: string; description?: string | null; isPrivate?: boolean }
+  input: {
+    title?: string;
+    description?: string | null;
+    thumbnailUrl?: string | null;
+    isPrivate?: boolean;
+  }
 ): Promise<PlayerCustomList | null> {
   const { data: existing, error: fetchError } = await supabase
     .from('player_custom_lists')
@@ -487,6 +493,7 @@ export async function updateCustomList(
   const updates: {
     title?: string;
     description?: string | null;
+    thumbnail_url?: string | null;
     is_private?: boolean;
   } = {};
   const trimmedTitle = input.title?.trim();
@@ -499,6 +506,9 @@ export async function updateCustomList(
   }
   if (input.description !== undefined) {
     updates.description = input.description?.trim() || null;
+  }
+  if (input.thumbnailUrl !== undefined) {
+    updates.thumbnail_url = input.thumbnailUrl?.trim() || null;
   }
 
   if (Object.keys(updates).length === 0) {
@@ -563,6 +573,35 @@ export const deleteCustomList = async (
   if (error) throw error;
   return (data ?? []).length > 0;
 };
+
+/**
+ * Remove a location from one custom list owned by the player.
+ * @returns false if the list is not owned by the player.
+ */
+export async function removeLocationFromCustomList(
+  playerId: number,
+  locationId: number,
+  listId: string
+): Promise<boolean> {
+  const { data: ownedList, error: ownedError } = await supabase
+    .from('player_custom_lists')
+    .select('id')
+    .eq('id', listId)
+    .eq('player_id', playerId)
+    .maybeSingle();
+
+  if (ownedError) throw ownedError;
+  if (!ownedList) return false;
+
+  const { error } = await supabase
+    .from('player_custom_list_items')
+    .delete()
+    .eq('list_id', listId)
+    .eq('location_id', locationId);
+
+  if (error) throw error;
+  return true;
+}
 
 /**
  * Count how many of the player's lists contain the given location.

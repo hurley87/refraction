@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getSignupAttributionBodyFields } from '@/lib/analytics/attribution';
+import {
+  clearSignupFromGate,
+  getSignupAttributionBodyFields,
+} from '@/lib/analytics/attribution';
 import { optionalPrivyEmailBody } from '@/lib/api/privy-email';
 import { usernameSchema } from '@/lib/username';
 
@@ -84,6 +87,7 @@ export function useUsernameSignup({
       const responseData = await response.json();
 
       if (responseData.success) {
+        clearSignupFromGate();
         setNeedsUsername(false);
       } else {
         const message = responseData.error || DEFAULT_CREATE_ERROR;

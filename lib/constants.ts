@@ -24,6 +24,9 @@ export const MAX_LOCATION_DESCRIPTION_LENGTH = 500;
 /** Matches `player_custom_lists.description VARCHAR(500)`. */
 export const MAX_PLAYER_LIST_DESCRIPTION_LENGTH = 500;
 
+/** Matches create/update Zod max for `player_custom_lists.title`. */
+export const MAX_PLAYER_LIST_TITLE_LENGTH = 80;
+
 /**
  * 2× export for the reward details modal hero (`393×212` CSS, `object-cover`).
  * Aspect is ~1.85:1 (393:212).

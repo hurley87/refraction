@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
 import { CityGuideTexturedImage } from '@/components/city-guides/city-guide-textured-image';
 
-/** Figma editorial hero frame (1350×1080, 5:4). */
-export const EDITORIAL_HERO_ASPECT_CLASS = 'aspect-[1350/1080]';
+/** Instagram portrait hero frame (1080×1350, 4:5). */
+export const EDITORIAL_HERO_ASPECT_CLASS = 'aspect-[1080/1350]';
 
 export interface CityGuideArticleHeroImageProps {
   src: string;
@@ -15,13 +15,13 @@ export interface CityGuideArticleHeroImageProps {
    * Hero defaults to `lighten` so the photo stays vivid; `soft-light` reads more “matte” / muted.
    */
   textureBlendMode?: 'lighten' | 'soft-light';
-  /** @default 'square' — city guide 361×361. Editorial uses 1350×1080 (5:4). */
+  /** Kept for callers; city guides and editorials both use 1080×1350. */
   variant?: 'square' | 'editorial';
   className?: string;
 }
 
 /**
- * Article hero: square (361×361) or editorial (1350×1080 aspect); optional paper texture via `textureSrc`.
+ * Article hero at 1080×1350 (4:5 portrait); optional paper texture via `textureSrc`.
  */
 export function CityGuideArticleHeroImage({
   src,
@@ -29,11 +29,8 @@ export function CityGuideArticleHeroImage({
   textureSrc = null,
   textureOpacity = 0.48,
   textureBlendMode = 'lighten',
-  variant = 'square',
   className,
 }: CityGuideArticleHeroImageProps) {
-  const isEditorial = variant === 'editorial';
-
   return (
     <CityGuideTexturedImage
       src={src}
@@ -42,13 +39,13 @@ export function CityGuideArticleHeroImage({
       priority
       containerClassName={cn(
         'w-full max-w-[361px]',
-        isEditorial ? EDITORIAL_HERO_ASPECT_CLASS : 'h-[361px]',
+        EDITORIAL_HERO_ASPECT_CLASS,
         className
       )}
       textureSrc={textureSrc}
       textureOpacity={textureOpacity}
       textureBlendMode={textureBlendMode}
-      textureClassName="left-1/2 top-1/2 h-[412px] w-[412px] -translate-x-1/2 -translate-y-1/2"
+      textureClassName="absolute inset-0 h-full w-full translate-x-0 translate-y-0"
       textureSizes="412px"
     />
   );

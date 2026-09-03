@@ -3,12 +3,15 @@ import { SIGNUP_ATTRIBUTION_STORAGE_KEY } from '@/lib/analytics/attribution-core
 import { DEFAULT_CLIENT_ORIGIN } from '@/lib/utils/client-origin';
 import {
   captureSignupAttributionFromNavigation,
+  clearSignupFromGate,
   getSignupAttributionBodyFields,
+  markSignupFromGate,
 } from '@/lib/analytics/attribution';
 
 describe('signup attribution client persistence', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('stores first-touch UTMs and preserves them on later navigation without UTMs', () => {
@@ -82,5 +85,20 @@ describe('signup attribution client persistence', () => {
     );
 
     vi.stubGlobal('window', { location });
+  });
+
+  it('includes from_gate + guide_slug after markSignupFromGate', () => {
+    markSignupFromGate('berlin');
+    const body = getSignupAttributionBodyFields();
+    expect(body.signup_attribution?.from_gate).toBe(true);
+    expect(body.signup_attribution?.guide_slug).toBe('berlin');
+  });
+
+  it('clears gate intent via clearSignupFromGate', () => {
+    markSignupFromGate('berlin');
+    clearSignupFromGate();
+    const body = getSignupAttributionBodyFields();
+    expect(body.signup_attribution?.from_gate).toBeUndefined();
+    expect(body.signup_attribution?.guide_slug).toBeUndefined();
   });
 });

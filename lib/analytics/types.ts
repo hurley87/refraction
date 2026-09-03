@@ -74,6 +74,13 @@ export interface LocationCreatedProperties {
   creator_wallet_address?: string;
 }
 
+export interface LocationListCreatedProperties {
+  list_id: string;
+  is_private: boolean;
+  has_thumbnail: boolean;
+  has_description: boolean;
+}
+
 export interface PointsEarnedProperties {
   activity_type: string;
   amount: number;

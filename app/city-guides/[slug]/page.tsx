@@ -94,6 +94,7 @@ export default async function CityGuideBySlugPage({
           <CityGuideArticleHeroImage
             src={row.hero_image_url}
             alt={row.hero_image_alt}
+            variant="editorial"
             className="mb-[20px]"
           />
 

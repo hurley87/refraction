@@ -11,7 +11,11 @@ import {
   updatePlayerRequestSchema,
 } from '@/lib/schemas/api';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
-import { trackAccountCreated, resolveServerIdentity } from '@/lib/analytics';
+import {
+  trackAccountCreated,
+  trackSignupFromGate,
+  resolveServerIdentity,
+} from '@/lib/analytics';
 import {
   accountCreatedAttributionFromPayload,
   signupAttributionPayloadHasData,
@@ -91,6 +95,11 @@ export async function POST(request: NextRequest) {
         wallet_address: walletAddress,
         ...attributionProps,
       });
+
+      const guideSlug = signup_attribution?.guide_slug?.trim();
+      if (signup_attribution?.from_gate && guideSlug) {
+        trackSignupFromGate(distinctId, { guide_slug: guideSlug });
+      }
     }
 
     // Fire-and-forget downstream syncs so signup UI is not blocked on third parties.

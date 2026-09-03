@@ -241,6 +241,78 @@ export function useUpdateCustomListDescription(
   });
 }
 
+/** Rename one of the player's custom lists. */
+export function useUpdateCustomListTitle(walletAddress: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { listId: string; title: string }) => {
+      const response = await fetch('/api/player-lists', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress,
+          listId: input.listId,
+          title: input.title,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to rename list');
+      }
+      return (result.data ?? result) as {
+        list: { id: string; title: string };
+      };
+    },
+    onSuccess: () => {
+      toast.success('List renamed');
+      queryClient.invalidateQueries({
+        queryKey: ['player-custom-lists', walletAddress],
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to rename list');
+    },
+  });
+}
+
+/** Replace the thumbnail on one of the player's custom lists. */
+export function useUpdateCustomListThumbnail(
+  walletAddress: string | undefined
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { listId: string; thumbnailUrl: string }) => {
+      const response = await fetch('/api/player-lists', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress,
+          listId: input.listId,
+          thumbnailUrl: input.thumbnailUrl,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update thumbnail');
+      }
+      return (result.data ?? result) as {
+        list: { id: string; thumbnail_url: string | null };
+      };
+    },
+    onSuccess: () => {
+      toast.success('Thumbnail updated');
+      queryClient.invalidateQueries({
+        queryKey: ['player-custom-lists', walletAddress],
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update thumbnail');
+    },
+  });
+}
+
 /** Add a location to one or more of the player's lists. */
 export function useAddLocationToLists(walletAddress: string | undefined) {
   const queryClient = useQueryClient();
@@ -268,6 +340,45 @@ export function useAddLocationToLists(walletAddress: string | undefined) {
     },
     onError: () => {
       toast.error('Failed to add location to lists');
+    },
+  });
+}
+
+/** Remove a location from one of the player's custom lists. */
+export function useRemoveLocationFromCustomList(
+  walletAddress: string | undefined
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { listId: string; placeId: string }) => {
+      const response = await fetch('/api/player-lists/remove-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress,
+          listId: input.listId,
+          placeId: input.placeId,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to remove location from list');
+      }
+      return (result.data ?? result) as {
+        placeId: string;
+        listId: string;
+        savedListCount: number;
+      };
+    },
+    onSuccess: () => {
+      toast.success('Removed from list');
+      queryClient.invalidateQueries({
+        queryKey: ['player-custom-lists', walletAddress],
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to remove location from list');
     },
   });
 }

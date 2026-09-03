@@ -199,6 +199,15 @@ export const playerCustomListAddLocationSchema = z.object({
 });
 
 /**
+ * Schema for removing a location from one player custom list (POST)
+ */
+export const playerCustomListRemoveLocationSchema = z.object({
+  walletAddress: walletAddressSchema,
+  placeId: z.string().min(1),
+  listId: z.string().uuid(),
+});
+
+/**
  * Schema for updating a player custom list (PATCH)
  */
 export const playerCustomListUpdateSchema = z
@@ -208,14 +217,18 @@ export const playerCustomListUpdateSchema = z
     isPrivate: z.boolean().optional(),
     title: z.string().trim().min(1).max(80).optional(),
     description: playerCustomListDescriptionSchema.optional(),
+    /** Accept any non-empty string URL. */
+    thumbnailUrl: z.string().trim().min(1).optional(),
   })
   .refine(
     (value) =>
       value.isPrivate !== undefined ||
       value.title !== undefined ||
-      value.description !== undefined,
+      value.description !== undefined ||
+      value.thumbnailUrl !== undefined,
     {
-      message: 'Provide isPrivate, title, and/or description to update',
+      message:
+        'Provide isPrivate, title, description, and/or thumbnailUrl to update',
     }
   );
 

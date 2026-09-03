@@ -37,6 +37,9 @@ export const signupAttributionSchema = z.object({
   checkpoint_id: optionalTrimmed(ATTRIBUTION_LIMITS.id),
   event_id: optionalTrimmed(ATTRIBUTION_LIMITS.id),
   location_id: optionalTrimmed(ATTRIBUTION_LIMITS.id),
+
+  from_gate: z.boolean().optional(),
+  guide_slug: optionalTrimmed(ATTRIBUTION_LIMITS.id),
 });
 
 export type SignupAttributionValidated = z.infer<

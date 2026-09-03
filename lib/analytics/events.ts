@@ -6,6 +6,8 @@
 export const ANALYTICS_EVENTS = {
   // City & Map Metrics
   LOCATION_CREATED: 'location_created',
+  /** Map: player created a custom location list. */
+  LOCATION_LIST_CREATED: 'location_list_created',
   /** Map activation: player finished the mandatory geo location prompt. */
   PLAYER_LOCATION_PROMPT_COMPLETED: 'player_location_prompt_completed',
 
@@ -16,7 +18,7 @@ export const ANALYTICS_EVENTS = {
   GATE_VIEWED: 'gate_viewed',
   /** City guide membership gate: reader tapped Become a Member. */
   GATE_SIGNUP_CLICKED: 'gate_signup_clicked',
-  /** City guide membership gate: new Privy account created after the gate CTA. */
+  /** City guide membership gate: new IRL account created after the gate CTA. */
   SIGNUP_FROM_GATE: 'signup_from_gate',
 
   // Conversion

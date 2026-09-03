@@ -15,6 +15,10 @@ import {
   playerCustomListDeleteSchema,
   playerCustomListUpdateSchema,
 } from '@/lib/schemas/api';
+import {
+  resolveServerIdentity,
+  trackLocationListCreated,
+} from '@/lib/analytics';
 
 async function getLocationIdByPlaceId(placeId: string): Promise<number | null> {
   const { data, error } = await supabase
@@ -89,6 +93,18 @@ export async function POST(request: NextRequest) {
       isPrivate,
     });
 
+    const distinctId = resolveServerIdentity({
+      email: player.email,
+      walletAddress,
+      playerId: player.id,
+    });
+    trackLocationListCreated(distinctId, {
+      list_id: list.id,
+      is_private: list.is_private,
+      has_thumbnail: Boolean(list.thumbnail_url),
+      has_description: Boolean(list.description?.trim()),
+    });
+
     return apiSuccess({ list });
   } catch (error) {
     console.error('Failed to create player custom list:', error);
@@ -105,8 +121,14 @@ export async function PATCH(request: NextRequest) {
       return apiValidationError(parsed.error);
     }
 
-    const { walletAddress, listId, isPrivate, title, description } =
-      parsed.data;
+    const {
+      walletAddress,
+      listId,
+      isPrivate,
+      title,
+      description,
+      thumbnailUrl,
+    } = parsed.data;
     const player = await getPlayerByWallet(walletAddress);
 
     if (!player?.id) {
@@ -117,6 +139,7 @@ export async function PATCH(request: NextRequest) {
       ...(isPrivate !== undefined ? { isPrivate } : {}),
       ...(title !== undefined ? { title } : {}),
       ...(description !== undefined ? { description } : {}),
+      ...(thumbnailUrl !== undefined ? { thumbnailUrl } : {}),
     });
 
     if (!list) {

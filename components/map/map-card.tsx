@@ -44,6 +44,9 @@ interface MapCardProps {
   onSaveToList?: () => void;
   /** How many of the user's custom lists already contain this location. */
   savedListCount?: number;
+  /** Remove this spot from the current custom list (`drawerTile` only). */
+  onRemoveFromList?: () => void;
+  isRemoveFromListPending?: boolean;
 }
 
 /** Bookmark icon for drawer-tile favorite toggle (16×16). */
@@ -146,6 +149,8 @@ export default function MapCard({
   isFavoriteLoading = false,
   onSaveToList,
   savedListCount = 0,
+  onRemoveFromList,
+  isRemoveFromListPending = false,
 }: MapCardProps) {
   if (variant === 'createPreview') {
     return (
@@ -271,6 +276,38 @@ export default function MapCard({
             </div>
           </div>
         </button>
+        {onRemoveFromList ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemoveFromList();
+            }}
+            disabled={isRemoveFromListPending}
+            className="absolute left-2 top-2 z-20 flex h-7 w-7 items-center justify-center bg-white/95 shadow-[0_1px_8px_0_rgba(0,0,0,0.12)] transition-opacity hover:opacity-90 disabled:opacity-50"
+            aria-label={`Remove ${name} from list`}
+          >
+            {isRemoveFromListPending ? (
+              <span
+                className="size-3.5 animate-spin rounded-full border-2 border-[#757575] border-t-transparent"
+                aria-hidden
+              />
+            ) : (
+              <svg
+                className="size-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
+              >
+                <path
+                  d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+                  fill="#757575"
+                />
+              </svg>
+            )}
+          </button>
+        ) : null}
         <FavoriteToggleButton
           isFavorited={isFavorited}
           onToggleFavorite={onToggleFavorite}

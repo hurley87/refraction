@@ -20,13 +20,14 @@ vi.mock('@/lib/analytics', async () => {
   return {
     ...actual,
     trackAccountCreated: vi.fn(),
+    trackSignupFromGate: vi.fn(),
     resolveServerIdentity: actual.resolveServerIdentity,
   };
 });
 
 import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
 import { isUsernameTakenByOther } from '@/lib/db/profiles';
-import { trackAccountCreated } from '@/lib/analytics';
+import { trackAccountCreated, trackSignupFromGate } from '@/lib/analytics';
 
 // Helper to create a mock NextRequest
 function createMockRequest(
@@ -201,6 +202,66 @@ describe('Player API Route', () => {
       expect(props?.signup_source).toBe('direct');
       expect(props?.signup_channel).toBe('direct');
       expect(props?.wallet_type).toBe('EVM');
+    });
+
+    it('fires signup_from_gate for new players attributed to the city guide gate', async () => {
+      const mockPlayer = {
+        id: '126',
+        wallet_address: '0x4234567890abcdef4234567890abcdef42345678',
+        username: 'gateuser',
+        email: 'gate@example.com',
+        total_points: 0,
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(null);
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x4234567890abcdef4234567890abcdef42345678',
+        username: 'gateuser',
+        email: 'gate@example.com',
+        signup_attribution: {
+          from_gate: true,
+          guide_slug: 'berlin',
+          current_path: '/city-guides/berlin',
+        },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      expect(trackSignupFromGate).toHaveBeenCalledWith('gate@example.com', {
+        guide_slug: 'berlin',
+      });
+    });
+
+    it('does not fire signup_from_gate without from_gate', async () => {
+      const mockPlayer = {
+        id: '127',
+        wallet_address: '0x5234567890abcdef5234567890abcdef52345678',
+        username: 'nogate',
+        email: 'nogate@example.com',
+        total_points: 0,
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(null);
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x5234567890abcdef5234567890abcdef52345678',
+        username: 'nogate',
+        email: 'nogate@example.com',
+        signup_attribution: {
+          guide_slug: 'berlin',
+          current_path: '/city-guides/berlin',
+        },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+      expect(trackSignupFromGate).not.toHaveBeenCalled();
     });
 
     it('should return 409 when username is already taken', async () => {

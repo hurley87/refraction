@@ -3,9 +3,12 @@
 import {
   ATTRIBUTION_LIMITS,
   SIGNUP_ATTRIBUTION_STORAGE_KEY,
+  SIGNUP_FROM_GATE_STORAGE_KEY,
+  SIGNUP_FROM_GATE_TTL_MS,
   type AttributionTouch,
   type SignupAttributionPayload,
   type SignupAttributionSession,
+  type SignupFromGateIntent,
   extractCheckpointIdFromPath,
   extractOptionalQueryIds,
   parseUtmFromSearch,
@@ -166,13 +169,73 @@ function buildPayload(
   };
 }
 
+function readSignupFromGateIntent(): SignupFromGateIntent | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(SIGNUP_FROM_GATE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SignupFromGateIntent>;
+    const guideSlug =
+      typeof parsed.guide_slug === 'string' ? parsed.guide_slug.trim() : '';
+    const markedAt =
+      typeof parsed.marked_at === 'number' ? parsed.marked_at : NaN;
+    if (!guideSlug || !Number.isFinite(markedAt)) {
+      sessionStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
+      return null;
+    }
+    if (Date.now() - markedAt > SIGNUP_FROM_GATE_TTL_MS) {
+      sessionStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
+      return null;
+    }
+    return { guide_slug: guideSlug, marked_at: markedAt };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remember that the reader started signup from a city-guide membership gate.
+ * Survives the Privy modal and username step so `/api/player` can fire
+ * `signup_from_gate`.
+ */
+export function markSignupFromGate(guideSlug: string): void {
+  if (typeof window === 'undefined') return;
+  const slug = guideSlug.trim();
+  if (!slug) return;
+  try {
+    const intent: SignupFromGateIntent = {
+      guide_slug: slug.slice(0, ATTRIBUTION_LIMITS.id),
+      marked_at: Date.now(),
+    };
+    sessionStorage.setItem(
+      SIGNUP_FROM_GATE_STORAGE_KEY,
+      JSON.stringify(intent)
+    );
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+/** Clear gate signup intent (abandon Privy, or after successful player create). */
+export function clearSignupFromGate(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 /** Merge into POST /api/player JSON body; omits key when nothing stored. */
 export function getSignupAttributionBodyFields(): {
   signup_attribution?: SignupAttributionPayload;
 } {
   const session = readSession();
-  if (!session) return {};
-  const payload = buildPayload(session);
+  const gate = readSignupFromGateIntent();
+  const payload: SignupAttributionPayload = {
+    ...(session ? buildPayload(session) : {}),
+    ...(gate ? { from_gate: true, guide_slug: gate.guide_slug } : {}),
+  };
   if (!signupAttributionPayloadHasData(payload)) return {};
   return { signup_attribution: payload };
 }

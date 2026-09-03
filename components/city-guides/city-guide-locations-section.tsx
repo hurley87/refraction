@@ -11,6 +11,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import {
+  clearSignupFromGate,
+  markSignupFromGate,
+} from '@/lib/analytics/attribution';
 import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import { apiClientBearerGet } from '@/lib/api/privy-bearer-client';
 import type { CityGuideLocationSection } from '@/lib/db/guides';
@@ -88,29 +92,17 @@ export function CityGuideLocationsSection({
   const gateSentinelRef = useRef<HTMLDivElement | null>(null);
   /** Blocks re-opening until the sentinel has left the viewport again. */
   const gateArmedRef = useRef(true);
-  /** True after the gate CTA until Privy login completes (or is abandoned). */
-  const pendingSignupFromGateRef = useRef(false);
   /** Brings the gate back if the reader abandons the Privy flow it opened. */
   const reopenGateAfterPrivyRef = useRef(false);
   const loginTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gateViewTrackedForOpenRef = useRef(false);
-  const slugRef = useRef(slug);
-  slugRef.current = slug;
-  const trackEventRef = useRef(trackEvent);
-  trackEventRef.current = trackEvent;
 
   const { login } = useLogin({
-    onComplete: ({ isNewUser }) => {
+    onComplete: () => {
       reopenGateAfterPrivyRef.current = false;
-      if (!pendingSignupFromGateRef.current) return;
-      pendingSignupFromGateRef.current = false;
-      if (!isNewUser) return;
-      trackEventRef.current(ANALYTICS_EVENTS.SIGNUP_FROM_GATE, {
-        guide_slug: slugRef.current,
-      });
     },
     onError: () => {
-      pendingSignupFromGateRef.current = false;
+      clearSignupFromGate();
       if (!reopenGateAfterPrivyRef.current) return;
       reopenGateAfterPrivyRef.current = false;
       setIsGateOpen(true);
@@ -222,8 +214,8 @@ export function CityGuideLocationsSection({
    * while the gate is mounted. Close the gate first, then open Privy.
    */
   const handleGateSignupClick = () => {
-    pendingSignupFromGateRef.current = true;
     reopenGateAfterPrivyRef.current = true;
+    markSignupFromGate(slug);
     trackEvent(ANALYTICS_EVENTS.GATE_SIGNUP_CLICKED, { guide_slug: slug });
     setIsGateOpen(false);
     loginTimeoutRef.current = setTimeout(login, GATE_CLOSE_DURATION_MS);
