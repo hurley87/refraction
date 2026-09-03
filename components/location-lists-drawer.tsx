@@ -11,6 +11,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { Loader2, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { LocationListWithCount, Location } from '@/lib/types';
 import MapCard from '@/components/map/map-card';
 import ProfileAvatar from '@/components/profile-avatar';
@@ -35,6 +36,9 @@ import {
   useDeleteCustomList,
   useUpdateCustomListPrivacy,
   useUpdateCustomListDescription,
+  useUpdateCustomListTitle,
+  useUpdateCustomListThumbnail,
+  useRemoveLocationFromCustomList,
 } from '@/hooks/usePlayerCustomLists';
 import { usePublicProfileList } from '@/hooks/usePublicProfileList';
 import {
@@ -42,6 +46,7 @@ import {
   ListSharePanel,
 } from '@/components/map/list-share-button';
 import { ListDescriptionEditor } from '@/components/map/list-description-editor';
+import { ListTitleEditor } from '@/components/map/list-title-editor';
 import { Switch } from '@/components/ui/switch';
 import type { PublicCustomListOwner } from '@/lib/db/player-custom-lists';
 import { profilePathForPlayer } from '@/lib/username';
@@ -150,6 +155,11 @@ interface LocationListsDrawerProps {
    */
   initialCustomListId?: string | null;
   /**
+   * Focus this custom list when the value changes (e.g. after creating a list
+   * from the map). Unlike `initialCustomListId`, this can re-apply for a new id.
+   */
+  focusCustomListId?: string | null;
+  /**
    * Public profile deep link: open read-only detail for this non-private list
    * (raw UUID). Not shown in the drawer grid outside this session.
    */
@@ -175,6 +185,7 @@ export default function LocationListsDrawer({
   onToggleFavorite,
   isFavoritePending = false,
   initialCustomListId = null,
+  focusCustomListId = null,
   initialPublicProfileListId = null,
   viewerUsername = null,
   viewerName = null,
@@ -195,6 +206,7 @@ export default function LocationListsDrawer({
   const prevCollapseForMapCardRef = useRef(collapseForMapCard);
   const initialCustomListAppliedRef = useRef(false);
   const initialPublicProfileListAppliedRef = useRef(false);
+  const focusedCustomListIdRef = useRef<string | null>(null);
   const sheetPanelRef = useRef<HTMLDivElement | null>(null);
   const sheetDragRef = useRef<{
     pointerId: number;
@@ -245,6 +257,17 @@ export default function LocationListsDrawer({
     mutateAsync: updateListDescription,
     isPending: isUpdatingDescription,
   } = useUpdateCustomListDescription(walletAddress);
+  const { mutateAsync: updateListTitle, isPending: isUpdatingTitle } =
+    useUpdateCustomListTitle(walletAddress);
+  const { mutateAsync: updateListThumbnail, isPending: isUpdatingThumbnail } =
+    useUpdateCustomListThumbnail(walletAddress);
+  const {
+    mutate: removeLocationFromList,
+    isPending: isRemovingLocation,
+    variables: removingLocationVariables,
+  } = useRemoveLocationFromCustomList(walletAddress);
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+  const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
 
   /** User custom lists mapped to the drawer list shape (prefixed ids). */
   const customDrawerLists = useMemo(
@@ -285,6 +308,7 @@ export default function LocationListsDrawer({
   );
 
   const hasCustomListLocations = populatedCustomLists.length > 0;
+  const hasAnyCustomLists = customDrawerLists.length > 0;
 
   /** Read-only list injected when arriving from a public profile carousel. */
   const publicProfileDrawerList = useMemo(() => {
@@ -486,6 +510,33 @@ export default function LocationListsDrawer({
     layout,
   ]);
 
+  // After creating a list on the map: open that list's detail (can re-fire).
+  useEffect(() => {
+    const rawId = focusCustomListId?.trim() ?? '';
+    if (!rawId) {
+      focusedCustomListIdRef.current = null;
+      return;
+    }
+    if (collapseForMapCard) return;
+    if (!isCustomListsFetched) return;
+    if (focusedCustomListIdRef.current === rawId) return;
+
+    const drawerId = `${CUSTOM_LIST_ID_PREFIX}${rawId}`;
+    if (!customDrawerLists.some((list) => list.id === drawerId)) return;
+
+    focusedCustomListIdRef.current = rawId;
+    setSelectedListId(drawerId);
+    if (layout === 'sheet') {
+      setSheetSize('peek');
+    }
+  }, [
+    focusCustomListId,
+    customDrawerLists,
+    isCustomListsFetched,
+    collapseForMapCard,
+    layout,
+  ]);
+
   // Deep link from public profile: open read-only list detail once it loads
   useEffect(() => {
     if (initialPublicProfileListAppliedRef.current) return;
@@ -512,7 +563,7 @@ export default function LocationListsDrawer({
   ]);
 
   const hasVisibleFavorites = favoriteDrawerLocations.length > 0;
-  const hasVisibleCustomLists = populatedCustomLists.length > 0;
+  const hasVisibleCustomLists = hasAnyCustomLists;
 
   const visiblePlaceIds = useMemo(() => {
     const ids = new Set<string>();
@@ -749,7 +800,7 @@ export default function LocationListsDrawer({
 
   if (
     !hasAnyListLocations &&
-    !hasCustomListLocations &&
+    !hasAnyCustomLists &&
     (!hasFavorites || !favoritesReady) &&
     !hasPublicProfileListLocations
   ) {
@@ -763,7 +814,7 @@ export default function LocationListsDrawer({
       : selectedPublicProfileList !== null
         ? selectedPublicProfileList.locations.length > 0
         : selectedCustomList !== null
-          ? selectedCustomList.locations.length > 0
+          ? true
           : selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
 
   if (
@@ -782,8 +833,7 @@ export default function LocationListsDrawer({
   const isSidebar = layout === 'sidebar';
   const isFavoritesDetailView =
     selectedListId === FAVORITES_LIST_ID && hasVisibleFavorites;
-  const isCustomListDetailView =
-    selectedCustomList !== null && selectedCustomList.locations.length > 0;
+  const isCustomListDetailView = selectedCustomList !== null;
   const isPublicProfileListDetailView =
     selectedPublicProfileList !== null &&
     selectedPublicProfileList.locations.length > 0;
@@ -861,6 +911,60 @@ export default function LocationListsDrawer({
     if (!selectedCustomList) return;
     const rawListId = selectedCustomList.id.slice(CUSTOM_LIST_ID_PREFIX.length);
     await updateListDescription({ listId: rawListId, description });
+  };
+
+  const handleSaveListTitle = async (title: string) => {
+    if (!selectedCustomList) return;
+    const rawListId = selectedCustomList.id.slice(CUSTOM_LIST_ID_PREFIX.length);
+    await updateListTitle({ listId: rawListId, title });
+  };
+
+  const handleThumbnailFileChange = async (file: File | null) => {
+    if (!file || !selectedCustomList) return;
+    const rawListId = selectedCustomList.id.slice(CUSTOM_LIST_ID_PREFIX.length);
+    setIsUploadingThumbnail(true);
+    let uploadedUrl: string | null = null;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Upload failed');
+      const data = result.data ?? result;
+      uploadedUrl =
+        (typeof data.thumbnailUrl === 'string' && data.thumbnailUrl) ||
+        (typeof data.imageUrl === 'string' && data.imageUrl) ||
+        (typeof data.url === 'string' && data.url) ||
+        null;
+      if (!uploadedUrl) {
+        throw new Error('Upload did not return an image URL');
+      }
+    } catch (error) {
+      console.error('Failed to upload list thumbnail', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to upload thumbnail'
+      );
+      setIsUploadingThumbnail(false);
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = '';
+      }
+      return;
+    }
+
+    try {
+      await updateListThumbnail({
+        listId: rawListId,
+        thumbnailUrl: uploadedUrl,
+      });
+    } finally {
+      setIsUploadingThumbnail(false);
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = '';
+      }
+    }
   };
 
   let listDescriptionSection: ReactNode = null;
@@ -973,29 +1077,53 @@ export default function LocationListsDrawer({
   };
 
   const renderDrawerTile = (
-    location: NonNullable<DrawerList['locations']>[number]
-  ) => (
-    <MapCard
-      key={location.membershipId}
-      variant="drawerTile"
-      name={location.name}
-      address={
-        location.address?.trim() || location.context?.trim() || location.name
-      }
-      description={location.description}
-      category={location.category}
-      imageUrl={location.coin_image_thumb_url || location.coin_image_url}
-      eventUrl={location.event_url}
-      isExisting
-      recentCheckins={checkinsByPlaceId[location.place_id] ?? []}
-      onAction={() => onLocationFocus?.(location)}
-      isFavorited={favoritePlaceIds?.has(location.place_id) ?? false}
-      onToggleFavorite={
-        onToggleFavorite ? () => onToggleFavorite(location.place_id) : undefined
-      }
-      isFavoriteLoading={isFavoritePending}
-    />
-  );
+    location: NonNullable<DrawerList['locations']>[number],
+    options?: { allowRemoveFromCustomList?: boolean }
+  ) => {
+    const rawListId = selectedCustomList?.id.slice(
+      CUSTOM_LIST_ID_PREFIX.length
+    );
+    const canRemove =
+      Boolean(options?.allowRemoveFromCustomList) && Boolean(rawListId);
+    const isRemovingThis =
+      isRemovingLocation &&
+      removingLocationVariables?.placeId === location.place_id;
+
+    return (
+      <MapCard
+        key={location.membershipId}
+        variant="drawerTile"
+        name={location.name}
+        address={
+          location.address?.trim() || location.context?.trim() || location.name
+        }
+        description={location.description}
+        category={location.category}
+        imageUrl={location.coin_image_thumb_url || location.coin_image_url}
+        eventUrl={location.event_url}
+        isExisting
+        recentCheckins={checkinsByPlaceId[location.place_id] ?? []}
+        onAction={() => onLocationFocus?.(location)}
+        isFavorited={favoritePlaceIds?.has(location.place_id) ?? false}
+        onToggleFavorite={
+          onToggleFavorite
+            ? () => onToggleFavorite(location.place_id)
+            : undefined
+        }
+        isFavoriteLoading={isFavoritePending}
+        onRemoveFromList={
+          canRemove && rawListId
+            ? () =>
+                removeLocationFromList({
+                  listId: rawListId,
+                  placeId: location.place_id,
+                })
+            : undefined
+        }
+        isRemoveFromListPending={isRemovingThis}
+      />
+    );
+  };
 
   const standardListBody = (
     <div
@@ -1032,30 +1160,98 @@ export default function LocationListsDrawer({
             </div>
 
             <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 mapHd:grid-cols-[176px_minmax(0,1fr)] mapHd:gap-6">
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#FFF200]">
-                {personalListThumbnail ? (
-                  <Image
-                    src={personalListThumbnail}
-                    alt=""
-                    fill
-                    sizes="(min-width: 2560px) 176px, 112px"
-                    className="object-cover"
+              {isCustomListDetailView ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    disabled={isUploadingThumbnail || isUpdatingThumbnail}
+                    className="group relative aspect-square overflow-hidden rounded-2xl bg-[#FFF200] transition-opacity hover:opacity-90 disabled:opacity-60"
+                    aria-label={
+                      personalListThumbnail
+                        ? 'Change list thumbnail'
+                        : 'Upload list thumbnail'
+                    }
+                  >
+                    {personalListThumbnail ? (
+                      <Image
+                        src={personalListThumbnail}
+                        alt=""
+                        fill
+                        sizes="(min-width: 2560px) 176px, 112px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <Image
+                        src="/irl-svg/irl-logo-new.svg"
+                        alt=""
+                        width={64}
+                        height={58}
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                      />
+                    )}
+                    <span className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/55 px-2 py-1.5 label-small uppercase tracking-wide text-white opacity-100 transition-opacity mapHd:opacity-0 mapHd:group-hover:opacity-100">
+                      {isUploadingThumbnail || isUpdatingThumbnail
+                        ? 'Saving…'
+                        : personalListThumbnail
+                          ? 'Change'
+                          : 'Add photo'}
+                    </span>
+                    {isUploadingThumbnail || isUpdatingThumbnail ? (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                        <Loader2
+                          className="size-6 animate-spin text-white"
+                          aria-hidden
+                        />
+                      </span>
+                    ) : null}
+                  </button>
+                  <input
+                    ref={thumbnailInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) =>
+                      void handleThumbnailFileChange(
+                        event.target.files?.[0] ?? null
+                      )
+                    }
                   />
-                ) : (
-                  <Image
-                    src="/irl-svg/irl-logo-new.svg"
-                    alt=""
-                    width={64}
-                    height={58}
-                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                  />
-                )}
-              </div>
+                </>
+              ) : (
+                <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#FFF200]">
+                  {personalListThumbnail ? (
+                    <Image
+                      src={personalListThumbnail}
+                      alt=""
+                      fill
+                      sizes="(min-width: 2560px) 176px, 112px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <Image
+                      src="/irl-svg/irl-logo-new.svg"
+                      alt=""
+                      width={64}
+                      height={58}
+                      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                    />
+                  )}
+                </div>
+              )}
 
               <div className="flex min-w-0 flex-col justify-between gap-2">
-                <h2 className="title4 line-clamp-2 text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
-                  {personalListDetail.title}
-                </h2>
+                {isCustomListDetailView ? (
+                  <ListTitleEditor
+                    title={personalListDetail.title}
+                    isSaving={isUpdatingTitle}
+                    onSave={handleSaveListTitle}
+                  />
+                ) : (
+                  <h2 className="title4 line-clamp-2 text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
+                    {personalListDetail.title}
+                  </h2>
+                )}
                 <dl
                   className={
                     SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT
@@ -1225,7 +1421,18 @@ export default function LocationListsDrawer({
                       : isCustomListDetailView
                         ? (selectedCustomList?.locations ?? [])
                         : (selectedList?.locations ?? [])
-                  ).map((location) => renderDrawerTile(location))}
+                  ).map((location) =>
+                    renderDrawerTile(location, {
+                      allowRemoveFromCustomList: isCustomListDetailView,
+                    })
+                  )}
+                  {isCustomListDetailView &&
+                  (selectedCustomList?.locations.length ?? 0) === 0 ? (
+                    <p className="body-small text-[#757575]">
+                      No locations in this list yet. Open a spot on the map to
+                      add one.
+                    </p>
+                  ) : null}
                 </div>
 
                 {isCustomListDetailView ? (
@@ -1263,39 +1470,51 @@ export default function LocationListsDrawer({
               </div>
             ) : (
               <>
-                {listsWithSpotsInView.map((list) => (
-                  <div key={list.id} className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="title4 min-w-0 text-[#1a1a1a]">
-                        {list.title}
-                      </h3>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedListId(list.id);
-                          if (!isSidebar) setSheetSize('full');
-                        }}
-                        className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
-                      >
-                        View all
-                      </button>
-                    </div>
-                    <div
-                      className={
-                        isSidebar
-                          ? 'flex gap-2 overflow-x-auto pb-1'
-                          : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
-                      }
-                    >
-                      {(list.locations ?? []).map((location) =>
-                        isSidebar
-                          ? renderDrawerTile(location)
-                          : renderMobileCarouselCard(location)
-                      )}
-                    </div>
+                {hasVisibleCustomLists ? (
+                  <div className="space-y-4">
+                    <h3 className="title3 min-w-0 text-[#1a1a1a]">
+                      Your Lists
+                    </h3>
+                    {customDrawerLists.map((list) => (
+                      <div key={list.id} className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="title4 min-w-0 text-[#1a1a1a]">
+                            {list.title}
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedListId(list.id);
+                              if (!isSidebar) setSheetSize('full');
+                            }}
+                            className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                          >
+                            View all
+                          </button>
+                        </div>
+                        {list.locations.length > 0 ? (
+                          <div
+                            className={
+                              isSidebar
+                                ? 'flex gap-2 overflow-x-auto pb-1'
+                                : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
+                            }
+                          >
+                            {list.locations.map((location) =>
+                              isSidebar
+                                ? renderDrawerTile(location)
+                                : renderMobileCarouselCard(location)
+                            )}
+                          </div>
+                        ) : (
+                          <p className="body-small text-[#757575]">
+                            No locations yet
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : null}
                 {hasVisibleFavorites ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
@@ -1331,45 +1550,39 @@ export default function LocationListsDrawer({
                     </div>
                   </div>
                 ) : null}
-                {hasVisibleCustomLists ? (
-                  <div className="space-y-4">
-                    <h3 className="title3 min-w-0 text-[#1a1a1a]">
-                      Your Lists
-                    </h3>
-                    {populatedCustomLists.map((list) => (
-                      <div key={list.id} className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="title4 min-w-0 text-[#1a1a1a]">
-                            {list.title}
-                          </h3>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedListId(list.id);
-                              if (!isSidebar) setSheetSize('full');
-                            }}
-                            className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
-                          >
-                            View all
-                          </button>
-                        </div>
-                        <div
-                          className={
-                            isSidebar
-                              ? 'flex gap-2 overflow-x-auto pb-1'
-                              : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
-                          }
-                        >
-                          {list.locations.map((location) =>
-                            isSidebar
-                              ? renderDrawerTile(location)
-                              : renderMobileCarouselCard(location)
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                {listsWithSpotsInView.map((list) => (
+                  <div key={list.id} className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="title4 min-w-0 text-[#1a1a1a]">
+                        {list.title}
+                      </h3>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedListId(list.id);
+                          if (!isSidebar) setSheetSize('full');
+                        }}
+                        className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                      >
+                        View all
+                      </button>
+                    </div>
+                    <div
+                      className={
+                        isSidebar
+                          ? 'flex gap-2 overflow-x-auto pb-1'
+                          : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
+                      }
+                    >
+                      {(list.locations ?? []).map((location) =>
+                        isSidebar
+                          ? renderDrawerTile(location)
+                          : renderMobileCarouselCard(location)
+                      )}
+                    </div>
                   </div>
-                ) : null}
+                ))}
               </>
             )}
           </div>
@@ -1382,11 +1595,14 @@ export default function LocationListsDrawer({
           if (!isDeletingList) setIsDeleteDialogOpen(open);
         }}
       >
-        <DialogContent className="max-w-[361px] gap-4 rounded-none p-6">
-          <DialogTitle className="title4 uppercase text-[#171717]">
+        <DialogContent
+          hideCloseButton
+          className="max-w-[361px] gap-5 rounded-none border-0 bg-transparent p-6 shadow-none"
+        >
+          <DialogTitle className="title3 text-2xl font-bold uppercase leading-tight text-white mapHd:text-[32px]">
             Delete list
           </DialogTitle>
-          <DialogDescription className="body-small text-[#454545]">
+          <DialogDescription className="body-medium text-base leading-relaxed text-white/90 mapHd:text-lg">
             {`Delete "${selectedCustomList?.title ?? 'this list'}"? Its ${
               selectedCustomList?.locations.length ?? 0
             } saved location${
@@ -1398,7 +1614,7 @@ export default function LocationListsDrawer({
               type="button"
               onClick={() => setIsDeleteDialogOpen(false)}
               disabled={isDeletingList}
-              className="label-medium flex h-10 flex-1 items-center justify-center border border-[var(--Borders-Heavy-Border,#454545)] bg-[var(--Backgrounds-Background,#FFF)] uppercase tracking-wide text-[#171717] transition-colors hover:bg-neutral-50 disabled:opacity-50"
+              className="label-medium flex h-11 flex-1 items-center justify-center border border-white bg-transparent uppercase tracking-wide text-white transition-colors hover:bg-white/10 disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1406,7 +1622,7 @@ export default function LocationListsDrawer({
               type="button"
               onClick={handleConfirmDeleteList}
               disabled={isDeletingList}
-              className="label-medium flex h-10 flex-1 items-center justify-center bg-[#171717] uppercase tracking-wide text-white transition-colors hover:bg-black disabled:opacity-50"
+              className="label-medium flex h-11 flex-1 items-center justify-center bg-white uppercase tracking-wide text-[#171717] transition-colors hover:bg-neutral-100 disabled:opacity-50"
             >
               {isDeletingList ? (
                 <Loader2 className="size-5 animate-spin" aria-hidden />
@@ -1437,7 +1653,7 @@ export default function LocationListsDrawer({
       isLoadingLists ||
       !hasFetchedLists ||
       (!hasAnyListLocations &&
-        !hasCustomListLocations &&
+        !hasAnyCustomLists &&
         (!hasFavorites || !favoritesReady) &&
         !collapseForMapCard) ||
       (!hasVisibleLocations &&

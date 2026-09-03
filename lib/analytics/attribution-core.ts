@@ -4,6 +4,15 @@
  */
 
 export const SIGNUP_ATTRIBUTION_STORAGE_KEY = 'irl_signup_attribution_v1';
+/** Session flag: Become a Member on a gated city guide (survives Privy modal). */
+export const SIGNUP_FROM_GATE_STORAGE_KEY = 'irl_signup_from_gate_v1';
+/** Drop stale gate intents so a later unrelated signup is not attributed. */
+export const SIGNUP_FROM_GATE_TTL_MS = 2 * 60 * 60 * 1000;
+
+export type SignupFromGateIntent = {
+  guide_slug: string;
+  marked_at: number;
+};
 
 /** Max lengths guardrails against oversized URL/query payloads */
 export const ATTRIBUTION_LIMITS = {
@@ -185,6 +194,11 @@ export type SignupAttributionPayload = {
   checkpoint_id?: string;
   event_id?: string;
   location_id?: string;
+
+  /** True when the reader tapped Become a Member on a gated city guide. */
+  from_gate?: boolean;
+  /** Guide slug for `signup_from_gate` (paired with `from_gate`). */
+  guide_slug?: string;
 };
 
 export function signupAttributionPayloadHasData(

@@ -4,6 +4,7 @@ import type {
   CheckinEventProperties,
   RewardEventProperties,
   LocationCreatedProperties,
+  LocationListCreatedProperties,
   PointsEarnedProperties,
   TierChangedProperties,
   TierProgressionProperties,
@@ -157,6 +158,14 @@ export function trackAccountCreated(
   });
 }
 
+/** Net-new IRL account after Become a Member on a gated city guide. */
+export function trackSignupFromGate(
+  distinctId: string,
+  properties: { guide_slug: string }
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SIGNUP_FROM_GATE, properties);
+}
+
 export function trackCheckinCompleted(
   distinctId: string,
   properties: CheckinEventProperties
@@ -185,6 +194,13 @@ export function trackLocationCreated(
   trackEvent(distinctId, ANALYTICS_EVENTS.USER_ACTIVE, {
     action_type: 'location_created',
   });
+}
+
+export function trackLocationListCreated(
+  distinctId: string,
+  properties: LocationListCreatedProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.LOCATION_LIST_CREATED, properties);
 }
 
 export function trackPointsEarned(

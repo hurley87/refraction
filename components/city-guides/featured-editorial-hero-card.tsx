@@ -33,8 +33,8 @@ export function defaultReadLabel(kind: GuideKind): string {
 }
 
 /**
- * Featured editorial / city guide — editorial hero 1350×1080; city guide square on mobile;
- * 393px column on desktop. Summary and list use 16px gutters.
+ * Featured editorial / city guide hero at 1080×1350 (4:5); 393px column on desktop.
+ * Summary and list use 16px gutters.
  */
 export default function FeaturedEditorialHeroCard({
   guideKind,
@@ -60,9 +60,7 @@ export default function FeaturedEditorialHeroCard({
       <div
         className={cn(
           'relative mx-auto w-full max-w-none shrink-0 overflow-hidden md:max-w-[393px]',
-          guideKind === 'editorial'
-            ? EDITORIAL_HERO_ASPECT_CLASS
-            : 'aspect-square'
+          EDITORIAL_HERO_ASPECT_CLASS
         )}
       >
         <Link

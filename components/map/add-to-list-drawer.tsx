@@ -26,6 +26,11 @@ interface AddToListDrawerProps {
   walletAddress: string;
   /** Back button / after a successful add. */
   onClose: () => void;
+  /**
+   * After creating a list (and saving the current spot into it), hand off so
+   * the parent can open the lists drawer focused on that list.
+   */
+  onListCreated?: (listId: string) => void;
 }
 
 /** Bookmark-style "add list" icon from the design (16×16). */
@@ -98,6 +103,7 @@ export default function AddToListDrawer({
   location,
   walletAddress,
   onClose,
+  onListCreated,
 }: AddToListDrawerProps) {
   const [view, setView] = useState<'lists' | 'create'>('lists');
   const [selectedListIds, setSelectedListIds] = useState<Set<string>>(
@@ -107,7 +113,7 @@ export default function AddToListDrawer({
   // Create-list form state
   const [newListTitle, setNewListTitle] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
-  const [newListIsPrivate, setNewListIsPrivate] = useState(true);
+  const [newListIsPrivate, setNewListIsPrivate] = useState(false);
   const [newListThumbnailUrl, setNewListThumbnailUrl] = useState<string | null>(
     null
   );
@@ -120,12 +126,15 @@ export default function AddToListDrawer({
   );
   const { mutateAsync: createList, isPending: isCreatingList } =
     useCreateCustomList(walletAddress);
-  const { mutate: addToLists, isPending: isAddingToLists } =
+  const { mutateAsync: addToLists, isPending: isAddingToLists } =
     useAddLocationToLists(walletAddress);
 
   const selectedCount = selectedListIds.size;
   const canCreateList =
-    newListTitle.trim().length > 0 && !isCreatingList && !isUploadingThumbnail;
+    newListTitle.trim().length > 0 &&
+    !isCreatingList &&
+    !isUploadingThumbnail &&
+    !isAddingToLists;
 
   const toggleListSelection = (listId: string) => {
     setSelectedListIds((current) => {
@@ -141,7 +150,7 @@ export default function AddToListDrawer({
 
   const handleAdd = () => {
     if (selectedCount === 0 || isAddingToLists) return;
-    addToLists(
+    void addToLists(
       {
         walletAddress,
         placeId: location.placeId,
@@ -187,7 +196,7 @@ export default function AddToListDrawer({
       toast.error('Enter a collection name');
       return;
     }
-    if (isCreatingList || isUploadingThumbnail) return;
+    if (isCreatingList || isUploadingThumbnail || isAddingToLists) return;
 
     try {
       const result = await createList({
@@ -201,7 +210,24 @@ export default function AddToListDrawer({
       setNewListTitle('');
       setNewListDescription('');
       setNewListThumbnailUrl(null);
-      setNewListIsPrivate(true);
+      setNewListIsPrivate(false);
+
+      if (createdId && onListCreated) {
+        try {
+          await addToLists({
+            walletAddress,
+            placeId: location.placeId,
+            listIds: [createdId],
+          });
+        } catch (error) {
+          // List exists; add-location hook already toasts. Still hand off focus.
+          console.error('Failed to add location to new list', error);
+        }
+        onListCreated(createdId);
+        onClose();
+        return;
+      }
+
       if (createdId) {
         setSelectedListIds((current) => new Set(current).add(createdId));
       }
@@ -488,7 +514,7 @@ export default function AddToListDrawer({
               ) : selectedCount === 0 ? (
                 'SELECT A LIST TO ADD'
               ) : (
-                `ADD TO ${selectedCount} LIST${selectedCount === 1 ? '' : 'S'}`
+                'SAVE'
               )}
             </button>
           </div>

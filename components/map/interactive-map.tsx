@@ -16,6 +16,7 @@ import { useModalStatus, usePrivy } from '@privy-io/react-auth';
 import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
+import { X } from 'lucide-react';
 import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { usePlayerCustomLists } from '@/hooks/usePlayerCustomLists';
 import AddToListDrawer from '@/components/map/add-to-list-drawer';
@@ -104,6 +105,8 @@ const WELCOME_TOUR_MAX_SHOWS = 1;
 const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
 const LOCATION_INSTRUCTION_LIMIT = 3;
+/** Shown once after a member creates their first custom list from the map. */
+const LIST_CREATE_MAP_TIP_STORAGE_KEY = 'irl-custom-list-map-tip-seen-v4';
 /** Privy ignores `login()` while its modal is unmounting, so wait before reopening. */
 const LOGIN_REPROMPT_DELAY_MS = 400;
 
@@ -264,6 +267,18 @@ export default function InteractiveMap({
   const [addToListTarget, setAddToListTarget] = useState<MarkerData | null>(
     null
   );
+  /** Keep the marker for create-handoff even if add-to-list state clears mid-await. */
+  const addToListTargetRef = useRef<MarkerData | null>(null);
+  addToListTargetRef.current = addToListTarget;
+  /** Focus the discover drawer on this custom list after creating one. */
+  const [focusCustomListId, setFocusCustomListId] = useState<string | null>(
+    null
+  );
+  /**
+   * Tip after creating a list from a location: keep that map card open so the
+   * lists drawer does not cover the yellow “add more spots” bubble.
+   */
+  const [showListCreateMapTip, setShowListCreateMapTip] = useState(false);
   const { data: popupCustomLists = [] } = usePlayerCustomLists(
     walletAddress,
     popupInfo?.place_id
@@ -276,6 +291,34 @@ export default function InteractiveMap({
   useEffect(() => {
     if (!popupInfo) setAddToListTarget(null);
   }, [popupInfo]);
+
+  const dismissListCreateMapTip = useCallback(() => {
+    setShowListCreateMapTip((wasShowing) => {
+      if (wasShowing) {
+        writeLocalStorageItem(LIST_CREATE_MAP_TIP_STORAGE_KEY, '1');
+      }
+      return false;
+    });
+  }, []);
+
+  const handleListCreated = useCallback(
+    (_listId: string) => {
+      const createdFromMarker = addToListTargetRef.current ?? addToListTarget;
+      setAddToListTarget(null);
+      setFocusCustomListId(null);
+
+      if (!createdFromMarker) {
+        toast.success('List created');
+        return;
+      }
+
+      // Stay on the location that started save-to-list so the tip is visible.
+      setPopupInfo(createdFromMarker);
+      setSelectedMarker(createdFromMarker);
+      setShowListCreateMapTip(true);
+    },
+    [addToListTarget]
+  );
 
   const [showLocationForm, setShowLocationForm] = useState(false);
   const [formStep, setFormStep] = useState<FormStep>('business-details');
@@ -1718,9 +1761,14 @@ export default function InteractiveMap({
     }
   };
 
-  const isDrawerMinimized = Boolean(pendingMapCreateMarker || showLocationForm);
+  const isDrawerMinimized = Boolean(
+    pendingMapCreateMarker || showLocationForm || showListCreateMapTip
+  );
   const isMobileDrawerCollapsed = Boolean(
-    pendingMapCreateMarker || popupInfo || showLocationForm
+    pendingMapCreateMarker ||
+    popupInfo ||
+    showLocationForm ||
+    showListCreateMapTip
   );
   const [isListDetailOpen, setIsListDetailOpen] = useState(false);
   const [mobileSheetLayout, setMobileSheetLayout] =
@@ -1743,7 +1791,8 @@ export default function InteractiveMap({
   const showMobileLocateAboveSheet = mobileSheetLayout.size !== 'full';
 
   const mapCardBottomOverlayClassName = cn(
-    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4 xl:pl-[394px]',
+    'pointer-events-none fixed inset-x-0 flex justify-center px-4 xl:pl-[394px]',
+    showListCreateMapTip ? 'z-[90]' : 'z-[75]',
     isListDetailOpen
       ? 'mapWide:pl-[452px] mapHd:pl-[880px]'
       : 'mapWide:pl-[559px] mapHd:pl-[809px]',
@@ -1871,6 +1920,7 @@ export default function InteractiveMap({
           onToggleFavorite={handleToggleFavorite}
           isFavoritePending={isFavoritePending}
           initialCustomListId={initialCustomListId}
+          focusCustomListId={focusCustomListId}
           initialPublicProfileListId={initialPublicProfileListId}
           viewerUsername={userUsername}
           viewerName={userProfileSummary?.name}
@@ -2086,6 +2136,7 @@ export default function InteractiveMap({
           onToggleFavorite={handleToggleFavorite}
           isFavoritePending={isFavoritePending}
           initialCustomListId={initialCustomListId}
+          focusCustomListId={focusCustomListId}
           initialPublicProfileListId={initialPublicProfileListId}
           viewerUsername={userUsername}
           viewerName={userProfileSummary?.name}
@@ -2359,7 +2410,7 @@ export default function InteractiveMap({
 
       {popupInfo && !addToListTarget && (
         <div className={mapCardBottomOverlayClassName}>
-          <div className="pointer-events-auto w-full max-w-[361px]">
+          <div className="pointer-events-auto relative w-full max-w-[361px]">
             <MapCard
               name={popupInfo.name}
               address={popupInfo.address || popupInfo.name}
@@ -2368,6 +2419,7 @@ export default function InteractiveMap({
               isExisting={true}
               onAction={() => handleStartCheckIn(popupInfo)}
               onClose={() => {
+                dismissListCreateMapTip();
                 setPopupInfo(null);
                 setSelectedMarker(null);
               }}
@@ -2380,6 +2432,26 @@ export default function InteractiveMap({
               }
               savedListCount={popupSavedListCount}
             />
+            {showListCreateMapTip ? (
+              <div
+                role="status"
+                className="absolute inset-x-3 top-12 z-30 sm:inset-x-4"
+              >
+                <div className="relative rounded-2xl bg-[#FFF200] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
+                  <button
+                    type="button"
+                    onClick={dismissListCreateMapTip}
+                    className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full text-[#171717]/opacity-70 transition-opacity hover:opacity-100"
+                    aria-label="Dismiss tip"
+                  >
+                    <X className="size-4" aria-hidden />
+                  </button>
+                  <p className="body-medium pr-8 text-[#171717]">
+                    Go to the map to add more spots to your list!
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}
@@ -2403,6 +2475,7 @@ export default function InteractiveMap({
               }}
               walletAddress={walletAddress}
               onClose={() => setAddToListTarget(null)}
+              onListCreated={handleListCreated}
             />
           </div>
         </div>

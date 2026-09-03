@@ -173,30 +173,44 @@ describe('CityGuideLocationsSection', () => {
     expect(await screen.findByRole('dialog')).toBeTruthy();
   });
 
-  it('fires signup_from_gate only for new users after the gate CTA', async () => {
+  it('marks gate signup intent when Become a Member is clicked', async () => {
     const user = userEvent.setup();
+    sessionStorage.clear();
     render(<CityGuideLocationsSection {...baseProps} />);
 
     act(() => setSentinelIntersecting?.(true));
     await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
 
-    act(() => loginOnComplete?.({ isNewUser: false }));
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledOnce();
+    });
+
+    const raw = sessionStorage.getItem('irl_signup_from_gate_v1');
+    expect(raw).toBeTruthy();
+    expect(JSON.parse(raw!)).toMatchObject({ guide_slug: 'berlin' });
+    // Real signup_from_gate fires server-side on new player create.
     expect(mockTrackEvent).not.toHaveBeenCalledWith(
       'signup_from_gate',
       expect.anything()
     );
+  });
 
-    // Scroll away and back to bring the gate up for a second attempt.
-    act(() => setSentinelIntersecting?.(false));
+  it('clears gate signup intent when the Privy flow is abandoned', async () => {
+    const user = userEvent.setup();
+    sessionStorage.clear();
+    render(<CityGuideLocationsSection {...baseProps} />);
+
     act(() => setSentinelIntersecting?.(true));
-
-    await user.click(
-      await screen.findByRole('button', { name: 'BECOME A MEMBER' })
-    );
-    act(() => loginOnComplete?.({ isNewUser: true }));
-    expect(mockTrackEvent).toHaveBeenCalledWith('signup_from_gate', {
-      guide_slug: 'berlin',
+    await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledOnce();
     });
+    expect(sessionStorage.getItem('irl_signup_from_gate_v1')).toBeTruthy();
+
+    act(() => loginOnError?.('exited_auth_flow'));
+
+    expect(sessionStorage.getItem('irl_signup_from_gate_v1')).toBeNull();
+    expect(await screen.findByRole('dialog')).toBeTruthy();
   });
 
   it('re-opens the gate after dismissal once the sentinel is reached again', async () => {
