@@ -668,7 +668,7 @@ function PerksPageInner() {
               {latestReward.thumbnail_url && (
                 <div className="relative left-1/2 mb-4 aspect-[86/79] w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden md:left-auto md:w-full md:translate-x-0">
                   <Image
-                    src={latestReward.hero_image || latestReward.thumbnail_url!}
+                    src={latestReward.thumbnail_url}
                     alt={latestReward.title}
                     fill
                     className="object-cover"
@@ -1212,30 +1212,29 @@ function PerksPageInner() {
                   : 'h-full overflow-y-auto'
               }
             >
-              {/* Hero: blurred reward image + centered thumb + logo + close */}
+              {/* Hero: reward image fills the section, logo + controls on top */}
               <div
-                className="relative flex h-[212px] w-full items-start justify-center gap-2 overflow-hidden"
+                className="relative h-[212px] w-full overflow-hidden"
                 style={{
                   background:
                     'linear-gradient(0deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.20) 100%), #454545',
                 }}
               >
                 {heroImageUrl ? (
-                  <div
-                    className="pointer-events-none absolute inset-0 overflow-hidden"
-                    aria-hidden
-                  >
-                    <Image
-                      src={heroImageUrl}
-                      alt=""
-                      fill
-                      className="scale-125 object-cover"
-                      style={{ filter: 'blur(18.15px)' }}
-                      sizes="393px"
-                    />
-                    <div className="absolute inset-0 bg-black/20" />
-                  </div>
+                  <Image
+                    src={heroImageUrl}
+                    alt={selectedPerk.title}
+                    fill
+                    className="object-cover"
+                    sizes="393px"
+                  />
                 ) : null}
+
+                {/* Keeps the white logo readable over bright photos. */}
+                <div
+                  className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/40 to-transparent"
+                  aria-hidden
+                />
 
                 <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between p-2">
                   <Image
@@ -1275,23 +1274,6 @@ function PerksPageInner() {
                     </DialogClose>
                   </div>
                 </div>
-
-                {heroImageUrl ? (
-                  <div className="relative z-[1] flex h-full w-full items-center justify-center p-2">
-                    <Image
-                      src={heroImageUrl}
-                      alt={selectedPerk.title}
-                      width={127}
-                      height={129}
-                      className="object-cover rounded-[24px]"
-                      style={{
-                        width: '127px',
-                        height: '129px',
-                        aspectRatio: '127/129',
-                      }}
-                    />
-                  </div>
-                ) : null}
               </div>
 
               {/* Container 3: Details */}
@@ -1597,9 +1579,9 @@ function PerksPageInner() {
                 {!address && (
                   <>
                     <div style={{ height: '1px' }} />
-                    <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="flex flex-col items-center pt-4 gap-3 text-center">
                       <div>
-                        <h4 className="title4 font-grotesk text-black">
+                        <h4 className="title3 uppercase text-black">
                           IRL members only
                         </h4>
                         <p className="mt-1 body-small text-[#4F4F4F]">
@@ -1609,14 +1591,28 @@ function PerksPageInner() {
                       <button
                         type="button"
                         onClick={handleLoginClick}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white transition-colors hover:bg-[#313131]"
+                        className="label-large flex h-11 uppercase min-h-11 w-full items-center justify-between bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-95"
                       >
                         Join IRL
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          className="shrink-0"
+                          aria-hidden
+                        >
+                          <path
+                            d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                            fill="#FFFFFF"
+                          />
+                        </svg>
                       </button>
                       <button
                         type="button"
                         onClick={handleLoginClick}
-                        className="body-small font-grotesk text-[#313131] underline underline-offset-4 hover:text-black"
+                        className="body-small text-[#313131] underline underline-offset-4 hover:text-black"
                       >
                         Already a member? Sign in
                       </button>
