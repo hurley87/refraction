@@ -121,7 +121,7 @@ export default function CityGuidesCoverSection() {
   return (
     <section className="mx-auto flex w-full flex-col items-center self-stretch overflow-hidden bg-[#131313]">
       {/* Mobile layout */}
-      <div className="flex w-full max-w-[393px] flex-col items-center gap-8 px-4 pt-16 pb-12 xl:hidden">
+      <div className="flex w-full max-w-[393px] flex-col items-center gap-8 px-4 pt-[128px] pb-12 xl:hidden">
         {/* Subtitle block */}
         <div className="flex w-full max-w-[361px] flex-col items-start">
           <div className="flex w-full items-center gap-2">
@@ -130,7 +130,7 @@ export default function CityGuidesCoverSection() {
           </div>
           <div className="flex items-center gap-2 self-stretch py-4">
             <div className="title1 text-left font-normal text-white">
-              Local knowledge, everywhere
+              Your global guide to what's good.
             </div>
           </div>
         </div>
@@ -204,7 +204,7 @@ export default function CityGuidesCoverSection() {
               <h2 className="title4 text-left text-white">City Guides</h2>
             </div>
             <p className="title0 text-left text-white">
-              Local knowledge, everywhere
+              Your global guide to what&apos;s good.
             </p>
           </div>
           <ViewAllGuidesButton className="inline-flex w-[243px] shrink-0" />
