@@ -134,16 +134,18 @@ export default function RootLayout({
   }, true);
   window.addEventListener('unhandledrejection', function(event) {
     const reason = event.reason;
-    if (
-      reason &&
-      typeof reason === 'object' &&
-      reason != null &&
-      'code' in reason &&
-      reason.code === 4001 &&
-      'message' in reason
-    ) {
-      event.preventDefault();
-      return false;
+    if (reason && typeof reason === 'object' && reason != null && 'code' in reason) {
+      const code = reason.code;
+      const numericCode =
+        typeof code === 'number'
+          ? code
+          : typeof code === 'string' && /^\d+$/.test(code)
+            ? Number(code)
+            : NaN;
+      if (numericCode === 4001 || numericCode === 4900 || numericCode === 4901) {
+        event.preventDefault();
+        return false;
+      }
     }
     const message =
       reason && typeof reason === 'object' && reason != null && 'message' in reason

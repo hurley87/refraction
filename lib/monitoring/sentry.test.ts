@@ -4,6 +4,7 @@ import {
   isAbortError,
   isAndroidJavascriptBridgeNoise,
   isCefSharpBotNoise,
+  isEip1193ProviderNoise,
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
   isPrivyWalletProviderOnNoise,
@@ -29,6 +30,49 @@ describe('isAbortError', () => {
     const error = new DOMException('Fetch is aborted', 'AbortError');
     expect(isAbortError(error)).toBe(true);
     expect(isAbortError(new Error('Fetch is aborted'))).toBe(true);
+  });
+});
+
+describe('isEip1193ProviderNoise', () => {
+  it('detects numeric and string 4001 user rejections (JAVASCRIPT-NEXTJS-1T)', () => {
+    expect(
+      isEip1193ProviderNoise({
+        code: 4001,
+        message: 'User rejected the request.',
+      })
+    ).toBe(true);
+    expect(
+      isEip1193ProviderNoise({
+        code: '4001',
+        message: 'MetaMask Personal Sign: User denied message signature.',
+      })
+    ).toBe(true);
+    expect(isEip1193ProviderNoise({ code: 4001 })).toBe(true);
+  });
+
+  it('detects wallet disconnect codes 4900/4901', () => {
+    expect(
+      isEip1193ProviderNoise({
+        code: 4900,
+        message: 'Disconnected from all chains.',
+      })
+    ).toBe(true);
+    expect(
+      isEip1193ProviderNoise({
+        code: '4901',
+        message: 'Disconnected from chain.',
+      })
+    ).toBe(true);
+  });
+
+  it('keeps actionable provider errors', () => {
+    expect(
+      isEip1193ProviderNoise({
+        code: -32603,
+        message: 'Internal JSON-RPC error.',
+      })
+    ).toBe(false);
+    expect(isEip1193ProviderNoise('User rejected the request.')).toBe(false);
   });
 });
 
@@ -456,6 +500,47 @@ describe('sentryBeforeSend', () => {
     };
 
     expect(sentryBeforeSend(event, {})).toBeNull();
+  });
+
+  it('drops EIP-1193 string-code rejections titled <unknown> (JAVASCRIPT-NEXTJS-1T)', () => {
+    const event = {
+      exception: {
+        values: [{ type: 'UnhandledRejection', value: '<unknown>' }],
+      },
+      extra: {
+        __serialized__: {
+          code: '4001',
+          message: 'MetaMask Tx Signature: User denied transaction signature.',
+          stack:
+            'Error: MetaMask Tx Signature: User denied transaction signature.\n    at chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js:1:1',
+        },
+      },
+      request: { url: 'https://www.irl.energy/interactive-map' },
+    };
+
+    expect(sentryBeforeSend(event, {})).toBeNull();
+  });
+
+  it('drops EIP-1193 4900 disconnect rejections from wallet extensions', () => {
+    const event = {
+      exception: {
+        values: [
+          {
+            value:
+              'UnhandledRejection: Object captured as promise rejection with keys: code, message, stack',
+          },
+        ],
+      },
+      request: { url: 'https://www.irl.energy/dashboard' },
+    };
+    const hint = {
+      originalException: {
+        code: 4900,
+        message: 'The provider is disconnected from all chains.',
+      },
+    };
+
+    expect(sentryBeforeSend(event, hint)).toBeNull();
   });
 
   it('keeps non-4001 provider-shaped objects', () => {
