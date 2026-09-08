@@ -1,12 +1,14 @@
 import dynamic from 'next/dynamic';
 import Header from '@/components/layout/header';
-import Hero from '@/components/home/hero';
+import RewardsSection from '@/components/home/rewards-section';
 import {
   getHomepageFeaturedEvent,
   type HomepageFeaturedEvent,
 } from '@/lib/home/featured-event';
 import { listFeaturedDiceEventIds } from '@/lib/db/featured-dice-event';
 
+// Temporarily hidden — re-enable import and JSX block below to restore
+// import Hero from '@/components/home/hero';
 // Temporarily hidden — re-enable import and JSX block below to restore
 // const WhatYouGetSection = dynamic(
 //   () => import('@/components/home/what-you-get-section'),
@@ -17,10 +19,11 @@ import { listFeaturedDiceEventIds } from '@/lib/db/featured-dice-event';
 //   () => import('@/components/home/check-ins-fund-culture-section'),
 //   { ssr: true }
 // );
-const CityGuidesCarouselSection = dynamic(
-  () => import('@/components/home/city-guides-carousel-section'),
-  { ssr: true }
-);
+// Temporarily hidden — re-enable import and JSX block below to restore
+// const CityGuidesCarouselSection = dynamic(
+//   () => import('@/components/home/city-guides-carousel-section'),
+//   { ssr: true }
+// );
 
 const IRLTourSection = dynamic(
   () => import('@/components/home/irl-tour-section'),
@@ -32,14 +35,16 @@ const CityGuidesCoverSection = dynamic(
   { ssr: true }
 );
 
-const GetInvolvedSection = dynamic(
-  () => import('@/components/home/get-involved-section'),
-  { ssr: true }
-);
+// Temporarily hidden — re-enable import and JSX block below to restore
+// const GetInvolvedSection = dynamic(
+//   () => import('@/components/home/get-involved-section'),
+//   { ssr: true }
+// );
 
-const ArtistCTA = dynamic(() => import('@/components/home/artist-cta'), {
-  ssr: true,
-});
+// Temporarily hidden — re-enable import and JSX block below to restore
+// const ArtistCTA = dynamic(() => import('@/components/home/artist-cta'), {
+//   ssr: true,
+// });
 // Temporarily hidden — re-enable import and JSX block below to restore
 // const FooterHero = dynamic(() => import('@/components/layout/footer-hero'), {
 //   ssr: true,
@@ -68,22 +73,12 @@ export default async function Home() {
       <Header variant="home" />
 
       <div className="overflow-x-hidden overflow-y-visible rounded-t-3xl xl:rounded-none">
-        {/* Hero Section with WebGL Background - Full viewport */}
-        <div className="relative w-screen">
-          <Hero />
-        </div>
-
-        {/* Artist CTA Section */}
-        <div className="py-0">
-          <ArtistCTA />
-        </div>
-
         {/* City Guides Cover Section */}
         <div className="py-0">
           <CityGuidesCoverSection />
         </div>
 
-        {/* IRL Tour Section */}
+        {/* Upcoming Events */}
         <div className="py-0">
           <IRLTourSection
             featuredEvent={featuredEvent}
@@ -91,14 +86,9 @@ export default async function Home() {
           />
         </div>
 
-        {/* City Guides Carousel Section */}
+        {/* Rewards */}
         <div className="py-0">
-          <CityGuidesCarouselSection />
-        </div>
-
-        {/* Get Involved Section */}
-        <div className="py-0">
-          <GetInvolvedSection />
+          <RewardsSection />
         </div>
 
         {/* Footer */}
