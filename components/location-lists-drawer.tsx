@@ -47,7 +47,7 @@ import {
 } from '@/components/map/list-share-button';
 import { ListDescriptionEditor } from '@/components/map/list-description-editor';
 import { ListTitleEditor } from '@/components/map/list-title-editor';
-import { Switch } from '@/components/ui/switch';
+import { CollectionVisibilityToggle } from '@/components/map/collection-visibility-toggle';
 import type { PublicCustomListOwner } from '@/lib/db/player-custom-lists';
 import { profilePathForPlayer } from '@/lib/username';
 
@@ -901,10 +901,11 @@ export default function LocationListsDrawer({
     });
   };
 
-  const handlePrivacyToggle = (makePublic: boolean) => {
+  const handlePrivacyChange = (isPrivate: boolean) => {
     if (!selectedCustomList || isUpdatingPrivacy) return;
+    if (selectedCustomList.is_private === isPrivate) return;
     const rawListId = selectedCustomList.id.slice(CUSTOM_LIST_ID_PREFIX.length);
-    updateListPrivacy({ listId: rawListId, isPrivate: !makePublic });
+    updateListPrivacy({ listId: rawListId, isPrivate });
   };
 
   const handleSaveListDescription = async (description: string | null) => {
@@ -1307,6 +1308,14 @@ export default function LocationListsDrawer({
 
             {listDescriptionSection}
 
+            {isCustomListDetailView ? (
+              <CollectionVisibilityToggle
+                isPrivate={Boolean(selectedCustomList?.is_private)}
+                disabled={isUpdatingPrivacy}
+                onIsPrivateChange={handlePrivacyChange}
+              />
+            ) : null}
+
             <div
               className={
                 SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT
@@ -1436,36 +1445,14 @@ export default function LocationListsDrawer({
                 </div>
 
                 {isCustomListDetailView ? (
-                  <div className="flex w-full flex-col gap-3">
-                    <div className="flex items-center justify-between gap-3 border border-[var(--Borders-Light-Border,#DBDBDB)] px-3 py-2">
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="label-small uppercase tracking-wide text-[#757575]">
-                          {selectedCustomList?.is_private
-                            ? 'Private'
-                            : 'Public'}
-                        </span>
-                        <span className="body-small text-[#757575]">
-                          {selectedCustomList?.is_private
-                            ? 'Only you can see this list on your profile'
-                            : 'Visible on your public profile'}
-                        </span>
-                      </div>
-                      <Switch
-                        checked={!selectedCustomList?.is_private}
-                        disabled={isUpdatingPrivacy}
-                        onCheckedChange={handlePrivacyToggle}
-                        aria-label="Toggle list visibility between private and public"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsDeleteDialogOpen(true)}
-                      className="label-medium flex h-8 w-fit items-center gap-[var(--sds-size-space-200)] border border-[var(--Borders-Heavy-Border,#454545)] bg-[var(--Backgrounds-Background,#FFF)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#171717] transition-colors hover:bg-neutral-50"
-                    >
-                      Delete list
-                      <Trash2 className="size-4 shrink-0" aria-hidden />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    className="label-medium flex h-8 w-fit items-center gap-[var(--sds-size-space-200)] border border-[var(--borders-Heavy-Border,#454545)] bg-[var(--Backgrounds-Background,#FFF)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#171717] transition-colors hover:bg-neutral-50"
+                  >
+                    Delete list
+                    <Trash2 className="size-4 shrink-0" aria-hidden />
+                  </button>
                 ) : null}
               </div>
             ) : (

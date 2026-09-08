@@ -13,6 +13,7 @@ import {
   useCreateCustomList,
   useAddLocationToLists,
 } from '@/hooks/usePlayerCustomLists';
+import { CollectionVisibilityToggle } from '@/components/map/collection-visibility-toggle';
 
 interface AddToListLocation {
   placeId: string;
@@ -353,48 +354,11 @@ export default function AddToListDrawer({
               />
             </label>
 
-            {/* Label + private/public toggle */}
-            <div
-              role="radiogroup"
-              aria-label="Publish this collection"
-              className="flex items-center gap-[42px] self-stretch"
-            >
-              <span className="title5 shrink-0 text-[#171717]">
-                Publish this
-                <br />
-                Collection?
-              </span>
-              <div className="flex h-10 min-w-0 flex-1 items-stretch border">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={newListIsPrivate}
-                  onClick={() => setNewListIsPrivate(true)}
-                  className={cn(
-                    'label-small flex h-10 min-w-0 max-w-[158px] flex-1 items-center justify-center gap-1 uppercase tracking-wide text-[#171717] transition-colors',
-                    newListIsPrivate
-                      ? 'border-t border-r border-b border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)]'
-                      : 'border-t border-r border-b border-transparent bg-transparent'
-                  )}
-                >
-                  Private
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={!newListIsPrivate}
-                  onClick={() => setNewListIsPrivate(false)}
-                  className={cn(
-                    'label-small flex min-w-0 flex-1 items-center justify-center gap-0.5 self-stretch px-0 py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#171717] transition-colors',
-                    !newListIsPrivate
-                      ? 'bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)]'
-                      : 'bg-[var(--Backgrounds-Background,#FFF)]'
-                  )}
-                >
-                  Public
-                </button>
-              </div>
-            </div>
+            <CollectionVisibilityToggle
+              isPrivate={newListIsPrivate}
+              disabled={isCreatingList}
+              onIsPrivateChange={setNewListIsPrivate}
+            />
           </div>
         </form>
       ) : (
