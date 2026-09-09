@@ -5,13 +5,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
+import { sanitizeUsernameInput } from '@/lib/username';
+import {
+  PlayerLocationFields,
+  type CitySuggestion,
+} from '@/components/shared/player-location-fields';
 import {
   ArrowUpDown,
   Search,
   Download,
   Upload,
+  UserPlus,
   CheckCircle2,
   XCircle,
   AlertCircle,
@@ -90,6 +97,21 @@ interface PendingPointsSummary {
 type SortField = 'email' | 'wallet_address' | 'total_points' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
+const EMPTY_CREATE_FORM = {
+  email: '',
+  username: '',
+  walletAddress: '',
+  totalPoints: '0',
+  name: '',
+  bio: '',
+  website: '',
+  twitterHandle: '',
+  instagramHandle: '',
+  telegramHandle: '',
+  farcasterHandle: '',
+  townsHandle: '',
+};
+
 interface PaginationInfo {
   page: number;
   limit: number;
@@ -107,6 +129,14 @@ export default function AdminUsersPage() {
   const [sortField, setSortField] = useState<SortField>('total_points');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
+  const [createCountryId, setCreateCountryId] = useState('');
+  const [createCityQuery, setCreateCityQuery] = useState('');
+  const [createCity, setCreateCity] = useState<CitySuggestion | null>(null);
+  const [createAvatarFile, setCreateAvatarFile] = useState<File | null>(null);
+  const [createAvatarPreview, setCreateAvatarPreview] = useState('');
+  const createAvatarInputRef = useRef<HTMLInputElement>(null);
   const [uploadResults, setUploadResults] = useState<UploadResult[] | null>(
     null
   );
@@ -259,6 +289,102 @@ export default function AdminUsersPage() {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to upload CSV');
+    },
+  });
+
+  const resetCreateForm = () => {
+    setCreateForm(EMPTY_CREATE_FORM);
+    setCreateCountryId('');
+    setCreateCityQuery('');
+    setCreateCity(null);
+    setCreateAvatarFile(null);
+    setCreateAvatarPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return '';
+    });
+    if (createAvatarInputRef.current) {
+      createAvatarInputRef.current.value = '';
+    }
+  };
+
+  const handleCreateAvatarChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+    setCreateAvatarPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return file ? URL.createObjectURL(file) : '';
+    });
+    setCreateAvatarFile(file);
+  };
+
+  const setCreateField = (field: keyof typeof EMPTY_CREATE_FORM) => {
+    return (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setCreateForm((current) => ({
+        ...current,
+        [field]: event.target.value,
+      }));
+  };
+
+  const createUserMutation = useMutation({
+    mutationFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      let profilePictureUrl: string | undefined;
+      if (createAvatarFile) {
+        const uploadForm = new FormData();
+        uploadForm.append('file', createAvatarFile);
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadForm,
+        });
+        const uploadBody = await uploadResponse.json();
+        if (!uploadResponse.ok) {
+          throw new Error(
+            uploadBody.error || 'Failed to upload profile picture'
+          );
+        }
+        const uploadResult = uploadBody.data || uploadBody;
+        const imageUrl = uploadResult.imageUrl || uploadResult.url;
+        if (!imageUrl || typeof imageUrl !== 'string') {
+          throw new Error('Upload succeeded but no image URL was returned');
+        }
+        profilePictureUrl = imageUrl;
+      }
+      const location =
+        createCountryId && createCity
+          ? {
+              countryId: createCountryId,
+              mapboxId: createCity.mapboxId,
+              name: createCity.name,
+              region: createCity.region,
+            }
+          : undefined;
+      const response = await fetch('/api/admin/users/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...auth,
+        },
+        body: JSON.stringify({
+          ...createForm,
+          profilePictureUrl,
+          location,
+        }),
+      });
+      const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to create user');
+      }
+      return responseData.data || responseData;
+    },
+    onSuccess: () => {
+      setIsCreateDialogOpen(false);
+      resetCreateForm();
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User created');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create user');
     },
   });
 
@@ -523,6 +649,14 @@ export default function AdminUsersPage() {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold">User Management</h1>
           <div className="flex gap-2">
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              variant="default"
+              className="flex items-center gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              Create User
+            </Button>
             <Button
               onClick={() => fileInputRef.current?.click()}
               variant="default"
@@ -944,6 +1078,262 @@ export default function AdminUsersPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) {
+            resetCreateForm();
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle>Create User</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-6"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createUserMutation.mutate();
+            }}
+          >
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Account
+              </h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-email">Email</Label>
+                  <Input
+                    id="create-user-email"
+                    type="email"
+                    required
+                    value={createForm.email}
+                    onChange={setCreateField('email')}
+                    placeholder="user@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-username">Username</Label>
+                  <Input
+                    id="create-user-username"
+                    required
+                    minLength={3}
+                    maxLength={30}
+                    value={createForm.username}
+                    onChange={(event) =>
+                      setCreateForm((current) => ({
+                        ...current,
+                        username: sanitizeUsernameInput(event.target.value),
+                      }))
+                    }
+                    placeholder="username"
+                  />
+                  <p className="text-xs text-gray-500">
+                    3–30 characters, letters, numbers, and underscores.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-wallet">
+                    EVM wallet address (optional)
+                  </Label>
+                  <Input
+                    id="create-user-wallet"
+                    value={createForm.walletAddress}
+                    onChange={setCreateField('walletAddress')}
+                    placeholder="0x…"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-points">Starting points</Label>
+                  <Input
+                    id="create-user-points"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={createForm.totalPoints}
+                    onChange={setCreateField('totalPoints')}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Profile
+              </h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-name">Display name</Label>
+                  <Input
+                    id="create-user-name"
+                    maxLength={100}
+                    value={createForm.name}
+                    onChange={setCreateField('name')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-website">Website</Label>
+                  <Input
+                    id="create-user-website"
+                    type="url"
+                    value={createForm.website}
+                    onChange={setCreateField('website')}
+                    placeholder="https://example.com"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="create-user-avatar">Profile picture</Label>
+                  <Input
+                    ref={createAvatarInputRef}
+                    id="create-user-avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCreateAvatarChange}
+                  />
+                  {createAvatarPreview ? (
+                    <div className="mt-2 flex items-center gap-3">
+                      <img
+                        src={createAvatarPreview}
+                        alt="Profile picture preview"
+                        className="h-20 w-20 rounded-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCreateAvatarFile(null);
+                          setCreateAvatarPreview((current) => {
+                            if (current) URL.revokeObjectURL(current);
+                            return '';
+                          });
+                          if (createAvatarInputRef.current) {
+                            createAvatarInputRef.current.value = '';
+                          }
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      Optional. JPG, PNG, or WebP.
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="create-user-bio">Bio</Label>
+                  <textarea
+                    id="create-user-bio"
+                    maxLength={500}
+                    rows={3}
+                    value={createForm.bio}
+                    onChange={setCreateField('bio')}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500">
+                    {createForm.bio.length}/500
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Location
+              </h3>
+              <PlayerLocationFields
+                countryId={createCountryId}
+                onCountryChange={setCreateCountryId}
+                cityQuery={createCityQuery}
+                onCityQueryChange={setCreateCityQuery}
+                selectedCity={createCity}
+                onCitySelect={setCreateCity}
+                controlClassName="h-10"
+              />
+              <p className="text-xs text-gray-500">
+                Pick a country, then select a city from the suggestions to set
+                it.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Social handles
+              </h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-twitter">X / Twitter</Label>
+                  <Input
+                    id="create-user-twitter"
+                    maxLength={50}
+                    value={createForm.twitterHandle}
+                    onChange={setCreateField('twitterHandle')}
+                    placeholder="handle"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-instagram">Instagram</Label>
+                  <Input
+                    id="create-user-instagram"
+                    maxLength={50}
+                    value={createForm.instagramHandle}
+                    onChange={setCreateField('instagramHandle')}
+                    placeholder="handle"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-telegram">Telegram</Label>
+                  <Input
+                    id="create-user-telegram"
+                    maxLength={50}
+                    value={createForm.telegramHandle}
+                    onChange={setCreateField('telegramHandle')}
+                    placeholder="handle"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-farcaster">Farcaster</Label>
+                  <Input
+                    id="create-user-farcaster"
+                    maxLength={50}
+                    value={createForm.farcasterHandle}
+                    onChange={setCreateField('farcasterHandle')}
+                    placeholder="handle"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-user-towns">Towns</Label>
+                  <Input
+                    id="create-user-towns"
+                    maxLength={50}
+                    value={createForm.townsHandle}
+                    onChange={setCreateField('townsHandle')}
+                    placeholder="handle"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createUserMutation.isPending}>
+                {createUserMutation.isPending ? 'Creating...' : 'Create User'}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
