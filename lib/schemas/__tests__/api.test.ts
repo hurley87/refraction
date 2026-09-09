@@ -6,6 +6,7 @@ import {
   redeemPerkRequestSchema,
   locationCheckinRequestSchema,
   createPlayerRequestSchema,
+  adminCreatePlayerRequestSchema,
   getPlayerRequestSchema,
   updatePlayerRequestSchema,
   contactRequestSchema,
@@ -350,6 +351,34 @@ describe('API Schemas', () => {
       const result = createPlayerRequestSchema.safeParse({
         walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
         username: 'a'.repeat(31),
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('adminCreatePlayerRequestSchema', () => {
+    it('requires email and username, defaults points, and omits blank wallet', () => {
+      const result = adminCreatePlayerRequestSchema.safeParse({
+        email: 'New@Example.com',
+        username: 'New User',
+        walletAddress: '',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({
+          email: 'new@example.com',
+          username: 'new_user',
+          walletAddress: undefined,
+          totalPoints: 0,
+        });
+      }
+    });
+
+    it('rejects an invalid wallet when one is provided', () => {
+      const result = adminCreatePlayerRequestSchema.safeParse({
+        email: 'new@example.com',
+        username: 'new_user',
+        walletAddress: 'not-a-wallet',
       });
       expect(result.success).toBe(false);
     });

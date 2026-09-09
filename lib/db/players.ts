@@ -469,6 +469,163 @@ export const createOrUpdatePlayerForAptos = async (
   );
 };
 
+export class AdminPlayerConflictError extends Error {
+  readonly field: 'email' | 'username' | 'wallet_address';
+
+  constructor(field: 'email' | 'username' | 'wallet_address', message: string) {
+    super(message);
+    this.name = 'AdminPlayerConflictError';
+    this.field = field;
+  }
+}
+
+async function playerExistsByEmail(email: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('players')
+    .select('id')
+    .ilike('email', email)
+    .limit(1)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data?.id != null;
+}
+
+async function playerExistsByUsername(username: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('players')
+    .select('id')
+    .eq('username', username)
+    .limit(1)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data?.id != null;
+}
+
+export type CreateAdminPlayerInput = {
+  email: string;
+  username: string;
+  walletAddress?: string;
+  totalPoints: number;
+  name?: string;
+  bio?: string;
+  website?: string;
+  profilePictureUrl?: string;
+  twitterHandle?: string;
+  instagramHandle?: string;
+  telegramHandle?: string;
+  farcasterHandle?: string;
+  townsHandle?: string;
+  /** Resolved geo location; legacy `city` / `country` text is kept in sync. */
+  location?: {
+    countryId: string;
+    geoCityId: string;
+    cityName: string;
+    countryName: string;
+  };
+};
+
+/**
+ * Insert a player from the admin UI. Does not upsert existing accounts.
+ */
+export async function createAdminPlayer(
+  input: CreateAdminPlayerInput
+): Promise<Player> {
+  const email = input.email.trim().toLowerCase();
+  const username = input.username.trim().toLowerCase();
+  const wallet = input.walletAddress
+    ? (tryNormalizeEvmAddress(input.walletAddress) ??
+      input.walletAddress.trim())
+    : undefined;
+
+  if (await playerExistsByEmail(email)) {
+    throw new AdminPlayerConflictError(
+      'email',
+      'A player with this email already exists'
+    );
+  }
+
+  if (await playerExistsByUsername(username)) {
+    throw new AdminPlayerConflictError(
+      'username',
+      'That username is already taken'
+    );
+  }
+
+  if (wallet) {
+    const existingWallet = await getPlayerByWallet(wallet);
+    if (existingWallet) {
+      throw new AdminPlayerConflictError(
+        'wallet_address',
+        'A player with this wallet already exists'
+      );
+    }
+  }
+
+  const insertRow: Record<string, string | number> = {
+    email,
+    username,
+    total_points: input.totalPoints,
+  };
+  if (wallet) {
+    insertRow.wallet_address = wallet;
+  }
+
+  const optionalColumns: Array<[string, string | undefined]> = [
+    ['name', input.name],
+    ['bio', input.bio],
+    ['website', input.website],
+    ['profile_picture_url', input.profilePictureUrl],
+    ['twitter_handle', input.twitterHandle],
+    ['instagram_handle', input.instagramHandle],
+    ['telegram_handle', input.telegramHandle],
+    ['farcaster_handle', input.farcasterHandle],
+    ['towns_handle', input.townsHandle],
+  ];
+  for (const [column, value] of optionalColumns) {
+    if (value) insertRow[column] = value;
+  }
+
+  if (input.location) {
+    insertRow.country_id = input.location.countryId;
+    insertRow.geo_city_id = input.location.geoCityId;
+    insertRow.city = input.location.cityName.slice(0, 120);
+    insertRow.country = input.location.countryName.slice(0, 120);
+  }
+
+  const { data, error } = await supabase
+    .from('players')
+    .insert(insertRow)
+    .select(PLAYER_COLUMNS)
+    .single();
+
+  if (!error) return data;
+
+  if (isUniqueViolation(error)) {
+    const details =
+      `${error.message ?? ''} ${'details' in error ? String(error.details) : ''}`.toLowerCase();
+    if (details.includes('username')) {
+      throw new AdminPlayerConflictError(
+        'username',
+        'That username is already taken'
+      );
+    }
+    if (details.includes('wallet')) {
+      throw new AdminPlayerConflictError(
+        'wallet_address',
+        'A player with this wallet already exists'
+      );
+    }
+    throw new AdminPlayerConflictError(
+      'email',
+      'A player with this email already exists'
+    );
+  }
+
+  throw error;
+}
+
 /**
  * Update player's total points by adding to current amount.
  * Uses atomic database function to prevent race conditions.

@@ -53,6 +53,73 @@ export const createPlayerRequestSchema = z.object({
   signup_attribution: signupAttributionSchema.optional(),
 });
 
+const optionalWalletAddressSchema = z.preprocess(
+  (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+  walletAddressSchema.optional()
+);
+
+/** Blank admin inputs mean "leave unset" rather than empty string. */
+function optionalTextSchema(max: number) {
+  return z
+    .string()
+    .max(max)
+    .optional()
+    .transform((value) => {
+      const trimmed = value?.trim();
+      return trimmed ? trimmed : undefined;
+    });
+}
+
+/** Social handles are stored without a leading `@`. */
+function optionalHandleSchema(max: number) {
+  return z
+    .string()
+    .max(max + 1)
+    .optional()
+    .transform((value) => {
+      const trimmed = value?.trim().replace(/^@/, '');
+      return trimmed ? trimmed : undefined;
+    });
+}
+
+const optionalUrlSchema = z.preprocess(
+  (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+  z.string().url().max(500).optional()
+);
+
+/** City picked from the Mapbox-backed suggest endpoint. */
+const adminPlayerLocationSchema = z.object({
+  countryId: z.string().uuid(),
+  mapboxId: z.string().min(1).max(200),
+  name: z.string().min(1).max(200),
+  region: z.string().max(200).nullish(),
+});
+
+/**
+ * Schema for admin-created players. Email and username are required;
+ * everything else mirrors the optional profile fields a member can fill in.
+ */
+export const adminCreatePlayerRequestSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email()
+    .transform((value) => value.toLowerCase()),
+  username: usernameSchema,
+  walletAddress: optionalWalletAddressSchema,
+  totalPoints: z.coerce.number().int().min(0).max(1_000_000).default(0),
+  name: optionalTextSchema(100),
+  bio: optionalTextSchema(500),
+  website: optionalUrlSchema,
+  profilePictureUrl: optionalUrlSchema,
+  twitterHandle: optionalHandleSchema(50),
+  instagramHandle: optionalHandleSchema(50),
+  telegramHandle: optionalHandleSchema(50),
+  farcasterHandle: optionalHandleSchema(50),
+  townsHandle: optionalHandleSchema(50),
+  location: adminPlayerLocationSchema.optional(),
+});
+
 /**
  * Schema for player API GET request (query params)
  */

@@ -8,11 +8,13 @@ import type { Perk } from '@/lib/types';
 
 const FALLBACK_PERK_IMAGE = '/homepage/earn-spend.png';
 
+const DESKTOP_GRID_PERKS = 4;
+
 const ARROW_PATH =
   'M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z';
 
 function perkHref(perk: Perk): string {
-  return perk.id ? `/perks/${perk.id}` : '/rewards';
+  return perk.id ? `/rewards?perkId=${perk.id}` : '/rewards';
 }
 
 function perkImage(perk: Perk): string {
@@ -74,6 +76,8 @@ export default async function RewardsSection() {
 
   const heroPerk = perks[0];
   const carouselPerks = perks.slice(1);
+  /** The desktop grid is a fixed-height 2×2, so it takes fewer than mobile. */
+  const desktopGridPerks = carouselPerks.slice(0, DESKTOP_GRID_PERKS);
 
   return (
     <section className="mx-auto flex w-full flex-col items-center self-stretch overflow-hidden bg-[#131313]">
@@ -81,11 +85,11 @@ export default async function RewardsSection() {
         <div className="flex w-full max-w-[361px] flex-col items-start">
           <div className="flex w-full items-center gap-2">
             <WelcomeEllipse />
-            <h2 className="title4 text-left text-white">Rewards</h2>
+            <h2 className="title4 text-left text-white">IRL Picks</h2>
           </div>
           <div className="flex items-center gap-2 self-stretch py-4">
             <div className="title1 text-left font-normal text-white">
-              Curated perks, everywhere
+              Membership unlocks the world of IRL.
             </div>
           </div>
         </div>
@@ -147,10 +151,10 @@ export default async function RewardsSection() {
           <div className="flex h-[270px] w-[460px] shrink-0 flex-col items-start">
             <div className="flex items-center gap-2">
               <WelcomeEllipse />
-              <h2 className="title4 text-left text-white">Rewards</h2>
+              <h2 className="title4 text-left text-white">IRL Picks</h2>
             </div>
             <p className="title0 text-left text-white">
-              Curated perks, everywhere
+              Membership unlocks the world of IRL.
             </p>
           </div>
           <ViewAllRewardsButton className="inline-flex w-[243px] shrink-0" />
@@ -177,9 +181,9 @@ export default async function RewardsSection() {
           </Link>
         ) : null}
 
-        {carouselPerks.length > 0 ? (
+        {desktopGridPerks.length > 0 ? (
           <div className="flex h-[710px] w-[460px] shrink-0 flex-wrap content-start items-start gap-[var(--sds-size-space-800)] pb-[var(--sds-size-space-600)]">
-            {carouselPerks.map((perk) => (
+            {desktopGridPerks.map((perk) => (
               <Link
                 key={perk.id}
                 href={perkHref(perk)}

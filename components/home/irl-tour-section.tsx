@@ -533,10 +533,10 @@ export default function IRLTourSection({
         <div className="flex w-full max-w-[361px] flex-col items-start">
           <div className="mb-4 flex items-center gap-2">
             <WelcomeEllipse />
-            <span className="title4 text-white">IRL Picks</span>
+            <span className="title4 text-white">Upcoming Events</span>
           </div>
 
-          <h2 className="title1 text-left text-white">Upcoming Events</h2>
+          <h2 className="title1 text-left text-white">From welcome drinks to guest list spots and hotel discounts, we got you.</h2>
         </div>
 
         {mobileHeroEvent ? (
