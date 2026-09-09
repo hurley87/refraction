@@ -10,6 +10,7 @@ import {
 } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { LocationListWithCount, Location } from '@/lib/types';
@@ -23,11 +24,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  filterByMapBounds,
-  getEffectiveMapBounds,
-  type MapBounds,
-} from '@/lib/utils/map-bounds';
+import { parseLatLng } from '@/lib/utils/map-bounds';
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
 import { cn } from '@/lib/utils';
 import { useFavoriteLocations } from '@/hooks/useFavorites';
@@ -45,11 +42,13 @@ import {
   ListShareButton,
   ListSharePanel,
 } from '@/components/map/list-share-button';
+import { CuratedListShareButton } from '@/components/map/curated-list-share-button';
 import { ListDescriptionEditor } from '@/components/map/list-description-editor';
 import { ListTitleEditor } from '@/components/map/list-title-editor';
 import { CollectionVisibilityToggle } from '@/components/map/collection-visibility-toggle';
 import type { PublicCustomListOwner } from '@/lib/db/player-custom-lists';
 import { profilePathForPlayer } from '@/lib/username';
+import { curatedListUrlSyncTarget } from '@/lib/location-lists/curated-list-url';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -75,13 +74,6 @@ type DrawerList = LocationListWithCount & {
     } & DrawerLocationSummary
   >;
 };
-
-interface UserLocation {
-  latitude: number;
-  longitude: number;
-}
-
-const isDev = process.env.NODE_ENV === 'development';
 
 const FAVORITES_LIST_ID = '__favorites__';
 const CUSTOM_LIST_ID_PREFIX = '__custom__:';
@@ -134,8 +126,6 @@ export interface LocationListsSheetLayout {
 
 interface LocationListsDrawerProps {
   onLocationFocus?: (location: DrawerLocationSummary) => void;
-  mapBounds?: MapBounds | null;
-  userLocation?: UserLocation | null;
   /** When false, defer loading list data until enabled (after map idle). */
   fetchEnabled?: boolean;
   collapseForMapCard?: boolean;
@@ -143,6 +133,10 @@ interface LocationListsDrawerProps {
   layout?: 'sheet' | 'sidebar';
   /** Sidebar only: fired when "View all" list detail opens or closes. */
   onListDetailChange?: (isOpen: boolean) => void;
+  /** Locations in the expanded list, or null when the index is showing. */
+  onListDetailLocationsChange?: (
+    locations: DrawerLocationSummary[] | null
+  ) => void;
   /** Mobile sheet only: height/size for controls that sit above the drawer. */
   onSheetLayoutChange?: (layout: LocationListsSheetLayout) => void;
   walletAddress?: string;
@@ -164,6 +158,9 @@ interface LocationListsDrawerProps {
    * (raw UUID). Not shown in the drawer grid outside this session.
    */
   initialPublicProfileListId?: string | null;
+  /** Curated list deep link: open detail for this `location_lists.id`. */
+  initialCuratedListId?: string | null;
+  /** Signed-in player's username; required to share their own public lists. */
   /** Signed-in player's username; required to share their own public lists. */
   viewerUsername?: string | null;
   viewerName?: string | null;
@@ -173,12 +170,11 @@ interface LocationListsDrawerProps {
 
 export default function LocationListsDrawer({
   onLocationFocus,
-  mapBounds,
-  userLocation: _userLocation, // eslint-disable-line @typescript-eslint/no-unused-vars
   fetchEnabled = false,
   collapseForMapCard = false,
   layout = 'sheet',
   onListDetailChange,
+  onListDetailLocationsChange,
   onSheetLayoutChange,
   walletAddress,
   favoritePlaceIds,
@@ -187,11 +183,14 @@ export default function LocationListsDrawer({
   initialCustomListId = null,
   focusCustomListId = null,
   initialPublicProfileListId = null,
+  initialCuratedListId = null,
   viewerUsername = null,
   viewerName = null,
   viewerProfilePictureUrl = null,
   viewerTwitterHandle = null,
 }: LocationListsDrawerProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
   const [hasFetchedLists, setHasFetchedLists] = useState(false);
@@ -206,6 +205,7 @@ export default function LocationListsDrawer({
   const prevCollapseForMapCardRef = useRef(collapseForMapCard);
   const initialCustomListAppliedRef = useRef(false);
   const initialPublicProfileListAppliedRef = useRef(false);
+  const initialCuratedListAppliedRef = useRef(false);
   const focusedCustomListIdRef = useRef<string | null>(null);
   const sheetPanelRef = useRef<HTMLDivElement | null>(null);
   const sheetDragRef = useRef<{
@@ -214,6 +214,7 @@ export default function LocationListsDrawer({
     startSize: SheetSize;
     moved: boolean;
   } | null>(null);
+  const syncedCuratedSlugRef = useRef<string | null>(null);
 
   useEffect(() => {
     setIsSharePanelOpen(false);
@@ -373,82 +374,15 @@ export default function LocationListsDrawer({
     return () => controller.abort();
   }, [fetchEnabled, hasFetchedLists]);
 
-  const filteredLists = useMemo(() => {
-    if (isDev) {
-      console.log('[Filter] Starting filter with mapBounds:', mapBounds);
-    }
-    const effectiveBounds = getEffectiveMapBounds(mapBounds);
-    if (isDev) {
-      console.log('[Filter] Effective bounds:', effectiveBounds);
-    }
-
-    if (!effectiveBounds) {
-      return [];
-    }
-
-    if (isDev) {
-      console.log(
-        `[Filter] Filtering ${lists.length} lists with bounds:`,
-        effectiveBounds
-      );
-    }
-
-    const filtered = lists
-      .filter((list) => (list.locations?.length ?? 0) > 0)
-      .map((list) => {
-        const locs = list.locations ?? [];
-        const totalLocations = locs.length;
-        const filteredLocations = filterByMapBounds(locs, mapBounds);
-
-        if (isDev) {
-          console.log(
-            `[Filter] List "${list.title}": ${filteredLocations.length}/${totalLocations} locations passed filter`
-          );
-        }
-
-        return {
-          ...list,
-          locations: filteredLocations,
-        };
-      });
-
-    const totalFiltered = filtered.reduce(
-      (sum, list) => sum + (list.locations?.length || 0),
-      0
-    );
-    const totalOriginal = lists.reduce(
-      (sum, list) => sum + (list.locations?.length || 0),
-      0
-    );
-
-    if (isDev) {
-      console.log(
-        `[Filter] Filtering complete. ${totalFiltered}/${totalOriginal} locations passed filter`
-      );
-    }
-
-    if (isDev && totalFiltered === 0 && totalOriginal > 0) {
-      console.warn(
-        `[Filter] All ${totalOriginal} locations were filtered out!`,
-        'Bounds:',
-        effectiveBounds
-      );
-    }
-
-    return filtered;
-  }, [lists, mapBounds]);
+  const populatedCuratedLists = useMemo(
+    () => lists.filter((list) => (list.locations?.length ?? 0) > 0),
+    [lists]
+  );
 
   const hasVisibleLocations = useMemo(() => {
     if (isLoadingLists || !hasFetchedLists) return false;
-    return filteredLists.some(
-      (list) => list.locations && list.locations.length > 0
-    );
-  }, [filteredLists, isLoadingLists, hasFetchedLists]);
-
-  const listsWithSpotsInView = useMemo(
-    () => filteredLists.filter((list) => (list.locations?.length ?? 0) > 0),
-    [filteredLists]
-  );
+    return populatedCuratedLists.length > 0;
+  }, [populatedCuratedLists, isLoadingLists, hasFetchedLists]);
 
   const selectedList = useMemo(
     () =>
@@ -474,6 +408,41 @@ export default function LocationListsDrawer({
         : null,
     [publicProfileDrawerList, selectedListId]
   );
+
+  const curatedDetailSlug = useMemo(() => {
+    if (!selectedListId || !selectedList?.slug) return null;
+    if (selectedListId === FAVORITES_LIST_ID) return null;
+    if (selectedListId.startsWith(CUSTOM_LIST_ID_PREFIX)) return null;
+    if (selectedListId.startsWith(PUBLIC_PROFILE_LIST_ID_PREFIX)) return null;
+    return selectedList.slug;
+  }, [selectedListId, selectedList]);
+
+  const focusedListLocations = useMemo(() => {
+    if (!selectedListId) return null;
+
+    let locations: DrawerLocationSummary[] = [];
+    if (selectedListId === FAVORITES_LIST_ID) {
+      locations = favoriteDrawerLocations;
+    } else if (selectedCustomList) {
+      locations = selectedCustomList.locations;
+    } else if (selectedPublicProfileList) {
+      locations = selectedPublicProfileList.locations;
+    } else if (selectedList?.locations) {
+      locations = selectedList.locations;
+    }
+
+    return locations.filter(
+      (location) =>
+        Boolean(location.place_id) &&
+        parseLatLng(location.latitude, location.longitude) !== null
+    );
+  }, [
+    selectedListId,
+    favoriteDrawerLocations,
+    selectedCustomList,
+    selectedPublicProfileList,
+    selectedList,
+  ]);
 
   // If the expanded custom list disappears (deleted / resynced), leave the
   // detail view and close any pending delete confirmation.
@@ -562,6 +531,60 @@ export default function LocationListsDrawer({
     layout,
   ]);
 
+  // Deep link from a curated list slug URL: open that list's detail once loaded
+  useEffect(() => {
+    if (initialCuratedListAppliedRef.current) return;
+    const rawId = initialCuratedListId?.trim();
+    if (!rawId || collapseForMapCard) return;
+    if (!hasFetchedLists) return;
+
+    const match = lists.find((list) => list.id === rawId);
+    if (!match) return;
+
+    initialCuratedListAppliedRef.current = true;
+    setSelectedListId(match.id);
+    if (layout === 'sheet') {
+      setSheetSize('peek');
+    }
+  }, [
+    initialCuratedListId,
+    lists,
+    hasFetchedLists,
+    collapseForMapCard,
+    layout,
+  ]);
+
+  useEffect(() => {
+    if (collapseForMapCard) return;
+
+    const media = window.matchMedia('(min-width: 1280px)');
+    const isActiveLayout =
+      (media.matches && layout === 'sidebar') ||
+      (!media.matches && layout === 'sheet');
+    if (!isActiveLayout) return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const target = curatedListUrlSyncTarget({
+      pathname,
+      searchParams,
+      curatedSlug: curatedDetailSlug,
+    });
+
+    if (curatedDetailSlug) {
+      syncedCuratedSlugRef.current = curatedDetailSlug;
+      if (target) {
+        router.replace(target, { scroll: false });
+      }
+      return;
+    }
+
+    if (!syncedCuratedSlugRef.current) return;
+    syncedCuratedSlugRef.current = null;
+    if (target) {
+      router.replace(target, { scroll: false });
+    }
+  }, [collapseForMapCard, layout, pathname, curatedDetailSlug, router]);
+
   const hasVisibleFavorites = favoriteDrawerLocations.length > 0;
   const hasVisibleCustomLists = hasAnyCustomLists;
 
@@ -610,7 +633,7 @@ export default function LocationListsDrawer({
       }
     }
 
-    for (const list of listsWithSpotsInView) {
+    for (const list of populatedCuratedLists) {
       for (const location of list.locations ?? []) {
         if (location.place_id) {
           ids.add(location.place_id);
@@ -632,7 +655,7 @@ export default function LocationListsDrawer({
     selectedCustomList,
     selectedPublicProfileList,
     selectedListId,
-    listsWithSpotsInView,
+    populatedCuratedLists,
     favoriteDrawerLocations,
     populatedCustomLists,
   ]);
@@ -685,11 +708,6 @@ export default function LocationListsDrawer({
     };
   }, [hasFetchedLists, visiblePlaceIds]);
 
-  const hasAnyListLocations = useMemo(() => {
-    if (isLoadingLists || !hasFetchedLists) return false;
-    return lists.some((list) => (list.locations?.length ?? 0) > 0);
-  }, [lists, isLoadingLists, hasFetchedLists]);
-
   useEffect(() => {
     if (collapseForMapCard) {
       setSheetSize('collapsed');
@@ -700,6 +718,23 @@ export default function LocationListsDrawer({
     if (layout !== 'sidebar') return;
     onListDetailChange?.(selectedListId !== null);
   }, [layout, selectedListId, onListDetailChange]);
+
+  useEffect(() => {
+    if (!onListDetailLocationsChange) return;
+
+    const media = window.matchMedia('(min-width: 1280px)');
+    const report = () => {
+      const isActiveLayout =
+        (media.matches && layout === 'sidebar') ||
+        (!media.matches && layout === 'sheet');
+      if (!isActiveLayout) return;
+      onListDetailLocationsChange(focusedListLocations);
+    };
+
+    report();
+    media.addEventListener('change', report);
+    return () => media.removeEventListener('change', report);
+  }, [layout, focusedListLocations, onListDetailLocationsChange]);
 
   useEffect(() => {
     const wasCollapsedForMap = prevCollapseForMapCardRef.current;
@@ -764,7 +799,6 @@ export default function LocationListsDrawer({
     onSheetLayoutChange,
     hasFetchedLists,
     isLoadingLists,
-    hasAnyListLocations,
     hasVisibleLocations,
     hasVisibleFavorites,
     favoriteDrawerLocations.length,
@@ -799,7 +833,7 @@ export default function LocationListsDrawer({
   const favoritesReady = !walletAddress || !isLoadingFavorites;
 
   if (
-    !hasAnyListLocations &&
+    !hasVisibleLocations &&
     !hasAnyCustomLists &&
     (!hasFavorites || !favoritesReady) &&
     !hasPublicProfileListLocations
@@ -1371,7 +1405,7 @@ export default function LocationListsDrawer({
                 />
               </svg>
             </button>
-            <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="label-medium uppercase text-[#757575]">
                 MAP LIST
               </span>
@@ -1379,6 +1413,12 @@ export default function LocationListsDrawer({
                 {isFavoritesDetailView ? 'Your Favorites' : selectedList?.title}
               </h2>
             </div>
+            {curatedDetailSlug && selectedList ? (
+              <CuratedListShareButton
+                slug={curatedDetailSlug}
+                listTitle={selectedList.title}
+              />
+            ) : null}
           </div>
         )
       ) : null}
@@ -1472,7 +1512,7 @@ export default function LocationListsDrawer({
                             type="button"
                             onClick={() => {
                               setSelectedListId(list.id);
-                              if (!isSidebar) setSheetSize('full');
+                              if (!isSidebar) setSheetSize('peek');
                             }}
                             className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
                           >
@@ -1537,7 +1577,7 @@ export default function LocationListsDrawer({
                     </div>
                   </div>
                 ) : null}
-                {listsWithSpotsInView.map((list) => (
+                {populatedCuratedLists.map((list) => (
                   <div key={list.id} className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="title4 min-w-0 text-[#1a1a1a]">
@@ -1548,7 +1588,7 @@ export default function LocationListsDrawer({
                         type="button"
                         onClick={() => {
                           setSelectedListId(list.id);
-                          if (!isSidebar) setSheetSize('full');
+                          if (!isSidebar) setSheetSize('peek');
                         }}
                         className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
                       >
@@ -1639,7 +1679,7 @@ export default function LocationListsDrawer({
     if (
       isLoadingLists ||
       !hasFetchedLists ||
-      (!hasAnyListLocations &&
+      (!hasVisibleLocations &&
         !hasAnyCustomLists &&
         (!hasFavorites || !favoritesReady) &&
         !collapseForMapCard) ||

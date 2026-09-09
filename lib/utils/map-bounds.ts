@@ -10,6 +10,9 @@ export interface LatLng {
   longitude: number;
 }
 
+/** Southwest / northeast corners for Mapbox `fitBounds`. */
+export type LngLatBoundsCorners = [[number, number], [number, number]];
+
 /** Include locations within this distance (km) of the visible viewport. */
 export const VIEWPORT_NEARBY_RADIUS_KM = 25;
 
@@ -95,6 +98,42 @@ export function getEffectiveMapBounds(
 ): MapBounds | null {
   if (!mapBounds) return null;
   return expandMapBoundsByKm(mapBounds, radiusKm);
+}
+
+/**
+ * Bounding box that contains every point, or null when none are valid.
+ * Identical points are padded slightly so `fitBounds` still has a box.
+ */
+export function lngLatBoundsFromPoints(
+  points: LatLng[]
+): LngLatBoundsCorners | null {
+  if (points.length === 0) return null;
+
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+
+  for (const point of points) {
+    minLat = Math.min(minLat, point.latitude);
+    maxLat = Math.max(maxLat, point.latitude);
+    minLng = Math.min(minLng, point.longitude);
+    maxLng = Math.max(maxLng, point.longitude);
+  }
+
+  if (minLat === maxLat) {
+    minLat -= 0.001;
+    maxLat += 0.001;
+  }
+  if (minLng === maxLng) {
+    minLng -= 0.001;
+    maxLng += 0.001;
+  }
+
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
 }
 
 /** Filter items with lat/lng fields to those within effective map bounds. */

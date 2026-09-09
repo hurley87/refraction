@@ -21,6 +21,7 @@ export const RESERVED_USERNAMES = new Set(
     'faq',
     'interactive-map',
     'leaderboard',
+    'lists',
     'livepaper',
     'membership',
     'onboarding',

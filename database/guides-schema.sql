@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS guides (
   location_list_id UUID REFERENCES location_lists (id) ON DELETE SET NULL,
   map_image_url TEXT,
   map_image_alt TEXT,
+  map_list_slug TEXT,
   -- City guide only: logged-out location gate (NULL count disables gating)
   unauthenticated_visible_location_count INTEGER,
   gated_location_teaser_summary TEXT,
@@ -62,7 +63,8 @@ CREATE TABLE IF NOT EXISTS guides (
 -- re-apply to databases created before those migrations.
 ALTER TABLE guides
   ADD COLUMN IF NOT EXISTS unauthenticated_visible_location_count INTEGER,
-  ADD COLUMN IF NOT EXISTS gated_location_teaser_summary TEXT;
+  ADD COLUMN IF NOT EXISTS gated_location_teaser_summary TEXT,
+  ADD COLUMN IF NOT EXISTS map_list_slug TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_guides_published_at ON guides (is_published, published_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_guides_kind_published ON guides (kind, is_published);
@@ -93,3 +95,5 @@ COMMENT ON COLUMN guides.unauthenticated_visible_location_count IS
   'City guide only: number of ordered locations visible before the logged-out member gate. NULL disables gating.';
 COMMENT ON COLUMN guides.gated_location_teaser_summary IS
   'City guide only: admin-authored teaser for the hidden locations shown in the member gate.';
+COMMENT ON COLUMN guides.map_list_slug IS
+  'City guide only: curated location_lists.slug. When set with map_image_url, the map image links to /map/lists/{slug}.';

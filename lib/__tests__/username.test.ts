@@ -37,6 +37,7 @@ describe('username utilities', () => {
       expect(isReservedUsername('interactive-map')).toBe(true);
       expect(isReservedUsername('interactive_map')).toBe(true);
       expect(isReservedUsername('map')).toBe(true);
+      expect(isReservedUsername('lists')).toBe(true);
       expect(isReservedUsername('_next')).toBe(true);
     });
 

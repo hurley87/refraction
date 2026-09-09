@@ -50,7 +50,11 @@ import {
 } from '@/lib/utils/format-location-category';
 import { buildDeepLinkMarkerFromQueryCoords } from '@/lib/utils/map-deep-link-marker';
 import { normalizePlaceName } from '@/lib/utils/place-name-match';
-import { filterByMapBounds } from '@/lib/utils/map-bounds';
+import {
+  filterByMapBounds,
+  lngLatBoundsFromPoints,
+  parseLatLng,
+} from '@/lib/utils/map-bounds';
 import type { LocationCategory } from '@/lib/types';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
@@ -68,6 +72,55 @@ interface MarkerData {
   category?: LocationCategory | null;
   event_url?: string | null;
   points_value?: number | null;
+}
+
+function markerFromListLocation(
+  location: DrawerLocationSummary,
+  existing?: MarkerData
+): MarkerData | null {
+  const coords = parseLatLng(location.latitude, location.longitude);
+  if (!coords || !location.place_id) return null;
+  if (existing) return existing;
+  return {
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    place_id: location.place_id,
+    name: location.name,
+    address: location.address ?? location.name,
+    description: location.description ?? null,
+    imageUrl: location.coin_image_url ?? null,
+    imageThumbUrl: location.coin_image_thumb_url ?? null,
+    category: location.category ?? null,
+    event_url: location.event_url ?? null,
+    points_value: location.points_value ?? 100,
+    creator_wallet_address: null,
+    creator_username: null,
+  };
+}
+
+/** Padding so list pins sit in the map area not covered by the lists drawer. */
+function getListFocusMapPadding(): {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+} {
+  if (typeof window === 'undefined') {
+    return { top: 80, bottom: 80, left: 80, right: 80 };
+  }
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  if (width >= 2560 && height >= 1440) {
+    return { top: 120, bottom: 80, left: 920, right: 80 };
+  }
+  if (width >= 1367) {
+    return { top: 120, bottom: 80, left: 500, right: 80 };
+  }
+  if (width >= 1280) {
+    return { top: 120, bottom: 80, left: 440, right: 80 };
+  }
+  const bottom = Math.min(Math.round(height * 0.8) + 16, height - 120);
+  return { top: 88, bottom, left: 24, right: 24 };
 }
 
 interface LocationCheckinPreview {
@@ -172,6 +225,8 @@ interface InteractiveMapProps {
   initialCustomListId?: string | null;
   /** Public profile deep link: open read-only detail for another player's list UUID. */
   initialPublicProfileListId?: string | null;
+  /** Curated list deep link: open detail for this `location_lists.id`. */
+  initialCuratedListId?: string | null;
 }
 
 const SEARCH_NEARBY_MATCH_MAX_METERS = 120;
@@ -233,6 +288,7 @@ export default function InteractiveMap({
   guideReturnHref = null,
   initialCustomListId = null,
   initialPublicProfileListId = null,
+  initialCuratedListId = null,
 }: InteractiveMapProps) {
   const guideReturnPersistedRef = useRef<string | null>(null);
   if (guideReturnHref) {
@@ -261,6 +317,9 @@ export default function InteractiveMap({
   });
 
   const [markers, setMarkers] = useState<MarkerData[]>([]);
+  const [listFocusLocations, setListFocusLocations] = useState<
+    DrawerLocationSummary[] | null
+  >(null);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [popupInfo, setPopupInfo] = useState<MarkerData | null>(null);
   /** Location whose ADD TO LIST drawer is open (replaces the map card). */
@@ -636,6 +695,19 @@ export default function InteractiveMap({
   }, []);
 
   const visibleMarkers = useMemo(() => {
+    if (listFocusLocations) {
+      const byPlaceId = Object.fromEntries(
+        markers.map((marker) => [marker.place_id, marker])
+      );
+      return listFocusLocations.flatMap((location) => {
+        const marker = markerFromListLocation(
+          location,
+          byPlaceId[location.place_id]
+        );
+        return marker ? [marker] : [];
+      });
+    }
+
     if (!mapBounds) return [];
 
     const alwaysInclude = [
@@ -646,7 +718,54 @@ export default function InteractiveMap({
     return filterByMapBounds(markers, mapBounds, {
       alwaysIncludePlaceIds: alwaysInclude,
     });
-  }, [markers, mapBounds, selectedMarker?.place_id, popupInfo?.place_id]);
+  }, [
+    listFocusLocations,
+    markers,
+    mapBounds,
+    selectedMarker?.place_id,
+    popupInfo?.place_id,
+  ]);
+
+  const listFocusKey = listFocusLocations
+    ? listFocusLocations.map((location) => location.place_id).join('|')
+    : null;
+
+  useEffect(() => {
+    if (!listFocusLocations) return;
+    const ids = new Set(
+      listFocusLocations.map((location) => location.place_id)
+    );
+    setPopupInfo((current) =>
+      current && !ids.has(current.place_id) ? null : current
+    );
+    setSelectedMarker((current) =>
+      current && !ids.has(current.place_id) ? null : current
+    );
+  }, [listFocusKey, listFocusLocations]);
+
+  useEffect(() => {
+    if (!listFocusLocations || listFocusLocations.length === 0) return;
+
+    const points = listFocusLocations
+      .map((location) => parseLatLng(location.latitude, location.longitude))
+      .filter((point): point is NonNullable<typeof point> => point !== null);
+    const bounds = lngLatBoundsFromPoints(points);
+    if (!bounds) return;
+
+    const timeoutId = window.setTimeout(() => {
+      const map = mapRef.current;
+      const fitBounds = map?.fitBounds?.bind(map) ?? map?.getMap?.()?.fitBounds;
+      if (!fitBounds) return;
+      fitBounds(bounds, {
+        padding: getListFocusMapPadding(),
+        duration: 1000,
+        maxZoom: 14,
+        essential: true,
+      });
+    }, 80);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [listFocusKey, listFocusLocations]);
 
   /**
    * Calculate map bounds from mapRef or fallback to viewState.
@@ -1909,12 +2028,11 @@ export default function InteractiveMap({
       >
         <LocationListsDrawer
           onLocationFocus={handleFocusLocationFromList}
-          mapBounds={mapBounds}
-          userLocation={userLocation}
           fetchEnabled={discoverListsEnabled}
           collapseForMapCard={isDrawerMinimized}
           layout="sidebar"
           onListDetailChange={setIsListDetailOpen}
+          onListDetailLocationsChange={setListFocusLocations}
           walletAddress={walletAddress}
           favoritePlaceIds={favoritePlaceIds}
           onToggleFavorite={handleToggleFavorite}
@@ -1922,6 +2040,7 @@ export default function InteractiveMap({
           initialCustomListId={initialCustomListId}
           focusCustomListId={focusCustomListId}
           initialPublicProfileListId={initialPublicProfileListId}
+          initialCuratedListId={initialCuratedListId}
           viewerUsername={userUsername}
           viewerName={userProfileSummary?.name}
           viewerProfilePictureUrl={userProfileSummary?.profilePictureUrl}
@@ -2126,11 +2245,10 @@ export default function InteractiveMap({
       <div className="xl:hidden">
         <LocationListsDrawer
           onLocationFocus={handleFocusLocationFromList}
-          mapBounds={mapBounds}
-          userLocation={userLocation}
           fetchEnabled={discoverListsEnabled}
           collapseForMapCard={isMobileDrawerCollapsed}
           onSheetLayoutChange={handleMobileSheetLayoutChange}
+          onListDetailLocationsChange={setListFocusLocations}
           walletAddress={walletAddress}
           favoritePlaceIds={favoritePlaceIds}
           onToggleFavorite={handleToggleFavorite}
@@ -2138,6 +2256,7 @@ export default function InteractiveMap({
           initialCustomListId={initialCustomListId}
           focusCustomListId={focusCustomListId}
           initialPublicProfileListId={initialPublicProfileListId}
+          initialCuratedListId={initialCuratedListId}
           viewerUsername={userUsername}
           viewerName={userProfileSummary?.name}
           viewerProfilePictureUrl={userProfileSummary?.profilePictureUrl}

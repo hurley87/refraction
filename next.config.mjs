@@ -105,6 +105,14 @@ const nextConfig = {
         hostname: "drive.google.com",
         pathname: "/uc**",
       },
+      {
+        protocol: "https",
+        hostname: "irl.energy",
+      },
+      {
+        protocol: "https",
+        hostname: "www.irl.energy",
+      },
     ],
   },
   webpack: (config, { isServer, dev }) => {

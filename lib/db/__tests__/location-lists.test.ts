@@ -15,6 +15,7 @@ vi.mock('@/lib/db/client', () => ({
 
 import {
   getLocationLists,
+  getLocationListBySlug,
   createLocationList,
   updateLocationList,
   deleteLocationList,
@@ -197,6 +198,84 @@ describe('Location Lists Database Module', () => {
       await expect(getLocationLists()).rejects.toEqual({
         code: 'PGRST500',
         message: 'Memberships error',
+      });
+    });
+  });
+
+  describe('getLocationListBySlug', () => {
+    it('returns the active list for a matching slug', async () => {
+      const maybeSingle = vi
+        .fn()
+        .mockResolvedValue({ data: sampleList, error: null });
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({ maybeSingle })),
+          })),
+        })),
+      });
+
+      const result = await getLocationListBySlug('  Test-List  ');
+
+      expect(result).toEqual(sampleList);
+      expect(mockFrom).toHaveBeenCalledWith('location_lists');
+    });
+
+    it('returns null when the slug is empty', async () => {
+      await expect(getLocationListBySlug('   ')).resolves.toBeNull();
+      expect(mockFrom).not.toHaveBeenCalled();
+    });
+
+    it('returns null when no active list matches', async () => {
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: null, error: null }),
+            })),
+          })),
+        })),
+      });
+
+      await expect(getLocationListBySlug('missing-list')).resolves.toBeNull();
+    });
+
+    it('returns null when PostgREST reports not found', async () => {
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: { code: 'PGRST116', message: 'Not found' },
+              }),
+            })),
+          })),
+        })),
+      });
+
+      await expect(getLocationListBySlug('missing-list')).resolves.toBeNull();
+    });
+
+    it('throws when the query fails', async () => {
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: { code: 'PGRST500', message: 'Query failed' },
+              }),
+            })),
+          })),
+        })),
+      });
+
+      await expect(getLocationListBySlug('test-list')).rejects.toEqual({
+        code: 'PGRST500',
+        message: 'Query failed',
       });
     });
   });
