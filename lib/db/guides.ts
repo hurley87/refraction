@@ -76,6 +76,7 @@ export type GuideRow = {
   location_list_id: string | null;
   map_image_url: string | null;
   map_image_alt: string | null;
+  map_list_slug: string | null;
   unauthenticated_visible_location_count: number | null;
   gated_location_teaser_summary: string | null;
   blocks: unknown | null;
@@ -294,6 +295,7 @@ const GUIDE_LIST_COLUMNS = `
   location_list_id,
   map_image_url,
   map_image_alt,
+  map_list_slug,
   unauthenticated_visible_location_count,
   gated_location_teaser_summary,
   blocks,
@@ -854,6 +856,7 @@ export type UpdateGuidePayload = Partial<{
   location_list_id: string | null;
   map_image_url: string | null;
   map_image_alt: string | null;
+  map_list_slug: string | null;
   unauthenticated_visible_location_count: number | null;
   gated_location_teaser_summary: string | null;
   blocks: unknown | null;

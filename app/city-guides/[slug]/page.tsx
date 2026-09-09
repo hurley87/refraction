@@ -14,6 +14,10 @@ import { DraftPreviewBanner } from '@/components/city-guides/draft-preview-banne
 import { getCityGuidePageData } from '@/lib/db/guides';
 import { buildGuideArticleMetadata } from '@/lib/guides/article-metadata';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
+import {
+  buildCuratedListMapHref,
+  hrefWithReturnTo,
+} from '@/lib/location-lists/curated-list-url';
 
 export const revalidate = 60;
 
@@ -64,8 +68,20 @@ export default async function CityGuideBySlugPage({
   } = data;
   const returnPath = `/city-guides/${row.slug}`;
   const mapHeading = 'In This Guide';
+  const mapListHref = row.map_list_slug
+    ? hrefWithReturnTo(buildCuratedListMapHref(row.map_list_slug), returnPath)
+    : null;
   const leadParagraphs = row.lead_paragraphs?.filter((p) => p.trim()) ?? [];
   const headline = row.lead_headline?.trim() ?? '';
+  const mapImage = row.map_image_url ? (
+    <CityGuideTexturedImage
+      src={row.map_image_url}
+      alt={row.map_image_alt ?? 'Map for this guide'}
+      sizes="(max-width: 768px) 100vw, 1080px"
+      unoptimized
+      containerClassName="h-full w-full bg-white"
+    />
+  ) : null;
 
   return (
     <div className="min-h-screen w-full bg-[#F5F5F5] font-grotesk">
@@ -115,13 +131,18 @@ export default async function CityGuideBySlugPage({
               <h2 className="title3 flex h-[54px] w-full max-w-[361px] shrink-0 items-center text-[#171717]">
                 {mapHeading}
               </h2>
-              <div className="h-[361px] w-full max-w-[361px] shrink-0 overflow-hidden">
-                <CityGuideTexturedImage
-                  src={row.map_image_url}
-                  alt={row.map_image_alt ?? 'Map for this guide'}
-                  sizes="361px"
-                  containerClassName="h-full w-full"
-                />
+              <div className="aspect-square w-full max-w-[361px] shrink-0 overflow-hidden">
+                {mapListHref ? (
+                  <Link
+                    href={mapListHref}
+                    className="block h-full w-full transition-opacity hover:opacity-90"
+                    aria-label="Open this guide’s list on the IRL map"
+                  >
+                    {mapImage}
+                  </Link>
+                ) : (
+                  mapImage
+                )}
               </div>
             </section>
           ) : null}

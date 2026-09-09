@@ -43,6 +43,7 @@ import {
 import type { AdminGuideDetail } from '@/lib/db/guides';
 import { normalizeContributorInstagramForDb } from '@/lib/guides/contributor-instagram';
 import type { LocationListWithCount } from '@/lib/types';
+import { parseCuratedListSlugInput } from '@/lib/location-lists/curated-list-url';
 import {
   parseEditorialBlocks,
   type EditorialContentBlock,
@@ -84,6 +85,24 @@ type CityOption = {
 
 /** Default city tag for guides/editorials that apply everywhere. */
 const GLOBAL_CITY = 'Global';
+
+function readImageNaturalSize(
+  file: File
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new window.Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read image dimensions'));
+    };
+    image.src = objectUrl;
+  });
+}
 
 function createEditorialBlockFromAddValue(
   value: string
@@ -266,6 +285,7 @@ export default function AdminGuideEditPage() {
   const [leadParagraphsText, setLeadParagraphsText] = useState('');
   const [mapUrl, setMapUrl] = useState('');
   const [mapAlt, setMapAlt] = useState('');
+  const [mapListSlug, setMapListSlug] = useState('');
   const [guestVisibleLocationCount, setGuestVisibleLocationCount] =
     useState('');
   const [gatedLocationTeaserSummary, setGatedLocationTeaserSummary] =
@@ -343,6 +363,7 @@ export default function AdminGuideEditPage() {
     setLeadParagraphsText((guide.lead_paragraphs ?? []).join('\n\n'));
     setMapUrl(guide.map_image_url ?? '');
     setMapAlt(guide.map_image_alt ?? '');
+    setMapListSlug(guide.map_list_slug ?? '');
     setGuestVisibleLocationCount(
       guide.unauthenticated_visible_location_count?.toString() ?? ''
     );
@@ -465,9 +486,17 @@ export default function AdminGuideEditPage() {
           );
         }
 
+        const parsedMapListSlug = parseCuratedListSlugInput(mapListSlug);
+        if (mapListSlug.trim() && !parsedMapListSlug) {
+          throw new Error(
+            'Map list must be a curated list slug or /map/lists/{slug} URL'
+          );
+        }
+
         body.location_list_id = null;
         body.map_image_url = mapUrl.trim() || null;
         body.map_image_alt = mapAlt.trim() || null;
+        body.map_list_slug = parsedMapListSlug;
         body.unauthenticated_visible_location_count = visibleLocationCount;
         body.gated_location_teaser_summary =
           gatedLocationTeaserSummary.trim() || null;
@@ -477,6 +506,7 @@ export default function AdminGuideEditPage() {
         body.location_list_id = null;
         body.map_image_url = null;
         body.map_image_alt = null;
+        body.map_list_slug = null;
         body.unauthenticated_visible_location_count = null;
         body.gated_location_teaser_summary = null;
       }
@@ -569,6 +599,12 @@ export default function AdminGuideEditPage() {
   const uploadMapImage = async (file: File) => {
     setMapImageUploading(true);
     try {
+      const { width, height } = await readImageNaturalSize(file);
+      if (Math.abs(width - height) > 2) {
+        throw new Error(
+          `Map image must be 1:1 (square). This file is ${width}×${height}.`
+        );
+      }
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
       const uploadResponse = await fetch('/api/upload', {
@@ -1387,8 +1423,8 @@ export default function AdminGuideEditPage() {
             <div>
               <Label>Map image</Label>
               <p className="mb-2 text-xs text-neutral-500">
-                Upload to Supabase storage (same pipeline as perks). You can
-                still paste a URL below to override.
+                Required: 1:1 (square). Shown as a square on the city guide.
+                Upload to Supabase storage, or paste a URL below to override.
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -1420,12 +1456,12 @@ export default function AdminGuideEditPage() {
                 />
               </div>
               {mapUrl.trim() ? (
-                <div className="relative mt-3 h-44 w-full max-w-md overflow-hidden rounded-md border border-neutral-200 bg-neutral-50">
+                <div className="relative mt-3 aspect-square w-full max-w-[361px] overflow-hidden rounded-md border border-neutral-200 bg-neutral-50">
                   {/* eslint-disable-next-line @next/next/no-img-element -- admin preview; any host after upload */}
                   <img
                     src={mapUrl}
                     alt={mapAlt.trim() || 'Map preview'}
-                    className="h-full w-full object-contain"
+                    className="h-full w-full object-cover object-center"
                   />
                 </div>
               ) : null}
@@ -1449,6 +1485,22 @@ export default function AdminGuideEditPage() {
                   onChange={(e) => setMapAlt(e.target.value)}
                 />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="guide-map-list-slug">
+                Curated list URL (optional)
+              </Label>
+              <p className="mb-2 text-xs text-neutral-500">
+                Makes the map image open that list’s expanded view. Paste a slug
+                or <span className="font-mono">/map/lists/…</span> URL.
+              </p>
+              <Input
+                id="guide-map-list-slug"
+                value={mapListSlug}
+                onChange={(e) => setMapListSlug(e.target.value)}
+                placeholder="/map/lists/michail-stangl-berlin"
+                className="font-mono text-sm"
+              />
             </div>
           </div>
         </section>

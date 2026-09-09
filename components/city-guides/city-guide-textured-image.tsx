@@ -11,6 +11,13 @@ export interface CityGuideTexturedImageProps {
   priority?: boolean;
   containerClassName?: string;
   className?: string;
+  /**
+   * Skip Next.js resizing/compression. Use for line-heavy graphics (maps)
+   * that look muddy at the default optimizer quality.
+   */
+  unoptimized?: boolean;
+  /** Next/image quality 1–100. Ignored when `unoptimized` is true. */
+  quality?: number;
   /** Paper grit overlay; defaults off. Pass {@link DEFAULT_PAPER_TEXTURE_SRC} to enable. */
   textureSrc?: string | null;
   /** Texture layer opacity (0–1). @default 0.52 */
@@ -34,6 +41,8 @@ export function CityGuideTexturedImage({
   priority = false,
   containerClassName,
   className,
+  unoptimized = false,
+  quality,
   textureSrc = null,
   textureOpacity = 0.52,
   textureBlendMode = 'soft-light',
@@ -47,6 +56,8 @@ export function CityGuideTexturedImage({
         alt={alt}
         fill
         priority={priority}
+        unoptimized={unoptimized}
+        quality={quality}
         className={cn('object-cover object-center', className)}
         sizes={sizes}
       />

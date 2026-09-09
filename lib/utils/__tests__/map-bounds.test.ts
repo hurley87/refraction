@@ -4,6 +4,7 @@ import {
   filterByMapBounds,
   getEffectiveMapBounds,
   isPointInBounds,
+  lngLatBoundsFromPoints,
   parseLatLng,
 } from '../map-bounds';
 
@@ -76,6 +77,34 @@ describe('filterByMapBounds', () => {
 
   it('returns all items when bounds are null', () => {
     expect(filterByMapBounds(items, null)).toEqual(items);
+  });
+});
+
+describe('lngLatBoundsFromPoints', () => {
+  it('returns null for an empty list', () => {
+    expect(lngLatBoundsFromPoints([])).toBeNull();
+  });
+
+  it('covers all points as southwest / northeast corners', () => {
+    expect(
+      lngLatBoundsFromPoints([
+        { latitude: 40, longitude: -74 },
+        { latitude: 41, longitude: -73 },
+      ])
+    ).toEqual([
+      [-74, 40],
+      [-73, 41],
+    ]);
+  });
+
+  it('pads a single point so fitBounds has a box', () => {
+    const bounds = lngLatBoundsFromPoints([{ latitude: 40, longitude: -74 }]);
+    expect(bounds).not.toBeNull();
+    const [[west, south], [east, north]] = bounds!;
+    expect(west).toBeLessThan(-74);
+    expect(east).toBeGreaterThan(-74);
+    expect(south).toBeLessThan(40);
+    expect(north).toBeGreaterThan(40);
   });
 });
 

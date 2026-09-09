@@ -75,6 +75,27 @@ export const getLocationLists = async (): Promise<LocationListWithCount[]> => {
 };
 
 /**
+ * Look up an active curated list by its URL slug.
+ * Returns null when the slug is empty, unknown, or inactive.
+ */
+export const getLocationListBySlug = async (
+  slug: string
+): Promise<LocationList | null> => {
+  const normalized = slug.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const { data, error } = await supabase
+    .from('location_lists')
+    .select(LOCATION_LIST_COLUMNS)
+    .eq('slug', normalized)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return (data as LocationList | null) ?? null;
+};
+
+/**
  * Create a new location list
  */
 export const createLocationList = async (

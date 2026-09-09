@@ -8,6 +8,7 @@ import {
   updateGuide,
 } from '@/lib/db/guides';
 import { editorialBlocksSchema } from '@/lib/guides/block-schema';
+import { parseCuratedListSlugInput } from '@/lib/location-lists/curated-list-url';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
@@ -41,6 +42,7 @@ const patchSchema = z.object({
   location_list_id: z.string().uuid().nullable().optional(),
   map_image_url: z.string().nullable().optional(),
   map_image_alt: z.string().nullable().optional(),
+  map_list_slug: z.string().nullable().optional(),
   unauthenticated_visible_location_count: z
     .number()
     .int()
@@ -94,6 +96,22 @@ export async function PATCH(
     const payload = patchSchema.parse(json);
 
     const { contributors, blocks, slug: nextSlug, ...guidePatch } = payload;
+
+    if (guidePatch.map_list_slug !== undefined) {
+      const raw = guidePatch.map_list_slug;
+      if (raw == null || !raw.trim()) {
+        guidePatch.map_list_slug = null;
+      } else {
+        const parsedSlug = parseCuratedListSlugInput(raw);
+        if (!parsedSlug) {
+          return apiError(
+            'Map list slug must be a curated list slug or /map/lists/{slug} URL',
+            400
+          );
+        }
+        guidePatch.map_list_slug = parsedSlug;
+      }
+    }
 
     if (blocks !== undefined && blocks !== null) {
       const parsed = editorialBlocksSchema.safeParse(blocks);
