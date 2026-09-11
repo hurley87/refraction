@@ -3,8 +3,12 @@ import {
   editorialBlocksSchema,
   parseEditorialBlocks,
 } from '@/lib/guides/block-schema';
-import { hubListTitle, guideKindToUi } from '@/lib/db/guides';
-import type { GuideRow } from '@/lib/db/guides';
+import {
+  hubListTitle,
+  guideKindToUi,
+  toGuideContributorUi,
+} from '@/lib/db/guides';
+import type { GuideContributorRow, GuideRow } from '@/lib/db/guides';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockFrom = vi.fn((): any => ({}));
@@ -55,6 +59,64 @@ describe('guides helpers', () => {
   it('guideKindToUi maps DB kind', () => {
     expect(guideKindToUi('city_guide')).toBe('city-guide');
     expect(guideKindToUi('editorial')).toBe('editorial');
+  });
+
+  it('uses live linked-player profile data for a contributor', () => {
+    const contributor = {
+      guide_id: 'guide-1',
+      position: 0,
+      player_id: 42,
+      name: 'Saved Name',
+      bio: 'Saved bio',
+      photo_url: '/saved.jpg',
+      photo_alt: 'Saved alt',
+      instagram_href: '@saved',
+      location_list_id: null,
+      player: {
+        name: 'Current Name',
+        username: 'current_user',
+        bio: 'Current bio',
+        profile_picture_url: '/current.jpg',
+        instagram_handle: '@current',
+      },
+    } satisfies GuideContributorRow;
+
+    expect(toGuideContributorUi(contributor)).toEqual({
+      name: 'Current Name',
+      bio: 'Current bio',
+      photoSrc: '/current.jpg',
+      photoAlt: 'Portrait of Current Name',
+      instagramHref: 'https://www.instagram.com/current/',
+    });
+  });
+
+  it('falls back to saved contributor fields when linked profile fields are empty', () => {
+    const contributor = {
+      guide_id: 'guide-1',
+      position: 0,
+      player_id: 42,
+      name: 'Saved Name',
+      bio: 'Saved bio',
+      photo_url: '/saved.jpg',
+      photo_alt: 'Saved alt',
+      instagram_href: '@saved',
+      location_list_id: null,
+      player: {
+        name: null,
+        username: null,
+        bio: null,
+        profile_picture_url: null,
+        instagram_handle: null,
+      },
+    } satisfies GuideContributorRow;
+
+    expect(toGuideContributorUi(contributor)).toEqual({
+      name: 'Saved Name',
+      bio: 'Saved bio',
+      photoSrc: '/saved.jpg',
+      photoAlt: 'Saved alt',
+      instagramHref: 'https://www.instagram.com/saved/',
+    });
   });
 });
 

@@ -85,11 +85,11 @@ export default async function RewardsSection() {
         <div className="flex w-full max-w-[361px] flex-col items-start">
           <div className="flex w-full items-center gap-2">
             <WelcomeEllipse />
-            <h2 className="title4 text-left text-white">IRL Picks</h2>
+            <h2 className="title4 text-left text-white">Membership unlocks the world of IRL</h2>
           </div>
           <div className="flex items-center gap-2 self-stretch py-4">
             <div className="title1 text-left font-normal text-white">
-              Membership unlocks the world of IRL.
+            From welcome drinks to guest list spots and hotel discounts, we got you.
             </div>
           </div>
         </div>
@@ -151,10 +151,10 @@ export default async function RewardsSection() {
           <div className="flex h-[270px] w-[460px] shrink-0 flex-col items-start">
             <div className="flex items-center gap-2">
               <WelcomeEllipse />
-              <h2 className="title4 text-left text-white">IRL Picks</h2>
+              <h2 className="title4 text-left text-white">Membership unlocks the world of IRL</h2>
             </div>
             <p className="title0 text-left text-white">
-              Membership unlocks the world of IRL.
+            rom welcome drinks to guest list spots and hotel discounts, we got you.
             </p>
           </div>
           <ViewAllRewardsButton className="inline-flex w-[243px] shrink-0" />

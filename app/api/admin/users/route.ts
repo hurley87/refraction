@@ -2,10 +2,14 @@ import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { getAuthenticatedAdminEmail } from '@/lib/auth';
-import { buildAdminUserSearchOr } from '@/lib/db/admin-users-search';
+import {
+  buildAdminUserSearchOr,
+  formatAdminUserSearchRow,
+  type AdminUserSearchRow,
+} from '@/lib/db/admin-users-search';
 
 const USER_SELECT =
-  'id, wallet_address, email, username, total_points, created_at, country_id, geo_city_id, countries(name), geo_cities(name)';
+  'id, wallet_address, email, username, name, bio, profile_picture_url, instagram_handle, total_points, created_at, country_id, geo_city_id, countries(name), geo_cities(name)';
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,40 +68,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    type EmbeddedName = { name: string } | { name: string }[] | null;
-    const embeddedName = (value: EmbeddedName): string => {
-      if (!value) return '';
-      if (Array.isArray(value)) return value[0]?.name?.trim() || '';
-      return value.name?.trim() || '';
-    };
-
-    // Format user data — city/country from geo FKs only (not legacy text)
-    const usersWithStats = users.map((user) => {
-      const row = user as {
-        id: number;
-        wallet_address: string;
-        email: string | null;
-        username: string | null;
-        total_points: number | null;
-        created_at: string;
-        country_id: string | null;
-        geo_city_id: string | null;
-        countries: EmbeddedName;
-        geo_cities: EmbeddedName;
-      };
-      return {
-        id: row.id,
-        wallet_address: row.wallet_address,
-        email: row.email || '',
-        username: row.username || '',
-        total_points: row.total_points || 0,
-        created_at: row.created_at,
-        country_id: row.country_id,
-        geo_city_id: row.geo_city_id,
-        country: embeddedName(row.countries),
-        city: embeddedName(row.geo_cities),
-      };
-    });
+    // Format user data — city/country from geo FKs only (not legacy text).
+    const usersWithStats = (users as unknown as AdminUserSearchRow[]).map(
+      formatAdminUserSearchRow
+    );
 
     return apiSuccess({
       users: usersWithStats,
