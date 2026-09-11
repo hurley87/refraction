@@ -86,6 +86,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "unavatar.io",
+      },
+      {
+        protocol: "https",
         hostname: "dice-media.imgix.net",
       },
       {

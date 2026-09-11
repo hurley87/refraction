@@ -1,6 +1,8 @@
-import Image from 'next/image';
-
 import { cn } from '@/lib/utils';
+import {
+  ArticleContributorCreditItem,
+  type ArticleContributorCredit,
+} from '@/components/city-guides/article-contributor-credit';
 import {
   guideKindLabel,
   type GuideKind,
@@ -8,7 +10,7 @@ import {
 
 export interface CityGuideArticleMetaRowProps {
   guideKind: GuideKind;
-  contributors: string[];
+  contributors: readonly ArticleContributorCredit[];
   /** Defaults to `words by`. */
   creditLabel?: string;
   className?: string;
@@ -58,22 +60,15 @@ export function CityGuideArticleMetaRow({
             {creditLabel}
           </span>
           <ul className="flex list-none flex-row flex-wrap justify-end gap-2">
-            {contributors.map((name, index) => (
-              <li
-                key={`${name}-${index}`}
-                className="flex h-5 w-fit min-w-0 max-w-full shrink-0 items-center gap-1"
-              >
-                <Image
-                  src="/city-guides/user-icon.svg"
-                  alt=""
-                  width={12}
-                  height={12}
-                  className="size-3 shrink-0"
-                />
-                <span className="min-w-0 label-small leading-none text-[#171717]">
-                  {name}
-                </span>
-              </li>
+            {contributors.map((contributor, index) => (
+              <ArticleContributorCreditItem
+                key={
+                  typeof contributor === 'string'
+                    ? `${contributor}-${index}`
+                    : `${contributor.name}-${index}`
+                }
+                contributor={contributor}
+              />
             ))}
           </ul>
         </div>
