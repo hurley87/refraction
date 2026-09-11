@@ -5,6 +5,7 @@ import { getCountryById } from '@/lib/db/countries';
 import { upsertGeoCity } from '@/lib/db/geo-cities';
 import {
   AdminPlayerConflictError,
+  AdminPlayerWalletRequiredError,
   createAdminPlayer,
   type CreateAdminPlayerInput,
 } from '@/lib/db/players';
@@ -77,6 +78,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof AdminPlayerConflictError) {
       return apiError(error.message, 409);
+    }
+    if (error instanceof AdminPlayerWalletRequiredError) {
+      return apiError(error.message, 400);
     }
     console.error('Failed to create admin user:', error);
     return apiError('Failed to create user', 500);

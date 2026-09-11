@@ -29,10 +29,21 @@ vi.mock('@/lib/db/players', () => ({
       this.field = field;
     }
   },
+  AdminPlayerWalletRequiredError: class AdminPlayerWalletRequiredError extends Error {
+    constructor() {
+      super(
+        'The database still requires a wallet address. Apply database/allow-null-player-wallet.sql, or provide an EVM wallet.'
+      );
+      this.name = 'AdminPlayerWalletRequiredError';
+    }
+  },
 }));
 
 import { POST } from '../route';
-import { AdminPlayerConflictError } from '@/lib/db/players';
+import {
+  AdminPlayerConflictError,
+  AdminPlayerWalletRequiredError,
+} from '@/lib/db/players';
 
 function createRequest(body?: unknown): NextRequest {
   return new NextRequest('http://localhost:3000/api/admin/users/create', {
@@ -205,5 +216,46 @@ describe('POST /api/admin/users/create', () => {
 
     expect(response.status).toBe(409);
     expect(json.error).toBe('A player with this email already exists');
+  });
+
+  it('creates a user when walletAddress is blank', async () => {
+    mockCreateAdminPlayer.mockResolvedValueOnce({
+      id: 15,
+      email: 'new@example.com',
+      username: 'new_user',
+      wallet_address: null,
+    });
+
+    const response = await POST(
+      createRequest({
+        email: 'new@example.com',
+        username: 'new_user',
+        walletAddress: '',
+      })
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockCreateAdminPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'new@example.com',
+        username: 'new_user',
+        walletAddress: undefined,
+      })
+    );
+  });
+
+  it('returns 400 when Postgres still requires a wallet', async () => {
+    mockCreateAdminPlayer.mockRejectedValueOnce(
+      new AdminPlayerWalletRequiredError()
+    );
+
+    const response = await POST(
+      createRequest({
+        email: 'new@example.com',
+        username: 'new_user',
+      })
+    );
+
+    expect(response.status).toBe(400);
   });
 });

@@ -1,7 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -126,6 +131,7 @@ export default function AdminUsersPage() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortField, setSortField] = useState<SortField>('total_points');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -187,20 +193,21 @@ export default function AdminUsersPage() {
     verifyAdmin();
   }, [user, checkAdminStatus]);
 
-  // Fetch paginated users
+  // Fetch paginated users (search runs on the server across all players)
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['admin-users', currentPage, itemsPerPage],
+    queryKey: ['admin-users', currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const auth = await adminApiAuthHeaders(getAccessToken);
-      const response = await fetch(
-        `/api/admin/users?page=${currentPage}&limit=${itemsPerPage}`,
-        {
-          headers: auth,
-        }
-      );
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(itemsPerPage),
+      });
+      if (debouncedSearch) params.set('q', debouncedSearch);
+      const response = await fetch(`/api/admin/users?${params}`, {
+        headers: auth,
+      });
       if (!response.ok) throw new Error('Failed to fetch users');
       const responseData = await response.json();
-      // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
       return {
         users: data.users as UserStats[],
@@ -208,6 +215,7 @@ export default function AdminUsersPage() {
       };
     },
     enabled: !!isAdmin && !!user?.email?.address,
+    placeholderData: keepPreviousData,
   });
 
   const users = useMemo(() => usersData?.users ?? [], [usersData?.users]);
@@ -367,6 +375,7 @@ export default function AdminUsersPage() {
         },
         body: JSON.stringify({
           ...createForm,
+          walletAddress: createForm.walletAddress.trim() || undefined,
           profilePictureUrl,
           location,
         }),
@@ -388,32 +397,20 @@ export default function AdminUsersPage() {
     },
   });
 
-  // Reset to page 1 when search query changes
   useEffect(() => {
-    if (searchQuery.trim() && currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [searchQuery, currentPage]);
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery]);
 
-  // Filter and sort users (client-side filtering on current page)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
+  // Sort the current result page (search is applied server-side)
   const filteredAndSortedUsers = useMemo(() => {
-    let filtered = users;
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = users.filter(
-        (user) =>
-          user.email?.toLowerCase().includes(query) ||
-          user.wallet_address?.toLowerCase().includes(query) ||
-          user.username?.toLowerCase().includes(query) ||
-          user.city?.toLowerCase().includes(query) ||
-          user.country?.toLowerCase().includes(query)
-      );
-    }
-
-    // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
+    const sorted = [...users].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
 
@@ -435,7 +432,7 @@ export default function AdminUsersPage() {
     });
 
     return sorted;
-  }, [users, searchQuery, sortField, sortDirection]);
+  }, [users, sortField, sortDirection]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
@@ -468,7 +465,12 @@ export default function AdminUsersPage() {
 
       // Fetch all users (using max limit of 1000)
       const auth = await adminApiAuthHeaders(getAccessToken);
-      const response = await fetch(`/api/admin/users?page=1&limit=1000`, {
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '1000',
+      });
+      if (debouncedSearch) params.set('q', debouncedSearch);
+      const response = await fetch(`/api/admin/users?${params}`, {
         headers: auth,
       });
 
@@ -477,23 +479,9 @@ export default function AdminUsersPage() {
       }
 
       const responseData = await response.json();
-      // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
       const allUsers = data.users as UserStats[];
-
-      // Apply current search filter if any
-      let usersToExport = allUsers;
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        usersToExport = allUsers.filter(
-          (user) =>
-            user.email?.toLowerCase().includes(query) ||
-            user.wallet_address?.toLowerCase().includes(query) ||
-            user.username?.toLowerCase().includes(query) ||
-            user.city?.toLowerCase().includes(query) ||
-            user.country?.toLowerCase().includes(query)
-        );
-      }
+      const usersToExport = allUsers;
 
       // Apply current sorting
       const sorted = [...usersToExport].sort((a, b) => {
@@ -859,11 +847,9 @@ export default function AdminUsersPage() {
                   )}
                 </span>{' '}
                 of <span className="font-medium">{pagination.total}</span> users
-                {searchQuery.trim() && (
-                  <span className="text-gray-500 ml-2">
-                    (filtered from {users.length} on this page)
-                  </span>
-                )}
+                {debouncedSearch ? (
+                  <span className="text-gray-500 ml-2">(matching search)</span>
+                ) : null}
               </div>
 
               {/* Pagination Controls */}
