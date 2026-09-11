@@ -589,10 +589,10 @@ export default function IRLTourSection({
             <div className="flex h-[95px] flex-col items-start">
               <div className="flex w-[363px] items-center gap-2">
                 <WelcomeEllipse />
-                <span className="title4 text-white">IRL Picks</span>
+                <span className="title4 text-white">Upcoming Events</span>
               </div>
               <div className="flex items-center gap-2 py-4">
-                <h2 className="title0 text-left text-white">Upcoming Events</h2>
+                <h2 className="title0 text-left text-white">From welcome drinks to guest list spots and hotel discounts, we got you.</h2>
               </div>
             </div>
             <ViewAllEventsLink />

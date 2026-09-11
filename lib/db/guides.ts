@@ -46,15 +46,25 @@ function logTimeout(context: string) {
   }
 }
 
+type LinkedContributorPlayer = {
+  name: string | null;
+  username: string | null;
+  bio: string | null;
+  profile_picture_url: string | null;
+  instagram_handle: string | null;
+};
+
 export type GuideContributorRow = {
   guide_id: string;
   position: number;
+  player_id: number | null;
   name: string;
   bio: string | null;
   photo_url: string | null;
   photo_alt: string | null;
   instagram_href: string | null;
   location_list_id: string | null;
+  player?: LinkedContributorPlayer | LinkedContributorPlayer[] | null;
 };
 
 /** Raw row from `guides` (snake_case as returned by Supabase). */
@@ -102,12 +112,27 @@ export type GuideContributorUi = {
 export function toGuideContributorUi(
   row: GuideContributorRow
 ): GuideContributorUi {
+  const linkedPlayer = Array.isArray(row.player) ? row.player[0] : row.player;
+  const linkedName =
+    linkedPlayer?.name?.trim() || linkedPlayer?.username?.trim() || '';
+  const name = linkedName || row.name;
+  const bio = linkedPlayer?.bio?.trim() || row.bio?.trim() || '';
+  const photoSrc =
+    linkedPlayer?.profile_picture_url?.trim() ||
+    row.photo_url?.trim() ||
+    '/city-guides/user-icon.svg';
+  const instagram =
+    linkedPlayer?.instagram_handle?.trim() || row.instagram_href;
+
   return {
-    name: row.name,
-    bio: row.bio?.trim() ?? '',
-    photoSrc: row.photo_url?.trim() || '/city-guides/user-icon.svg',
-    photoAlt: row.photo_alt?.trim() || row.name,
-    instagramHref: resolveContributorInstagramProfileUrl(row.instagram_href),
+    name,
+    bio,
+    photoSrc,
+    photoAlt:
+      linkedPlayer && linkedName
+        ? `Portrait of ${linkedName}`
+        : row.photo_alt?.trim() || name,
+    instagramHref: resolveContributorInstagramProfileUrl(instagram),
   };
 }
 
@@ -438,7 +463,7 @@ async function fetchContributorsForGuide(
   const { data, error } = await supabase
     .from('guide_contributors')
     .select(
-      'guide_id, position, name, bio, photo_url, photo_alt, instagram_href, location_list_id'
+      'guide_id, position, player_id, name, bio, photo_url, photo_alt, instagram_href, location_list_id, player:players(name, username, bio, profile_picture_url, instagram_handle)'
     )
     .eq('guide_id', guideId)
     .order('position', { ascending: true });
@@ -533,11 +558,16 @@ async function buildCityGuidePageDataFromRow(
 
   if (hasPerContributorLists) {
     const showSectionHeadings = contributorNames.length > 1;
-    const withLists = contribRows.filter((r) => r.location_list_id?.trim());
+    const withLists = contribRows
+      .map((contributorRow, index) => ({
+        contributorRow,
+        resolvedName: contributors[index]?.name ?? contributorRow.name,
+      }))
+      .filter(({ contributorRow }) => contributorRow.location_list_id?.trim());
     locationSections = await Promise.all(
-      withLists.map(async (r) => {
-        const listId = r.location_list_id!.trim();
-        const nm = r.name.trim();
+      withLists.map(async ({ contributorRow, resolvedName }) => {
+        const listId = contributorRow.location_list_id!.trim();
+        const nm = resolvedName.trim();
         const sectionBase: CityGuideLocationSection = {
           heading: showSectionHeadings ? nm : null,
           defaultContributorName: nm,
@@ -778,7 +808,7 @@ export async function adminGetGuide(
   const { data: contributors, error: cErr } = await supabase
     .from('guide_contributors')
     .select(
-      'guide_id, position, name, bio, photo_url, photo_alt, instagram_href, location_list_id'
+      'guide_id, position, player_id, name, bio, photo_url, photo_alt, instagram_href, location_list_id'
     )
     .eq('guide_id', id)
     .order('position', { ascending: true });
@@ -898,6 +928,7 @@ export async function deleteGuide(id: string): Promise<void> {
 
 export type ContributorInput = {
   position: number;
+  player_id: number | null;
   name: string;
   bio: string | null;
   photo_url: string | null;
@@ -913,7 +944,7 @@ export async function replaceGuideContributors(
   const { data: previousRows, error: prevErr } = await supabase
     .from('guide_contributors')
     .select(
-      'guide_id, position, name, bio, photo_url, photo_alt, instagram_href'
+      'guide_id, position, player_id, name, bio, photo_url, photo_alt, instagram_href, location_list_id'
     )
     .eq('guide_id', guideId);
   if (prevErr) throw prevErr;
@@ -930,6 +961,7 @@ export async function replaceGuideContributors(
     rows.map((r) => ({
       guide_id: guideId,
       position: r.position,
+      player_id: r.player_id,
       name: r.name,
       bio: r.bio,
       photo_url: r.photo_url,
@@ -942,11 +974,13 @@ export async function replaceGuideContributors(
     const snapshot = (previousRows ?? []) as {
       guide_id: string;
       position: number;
+      player_id: number | null;
       name: string;
       bio: string | null;
       photo_url: string | null;
       photo_alt: string | null;
       instagram_href: string | null;
+      location_list_id: string | null;
     }[];
     if (snapshot.length > 0) {
       const { error: restoreErr } = await supabase

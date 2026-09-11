@@ -72,6 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_guides_kind_published ON guides (kind, is_publish
 CREATE TABLE IF NOT EXISTS guide_contributors (
   guide_id UUID NOT NULL REFERENCES guides (id) ON DELETE CASCADE,
   position INTEGER NOT NULL,
+  player_id INTEGER REFERENCES players (id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   bio TEXT,
   photo_url TEXT,
@@ -81,6 +82,10 @@ CREATE TABLE IF NOT EXISTS guide_contributors (
   PRIMARY KEY (guide_id, position),
   CONSTRAINT guide_contributors_position_non_negative CHECK (position >= 0)
 );
+
+CREATE INDEX IF NOT EXISTS idx_guide_contributors_player_id
+  ON guide_contributors (player_id)
+  WHERE player_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS guide_location_overrides (
   guide_id UUID NOT NULL REFERENCES guides (id) ON DELETE CASCADE,

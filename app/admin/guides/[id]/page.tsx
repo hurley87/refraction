@@ -55,6 +55,10 @@ import {
   parseEditorialTypographyAddValue,
 } from '@/lib/guides/editorial-typography';
 import { LeadParagraphsMarkdownReference } from '@/components/admin/lead-paragraphs-markdown-reference';
+import {
+  AdminUserSearchCombobox,
+  type AdminContributorUser,
+} from '@/components/admin/admin-user-search-combobox';
 import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
 import {
   Dialog,
@@ -69,6 +73,7 @@ const GUIDES_ADMIN_KEY = ['admin-guides'] as const;
 
 type ContributorForm = {
   position: number;
+  player_id: number | null;
   name: string;
   bio: string;
   photo_url: string;
@@ -380,6 +385,7 @@ export default function AdminGuideEditPage() {
     const c =
       detail?.contributors.map((r) => ({
         position: r.position,
+        player_id: r.player_id ?? null,
         name: r.name,
         bio: r.bio ?? '',
         photo_url: r.photo_url ?? '',
@@ -424,6 +430,7 @@ export default function AdminGuideEditPage() {
 
       const contributorPayload = contributors.map((c, i) => ({
         position: i,
+        player_id: c.player_id,
         name: c.name.trim(),
         bio: c.bio.trim() || null,
         photo_url: c.photo_url.trim() || null,
@@ -740,6 +747,31 @@ export default function AdminGuideEditPage() {
     } finally {
       setContributorPhotoUploadingIndex(null);
     }
+  };
+
+  const linkContributorToUser = (
+    index: number,
+    selectedUser: AdminContributorUser
+  ) => {
+    const displayName =
+      selectedUser.name.trim() ||
+      selectedUser.username.trim() ||
+      selectedUser.email.trim();
+    setContributors((current) =>
+      current.map((contributor, contributorIndex) =>
+        contributorIndex === index
+          ? {
+              ...contributor,
+              player_id: selectedUser.id,
+              name: displayName,
+              bio: selectedUser.bio,
+              photo_url: selectedUser.profile_picture_url,
+              photo_alt: displayName ? `Portrait of ${displayName}` : '',
+              instagram_href: selectedUser.instagram_handle,
+            }
+          : contributor
+      )
+    );
   };
 
   const uploadBlockImage = async (blockIndex: number, file: File) => {
@@ -1180,6 +1212,7 @@ export default function AdminGuideEditPage() {
                 ...prev,
                 {
                   position: prev.length,
+                  player_id: null,
                   name: '',
                   bio: '',
                   photo_url: '',
@@ -1204,6 +1237,49 @@ export default function AdminGuideEditPage() {
             key={i}
             className="space-y-2 rounded border border-neutral-100 p-3"
           >
+            {c.player_id ? (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-blue-950">
+                    Linked to {c.name}
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    Player #{c.player_id}. Public details update from their
+                    profile automatically.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setContributors((current) =>
+                      current.map((contributor, contributorIndex) =>
+                        contributorIndex === i
+                          ? { ...contributor, player_id: null }
+                          : contributor
+                      )
+                    )
+                  }
+                >
+                  Unlink
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label>Associate with an existing user</Label>
+                <AdminUserSearchCombobox
+                  getAccessToken={getAccessToken}
+                  onSelect={(selectedUser) =>
+                    linkContributorToUser(i, selectedUser)
+                  }
+                />
+                <p className="text-xs text-neutral-500">
+                  Or leave unlinked and enter contributor details manually.
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-end">
               <Button
                 type="button"
@@ -1220,6 +1296,7 @@ export default function AdminGuideEditPage() {
               <Input
                 placeholder="Name"
                 value={c.name}
+                disabled={Boolean(c.player_id)}
                 onChange={(e) => {
                   const v = e.target.value;
                   setContributors((prev) =>
@@ -1230,6 +1307,7 @@ export default function AdminGuideEditPage() {
               <Input
                 placeholder="@username"
                 value={c.instagram_href}
+                disabled={Boolean(c.player_id)}
                 onChange={(e) => {
                   const v = e.target.value;
                   setContributors((prev) =>
@@ -1243,6 +1321,7 @@ export default function AdminGuideEditPage() {
             <Textarea
               placeholder="Bio"
               value={c.bio}
+              disabled={Boolean(c.player_id)}
               onChange={(e) => {
                 const v = e.target.value;
                 setContributors((prev) =>
@@ -1262,7 +1341,9 @@ export default function AdminGuideEditPage() {
                   variant="outline"
                   size="sm"
                   className="gap-1"
-                  disabled={contributorPhotoUploadingIndex === i}
+                  disabled={
+                    Boolean(c.player_id) || contributorPhotoUploadingIndex === i
+                  }
                   onClick={() =>
                     document
                       .getElementById(`contributor-photo-file-${i}`)
@@ -1283,7 +1364,9 @@ export default function AdminGuideEditPage() {
                   type="file"
                   accept="image/*"
                   className="sr-only"
-                  disabled={contributorPhotoUploadingIndex === i}
+                  disabled={
+                    Boolean(c.player_id) || contributorPhotoUploadingIndex === i
+                  }
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) void uploadContributorPhoto(i, file);
@@ -1313,6 +1396,7 @@ export default function AdminGuideEditPage() {
                     id={`contributor-photo-url-${i}`}
                     placeholder="https://…"
                     value={c.photo_url}
+                    disabled={Boolean(c.player_id)}
                     onChange={(e) => {
                       const v = e.target.value;
                       setContributors((prev) =>
@@ -1335,6 +1419,7 @@ export default function AdminGuideEditPage() {
                     id={`contributor-photo-alt-${i}`}
                     placeholder="Portrait of …"
                     value={c.photo_alt}
+                    disabled={Boolean(c.player_id)}
                     onChange={(e) => {
                       const v = e.target.value;
                       setContributors((prev) =>

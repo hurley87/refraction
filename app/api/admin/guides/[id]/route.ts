@@ -14,6 +14,7 @@ import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 const contributorSchema = z.object({
   position: z.number().int().min(0),
+  player_id: z.number().int().positive().nullable().optional(),
   name: z.string().min(1),
   bio: z.string().nullable().optional(),
   photo_url: z.string().nullable().optional(),
@@ -136,6 +137,7 @@ export async function PATCH(
         params.id,
         contributors.map((c) => ({
           position: c.position,
+          player_id: c.player_id ?? null,
           name: c.name,
           bio: c.bio ?? null,
           photo_url: c.photo_url ?? null,
