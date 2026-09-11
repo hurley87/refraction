@@ -10,12 +10,15 @@ type PlayerLookupField =
   | 'email';
 
 function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as { code?: string }).code === '23505'
-  );
+  return postgresCode(error) === '23505';
+}
+
+function postgresCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined;
+  }
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
 }
 
 async function getPlayerAfterWalletUniqueViolation(
@@ -479,6 +482,16 @@ export class AdminPlayerConflictError extends Error {
   }
 }
 
+/** Thrown when Postgres still requires a non-null EVM wallet on `players`. */
+export class AdminPlayerWalletRequiredError extends Error {
+  constructor() {
+    super(
+      'The database still requires a wallet address. Apply database/allow-null-player-wallet.sql, or provide an EVM wallet.'
+    );
+    this.name = 'AdminPlayerWalletRequiredError';
+  }
+}
+
 async function playerExistsByEmail(email: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('players')
@@ -563,14 +576,12 @@ export async function createAdminPlayer(
     }
   }
 
-  const insertRow: Record<string, string | number> = {
+  const insertRow: Record<string, string | number | null> = {
     email,
     username,
     total_points: input.totalPoints,
+    wallet_address: wallet ?? null,
   };
-  if (wallet) {
-    insertRow.wallet_address = wallet;
-  }
 
   const optionalColumns: Array<[string, string | undefined]> = [
     ['name', input.name],
@@ -621,6 +632,20 @@ export async function createAdminPlayer(
       'email',
       'A player with this email already exists'
     );
+  }
+
+  const code = postgresCode(error);
+  if (code === '23502' || code === '23514') {
+    const message =
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof error.message === 'string'
+        ? error.message
+        : 'Invalid player row';
+    if (message.toLowerCase().includes('wallet')) {
+      throw new AdminPlayerWalletRequiredError();
+    }
   }
 
   throw error;

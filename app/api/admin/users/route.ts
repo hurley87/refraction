@@ -2,6 +2,10 @@ import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { getAuthenticatedAdminEmail } from '@/lib/auth';
+import { buildAdminUserSearchOr } from '@/lib/db/admin-users-search';
+
+const USER_SELECT =
+  'id, wallet_address, email, username, total_points, created_at, country_id, geo_city_id, countries(name), geo_cities(name)';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,35 +14,38 @@ export async function GET(request: NextRequest) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 
-    // Get pagination parameters from query string
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = (page - 1) * limit;
+    const searchOr = buildAdminUserSearchOr(searchParams.get('q') || '');
 
-    // Validate pagination parameters
     if (page < 1 || limit < 1 || limit > 1000) {
       return apiError('Invalid pagination parameters', 400);
     }
 
-    // Fetch total count
-    const { count: totalCount, error: countError } = await supabase
+    let countQuery = supabase
       .from('players')
       .select('*', { count: 'exact', head: true });
+    let listQuery = supabase
+      .from('players')
+      .select(USER_SELECT)
+      .order('total_points', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (searchOr) {
+      countQuery = countQuery.or(searchOr);
+      listQuery = listQuery.or(searchOr);
+    }
+
+    const { count: totalCount, error: countError } = await countQuery;
 
     if (countError) {
       console.error('Error fetching user count:', countError);
       return apiError('Failed to fetch user count', 500);
     }
 
-    // Fetch paginated users from players table with geo location FKs
-    const { data: users, error: usersError } = await supabase
-      .from('players')
-      .select(
-        'id, wallet_address, email, username, total_points, created_at, country_id, geo_city_id, countries(name), geo_cities(name)'
-      )
-      .order('total_points', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const { data: users, error: usersError } = await listQuery;
 
     if (usersError) {
       console.error('Error fetching users:', usersError);
