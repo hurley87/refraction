@@ -1,6 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
+import { twitterAvatarUrl } from '@/lib/profile/twitter-avatar';
 
 interface ProfileAvatarProps {
   profilePictureUrl?: string;
@@ -22,25 +23,27 @@ export default function ProfileAvatar({
   const [twitterImageError, setTwitterImageError] = useState(false);
 
   const displayName = name || username;
-  const initial = displayName?.charAt(0).toUpperCase() || "?";
-  
+  const initial = displayName?.charAt(0).toUpperCase() || '?';
+
   // Calculate initial size as 75% of the circle size
   const initialSize = size * 0.75;
 
   // Fetch Twitter profile picture if profilePictureUrl is not set and twitterHandle exists
   useEffect(() => {
     if (!profilePictureUrl && twitterHandle && !twitterImageError) {
-      const cleanHandle = twitterHandle.replace(/^@/, "");
-      // Use unavatar.io service to fetch Twitter profile picture
-      const twitterUrl = `https://unavatar.io/twitter/${cleanHandle}`;
-      
+      const cleanHandle = twitterHandle.replace(/^@/, '');
+      const twitterUrl = twitterAvatarUrl(twitterHandle);
+
       // Preload the image to check if it exists
       const img = new Image();
       img.onload = () => {
         setTwitterImageUrl(twitterUrl);
       };
       img.onerror = () => {
-        console.log("[ProfileAvatar] Twitter image not available for:", cleanHandle);
+        console.log(
+          '[ProfileAvatar] Twitter image not available for:',
+          cleanHandle
+        );
         setTwitterImageError(true);
       };
       img.src = twitterUrl;
@@ -49,7 +52,8 @@ export default function ProfileAvatar({
 
   // Determine which image URL to use
   const imageUrl = profilePictureUrl || twitterImageUrl;
-  const showImage = imageUrl && !imageError && !(twitterImageUrl && twitterImageError);
+  const showImage =
+    imageUrl && !imageError && !(twitterImageUrl && twitterImageError);
 
   return (
     <div
@@ -65,9 +69,9 @@ export default function ProfileAvatar({
           width={size}
           height={size}
           onError={() => {
-            console.error("[ProfileAvatar] Image failed to load:", {
+            console.error('[ProfileAvatar] Image failed to load:', {
               url: imageUrl,
-              source: profilePictureUrl ? "profile" : "twitter",
+              source: profilePictureUrl ? 'profile' : 'twitter',
             });
             setImageError(true);
             if (twitterImageUrl) {
@@ -75,9 +79,9 @@ export default function ProfileAvatar({
             }
           }}
           onLoad={() => {
-            console.log("[ProfileAvatar] Image loaded successfully:", {
+            console.log('[ProfileAvatar] Image loaded successfully:', {
               url: imageUrl,
-              source: profilePictureUrl ? "profile" : "twitter",
+              source: profilePictureUrl ? 'profile' : 'twitter',
             });
           }}
         />
@@ -94,4 +98,3 @@ export default function ProfileAvatar({
     </div>
   );
 }
-

@@ -75,9 +75,11 @@ describe('guides helpers', () => {
       player: {
         name: 'Current Name',
         username: 'current_user',
+        wallet_address: '0xcurrent',
         bio: 'Current bio',
         profile_picture_url: '/current.jpg',
         instagram_handle: '@current',
+        twitter_handle: '@current',
       },
     } satisfies GuideContributorRow;
 
@@ -87,6 +89,7 @@ describe('guides helpers', () => {
       photoSrc: '/current.jpg',
       photoAlt: 'Portrait of Current Name',
       instagramHref: 'https://www.instagram.com/current/',
+      profileHref: '/current_user',
     });
   });
 
@@ -104,9 +107,11 @@ describe('guides helpers', () => {
       player: {
         name: null,
         username: null,
+        wallet_address: null,
         bio: null,
         profile_picture_url: null,
         instagram_handle: null,
+        twitter_handle: null,
       },
     } satisfies GuideContributorRow;
 
@@ -116,7 +121,63 @@ describe('guides helpers', () => {
       photoSrc: '/saved.jpg',
       photoAlt: 'Saved alt',
       instagramHref: 'https://www.instagram.com/saved/',
+      profileHref: '',
     });
+  });
+
+  it('links a player without a username through their wallet profile route', () => {
+    const contributor = {
+      guide_id: 'guide-1',
+      position: 0,
+      player_id: 42,
+      name: 'Saved Name',
+      bio: null,
+      photo_url: null,
+      photo_alt: null,
+      instagram_href: null,
+      location_list_id: null,
+      player: {
+        name: 'Wallet User',
+        username: null,
+        wallet_address: '0x1234',
+        bio: null,
+        profile_picture_url: null,
+        instagram_handle: null,
+        twitter_handle: null,
+      },
+    } satisfies GuideContributorRow;
+
+    expect(toGuideContributorUi(contributor).profileHref).toBe(
+      '/profiles/0x1234'
+    );
+  });
+
+  it('falls back to the linked player Twitter avatar when they have no uploaded photo', () => {
+    const contributor = {
+      guide_id: 'guide-1',
+      position: 0,
+      player_id: 42,
+      name: 'Saved Name',
+      bio: null,
+      photo_url: '/saved.jpg',
+      photo_alt: null,
+      instagram_href: null,
+      location_list_id: null,
+      player: {
+        name: 'Greg',
+        username: 'lovegreg',
+        wallet_address: '0x1234',
+        bio: null,
+        profile_picture_url: null,
+        instagram_handle: null,
+        twitter_handle: '@lovegreg',
+      },
+    } satisfies GuideContributorRow;
+
+    expect(toGuideContributorUi(contributor).photoSrc).toBe(
+      'https://unavatar.io/twitter/lovegreg'
+    );
+    expect(toGuideContributorUi(contributor).name).toBe('Greg');
   });
 });
 

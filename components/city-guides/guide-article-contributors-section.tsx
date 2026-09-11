@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
 import { IRL_YELLOW_TEXT_CLASS } from '@/components/city-guides/guide-article-markdown';
@@ -9,6 +10,7 @@ export interface GuideArticleContributor {
   photoSrc: string;
   photoAlt: string;
   instagramHref: string;
+  profileHref: string;
 }
 
 export interface GuideArticleContributorsSectionProps {
@@ -46,18 +48,43 @@ export function GuideArticleContributorsSection({
           className="flex w-full shrink-0 flex-col items-start gap-2 self-stretch border-t border-[#454545] pb-4 pt-6"
         >
           <div className="flex w-full flex-row items-start gap-3">
-            <div className="relative h-24 w-[66px] shrink-0 overflow-hidden">
-              <Image
-                src={contributor.photoSrc}
-                alt={contributor.photoAlt}
-                fill
-                className="object-cover"
-                sizes="66px"
-              />
-            </div>
+            {contributor.profileHref ? (
+              <Link
+                href={contributor.profileHref}
+                className="relative h-24 w-[66px] shrink-0 overflow-hidden transition-opacity hover:opacity-80"
+                aria-label={`View ${contributor.name}'s profile`}
+              >
+                <Image
+                  src={contributor.photoSrc}
+                  alt={contributor.photoAlt}
+                  fill
+                  className="object-cover"
+                  sizes="66px"
+                />
+              </Link>
+            ) : (
+              <div className="relative h-24 w-[66px] shrink-0 overflow-hidden">
+                <Image
+                  src={contributor.photoSrc}
+                  alt={contributor.photoAlt}
+                  fill
+                  className="object-cover"
+                  sizes="66px"
+                />
+              </div>
+            )}
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="title4 flex h-[23px] shrink-0 flex-[1_0_0] flex-col justify-center text-[#171717]">
-                {contributor.name}
+                {contributor.profileHref ? (
+                  <Link
+                    href={contributor.profileHref}
+                    className="w-fit transition-opacity hover:opacity-70"
+                  >
+                    {contributor.name}
+                  </Link>
+                ) : (
+                  contributor.name
+                )}
               </div>
               <p className="body-small text-[#757575]">{contributor.bio}</p>
             </div>

@@ -45,7 +45,7 @@ export default async function EditorialBySlugPage({
 
   const showDraftPreviewBanner = Boolean(previewToken);
 
-  const { row, contributors, contributorNames, blocks } = data;
+  const { row, contributors, blocks } = data;
   const leadParagraphs = row.lead_paragraphs?.filter((p) => p.trim()) ?? [];
   const headline = row.lead_headline?.trim() ?? '';
 
@@ -65,7 +65,7 @@ export default async function EditorialBySlugPage({
           />
 
           <EditorialArticleMetaRow
-            contributors={contributorNames}
+            contributors={contributors}
             className="mb-8"
           />
 

@@ -11,6 +11,7 @@ import {
   resolveContributorInstagramProfileUrl,
 } from '@/lib/guides/contributor-instagram';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
+import { twitterAvatarUrl } from '@/lib/profile/twitter-avatar';
 import { guideReadHref } from '@/lib/guides/guide-paths';
 import {
   buildCityGuideLocationGateMeta,
@@ -26,6 +27,10 @@ export { guideReadHref } from '@/lib/guides/guide-paths';
 
 const GUIDES_QUERY_MS = 12_000;
 const GUIDE_QUERY_TIMEOUT = Symbol('guideQueryTimeout');
+const CONTRIBUTOR_COLUMNS =
+  'guide_id, position, player_id, name, bio, photo_url, photo_alt, instagram_href, location_list_id';
+const LINKED_PLAYER_COLUMNS =
+  'id, name, username, wallet_address, bio, profile_picture_url, instagram_handle, twitter_handle';
 
 async function withQueryTimeout<T>(
   promise: Promise<T>
@@ -47,11 +52,14 @@ function logTimeout(context: string) {
 }
 
 type LinkedContributorPlayer = {
+  id?: number;
   name: string | null;
   username: string | null;
+  wallet_address: string | null;
   bio: string | null;
   profile_picture_url: string | null;
   instagram_handle: string | null;
+  twitter_handle: string | null;
 };
 
 export type GuideContributorRow = {
@@ -107,22 +115,39 @@ export type GuideContributorUi = {
   photoSrc: string;
   photoAlt: string;
   instagramHref: string;
+  profileHref: string;
 };
+
+function linkedPlayerDisplayName(
+  linkedPlayer: LinkedContributorPlayer | null | undefined
+): string {
+  return linkedPlayer?.name?.trim() || linkedPlayer?.username?.trim() || '';
+}
 
 export function toGuideContributorUi(
   row: GuideContributorRow
 ): GuideContributorUi {
   const linkedPlayer = Array.isArray(row.player) ? row.player[0] : row.player;
-  const linkedName =
-    linkedPlayer?.name?.trim() || linkedPlayer?.username?.trim() || '';
+  const linkedName = linkedPlayerDisplayName(linkedPlayer);
   const name = linkedName || row.name;
   const bio = linkedPlayer?.bio?.trim() || row.bio?.trim() || '';
+  // Matches the profile page: a linked player with no upload falls back to their
+  // Twitter avatar before the stored contributor photo.
+  const linkedPhoto = linkedPlayer
+    ? linkedPlayer.profile_picture_url?.trim() ||
+      twitterAvatarUrl(linkedPlayer.twitter_handle)
+    : '';
   const photoSrc =
-    linkedPlayer?.profile_picture_url?.trim() ||
-    row.photo_url?.trim() ||
-    '/city-guides/user-icon.svg';
+    linkedPhoto || row.photo_url?.trim() || '/city-guides/user-icon.svg';
   const instagram =
     linkedPlayer?.instagram_handle?.trim() || row.instagram_href;
+  const linkedUsername = linkedPlayer?.username?.trim();
+  const linkedWallet = linkedPlayer?.wallet_address?.trim();
+  const profileHref = linkedUsername
+    ? `/${encodeURIComponent(linkedUsername)}`
+    : linkedWallet
+      ? `/profiles/${encodeURIComponent(linkedWallet)}`
+      : '';
 
   return {
     name,
@@ -133,6 +158,7 @@ export function toGuideContributorUi(
         ? `Portrait of ${linkedName}`
         : row.photo_alt?.trim() || name,
     instagramHref: resolveContributorInstagramProfileUrl(instagram),
+    profileHref,
   };
 }
 
@@ -462,9 +488,7 @@ async function fetchContributorsForGuide(
 ): Promise<GuideContributorRow[]> {
   const { data, error } = await supabase
     .from('guide_contributors')
-    .select(
-      'guide_id, position, player_id, name, bio, photo_url, photo_alt, instagram_href, location_list_id, player:players(name, username, bio, profile_picture_url, instagram_handle)'
-    )
+    .select(CONTRIBUTOR_COLUMNS)
     .eq('guide_id', guideId)
     .order('position', { ascending: true });
 
@@ -474,7 +498,51 @@ async function fetchContributorsForGuide(
     }
     return [];
   }
-  return (data ?? []) as GuideContributorRow[];
+
+  return hydrateLinkedContributorPlayers((data ?? []) as GuideContributorRow[]);
+}
+
+/**
+ * Load current player profiles in one query and attach them to linked contributor rows.
+ * Avoids embedding `players` in the contributor select, where `name`/`bio` collide
+ * with contributor columns and can drop the live profile name.
+ */
+async function hydrateLinkedContributorPlayers(
+  rows: GuideContributorRow[]
+): Promise<GuideContributorRow[]> {
+  const playerIds = [
+    ...new Set(
+      rows
+        .map((row) => row.player_id)
+        .filter((id): id is number => typeof id === 'number' && id > 0)
+    ),
+  ];
+  if (playerIds.length === 0) return rows;
+
+  const { data, error } = await supabase
+    .from('players')
+    .select(LINKED_PLAYER_COLUMNS)
+    .in('id', playerIds);
+
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[guides] hydrateLinkedContributorPlayers:', error.message);
+    }
+    return rows;
+  }
+
+  const playersById = new Map<number, LinkedContributorPlayer>();
+  for (const player of (data ?? []) as LinkedContributorPlayer[]) {
+    if (typeof player.id === 'number') {
+      playersById.set(player.id, player);
+    }
+  }
+
+  return rows.map((row) => {
+    if (row.player_id == null) return row;
+    const player = playersById.get(row.player_id);
+    return player ? { ...row, player } : row;
+  });
 }
 
 async function fetchGuideBySlug(

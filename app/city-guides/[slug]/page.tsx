@@ -103,7 +103,7 @@ export default async function CityGuideBySlugPage({
 
           <CityGuideArticleMetaRow
             guideKind="city-guide"
-            contributors={contributorNames}
+            contributors={contributors}
             className="mb-8"
           />
 
