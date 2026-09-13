@@ -446,6 +446,16 @@ export function isPrivyWalletProviderOnNoise(message: string): boolean {
   );
 }
 
+/**
+ * Privy throws during `PrivyProvider` init when embedded wallets are enabled on
+ * plain HTTP (non-localhost). Users with stale `http://` bookmarks or LAN IPs
+ * hit this before our client redirect runs — environmental, not an app bug.
+ */
+export function isPrivyEmbeddedWalletHttpsNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('embedded wallet is only available over https');
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -549,6 +559,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     isWalletExtensionEthereumConflict(message) ||
     isWalletExtensionOnboardingNoise(message) ||
     isPrivyWalletProviderOnNoise(message) ||
+    isPrivyEmbeddedWalletHttpsNoise(message) ||
     isWebkitMessageHandlersNoise(message) ||
     isAndroidJavascriptBridgeNoise(message) ||
     isWalletConnectSessionNoise(message) ||

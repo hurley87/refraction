@@ -1,10 +1,15 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { base } from 'viem/chains';
 import { PrivyProvider, type PrivyClientConfig } from '@privy-io/react-auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { AnalyticsProvider } from '@/components/shared/analytics-provider';
+import {
+  getHttpsRedirectUrl,
+  isPrivyEmbeddedWalletContext,
+} from '@/lib/utils/privy-secure-context';
 
 const baseRpcUrl =
   process.env.NEXT_PUBLIC_BASE_RPC || base.rpcUrls.default.http[0];
@@ -38,6 +43,20 @@ const privyConfig: PrivyClientConfig = {
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
+  const [privyAllowed, setPrivyAllowed] = useState(false);
+
+  useEffect(() => {
+    if (isPrivyEmbeddedWalletContext()) {
+      setPrivyAllowed(true);
+      return;
+    }
+
+    window.location.replace(getHttpsRedirectUrl(window.location));
+  }, []);
+
+  if (!privyAllowed) {
+    return null;
+  }
 
   return (
     <WagmiProvider config={wagmiConfig}>

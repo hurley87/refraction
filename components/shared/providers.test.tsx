@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { createConfigMock } = vi.hoisted(() => ({
@@ -44,5 +44,40 @@ describe('Providers', () => {
     render(<Providers>child</Providers>);
 
     expect(createConfigMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('mounts Privy after confirming an embedded-wallet secure context', async () => {
+    vi.stubGlobal('location', {
+      protocol: 'https:',
+      hostname: 'www.irl.energy',
+      href: 'https://www.irl.energy/dashboard',
+    });
+
+    const { default: Providers } = await import('./providers');
+    const { container } = render(<Providers>child</Providers>);
+
+    await waitFor(() => {
+      expect(container.textContent).toBe('child');
+    });
+  });
+
+  it('redirects insecure HTTP origins before mounting Privy', async () => {
+    const replaceMock = vi.fn();
+    vi.stubGlobal('location', {
+      protocol: 'http:',
+      hostname: 'www.irl.energy',
+      href: 'http://www.irl.energy/dashboard?ref=email',
+      replace: replaceMock,
+    });
+
+    const { default: Providers } = await import('./providers');
+    const { container } = render(<Providers>child</Providers>);
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith(
+        'https://www.irl.energy/dashboard?ref=email'
+      );
+    });
+    expect(container.textContent).toBe('');
   });
 });
