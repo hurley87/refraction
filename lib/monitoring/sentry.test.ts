@@ -7,6 +7,7 @@ import {
   isEip1193ProviderNoise,
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
+  isPrivyEmbeddedWalletHttpsNoise,
   isPrivyWalletProviderOnNoise,
   isStorageSecurityError,
   isWalletConnectSessionNoise,
@@ -153,6 +154,19 @@ describe('isAndroidJavascriptBridgeNoise', () => {
       )
     ).toBe(true);
     expect(isAndroidJavascriptBridgeNoise('TypeError: fetch failed')).toBe(
+      false
+    );
+  });
+});
+
+describe('isPrivyEmbeddedWalletHttpsNoise', () => {
+  it('detects Privy embedded wallet HTTPS requirement errors (JAVASCRIPT-NEXTJS-1V)', () => {
+    expect(
+      isPrivyEmbeddedWalletHttpsNoise(
+        'Error: Embedded wallet is only available over HTTPS'
+      )
+    ).toBe(true);
+    expect(isPrivyEmbeddedWalletHttpsNoise('TypeError: fetch failed')).toBe(
       false
     );
   });
@@ -724,6 +738,30 @@ describe('sentryBeforeSend', () => {
                 {
                   filename: 'app://navigation_performance_logger_android',
                   function: 'sendBeforeUnloadMessage',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Privy embedded wallet HTTPS requirement noise (JAVASCRIPT-NEXTJS-1V)', () => {
+    const event = {
+      request: { url: 'http://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Error: Embedded wallet is only available over HTTPS',
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'app:///chunks/node_modules_@privy-io_react-auth_dist_esm_privy-provider-BG8GtKO6_mjs.js',
                 },
               ],
             },
