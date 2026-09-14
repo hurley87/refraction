@@ -10,8 +10,7 @@ export function useTiers() {
     queryKey: ['tiers'],
     queryFn: async () => {
       const data = await apiClient<{ tiers: Tier[] }>('/api/tiers');
-      return data.tiers;
+      return data.tiers ?? [];
     },
   });
 }
-

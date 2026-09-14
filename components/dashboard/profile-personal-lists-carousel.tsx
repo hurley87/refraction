@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import MapCard from '@/components/map/map-card';
 import { DragScrollRow } from '@/components/dashboard/drag-scroll-row';
 import { usePlayerCustomListLocations } from '@/hooks/usePlayerCustomLists';
+import { listLocationsCount } from '@/lib/location-lists/list-locations-count';
 import type { LocationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -42,13 +43,14 @@ export default function ProfilePersonalListsCarousel({
       <span className="label-small uppercase text-[#757575]">Your Lists</span>
       <DragScrollRow aria-label="Your lists carousel">
         {lists.map((list) => {
-          const first = list.locations[0];
+          const first = (list.locations ?? [])[0];
           const imageUrl =
             list.thumbnail_url ||
             first?.coin_image_thumb_url ||
             first?.coin_image_url ||
             null;
-          const count = list.location_count ?? list.locations.length;
+          const count =
+            list.location_count ?? listLocationsCount(list.locations);
 
           return (
             <MapCard
