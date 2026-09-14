@@ -49,6 +49,7 @@ import { CollectionVisibilityToggle } from '@/components/map/collection-visibili
 import type { PublicCustomListOwner } from '@/lib/db/player-custom-lists';
 import { profilePathForPlayer } from '@/lib/username';
 import { curatedListUrlSyncTarget } from '@/lib/location-lists/curated-list-url';
+import { listLocationsCount } from '@/lib/location-lists/list-locations-count';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -280,7 +281,7 @@ export default function LocationListsDrawer({
         description: list.description ?? null,
         thumbnail_url: list.thumbnail_url ?? null,
         is_private: list.is_private,
-        locations: list.locations
+        locations: (list.locations ?? [])
           .filter((location) => location.id != null)
           .map((location) => ({
             membershipId: location.id as number,
@@ -304,7 +305,10 @@ export default function LocationListsDrawer({
 
   /** Custom lists with at least one saved location (never bounds-filtered). */
   const populatedCustomLists = useMemo(
-    () => customDrawerLists.filter((list) => list.locations.length > 0),
+    () =>
+      customDrawerLists.filter(
+        (list) => listLocationsCount(list.locations) > 0
+      ),
     [customDrawerLists]
   );
 
@@ -321,7 +325,7 @@ export default function LocationListsDrawer({
       description: publicProfileList.description ?? null,
       thumbnail_url: publicProfileList.thumbnail_url ?? null,
       owner: publicProfileList.owner,
-      locations: publicProfileList.locations
+      locations: (publicProfileList.locations ?? [])
         .filter((location) => location.id != null)
         .map((location) => ({
           membershipId: location.id as number,
@@ -343,7 +347,7 @@ export default function LocationListsDrawer({
   }, [publicProfileList]);
 
   const hasPublicProfileListLocations =
-    (publicProfileDrawerList?.locations.length ?? 0) > 0;
+    listLocationsCount(publicProfileDrawerList?.locations) > 0;
 
   useEffect(() => {
     if (!fetchEnabled || hasFetchedLists) return;
@@ -424,9 +428,9 @@ export default function LocationListsDrawer({
     if (selectedListId === FAVORITES_LIST_ID) {
       locations = favoriteDrawerLocations;
     } else if (selectedCustomList) {
-      locations = selectedCustomList.locations;
+      locations = selectedCustomList.locations ?? [];
     } else if (selectedPublicProfileList) {
-      locations = selectedPublicProfileList.locations;
+      locations = selectedPublicProfileList.locations ?? [];
     } else if (selectedList?.locations) {
       locations = selectedList.locations;
     }
@@ -601,7 +605,7 @@ export default function LocationListsDrawer({
     }
 
     if (layout === 'sidebar' && selectedCustomList) {
-      for (const location of selectedCustomList.locations) {
+      for (const location of selectedCustomList.locations ?? []) {
         if (location.place_id) {
           ids.add(location.place_id);
         }
@@ -610,7 +614,7 @@ export default function LocationListsDrawer({
     }
 
     if (layout === 'sidebar' && selectedPublicProfileList) {
-      for (const location of selectedPublicProfileList.locations) {
+      for (const location of selectedPublicProfileList.locations ?? []) {
         if (location.place_id) {
           ids.add(location.place_id);
         }
@@ -846,7 +850,7 @@ export default function LocationListsDrawer({
     (selectedListId === FAVORITES_LIST_ID
       ? hasVisibleFavorites
       : selectedPublicProfileList !== null
-        ? selectedPublicProfileList.locations.length > 0
+        ? listLocationsCount(selectedPublicProfileList.locations) > 0
         : selectedCustomList !== null
           ? true
           : selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
@@ -870,7 +874,7 @@ export default function LocationListsDrawer({
   const isCustomListDetailView = selectedCustomList !== null;
   const isPublicProfileListDetailView =
     selectedPublicProfileList !== null &&
-    selectedPublicProfileList.locations.length > 0;
+    listLocationsCount(selectedPublicProfileList.locations) > 0;
   const isListDetailView =
     isFavoritesDetailView ||
     isCustomListDetailView ||
@@ -1301,7 +1305,7 @@ export default function LocationListsDrawer({
                   >
                     <dt className="label-small text-[#757575]">Locations</dt>
                     <dd className="title5 text-[#171717]">
-                      {personalListDetail.locations.length}
+                      {listLocationsCount(personalListDetail.locations)}
                     </dd>
                   </div>
                   {SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT ? (
@@ -1476,7 +1480,7 @@ export default function LocationListsDrawer({
                     })
                   )}
                   {isCustomListDetailView &&
-                  (selectedCustomList?.locations.length ?? 0) === 0 ? (
+                  listLocationsCount(selectedCustomList?.locations) === 0 ? (
                     <p className="body-small text-[#757575]">
                       No locations in this list yet. Open a spot on the map to
                       add one.
@@ -1519,7 +1523,7 @@ export default function LocationListsDrawer({
                             View all
                           </button>
                         </div>
-                        {list.locations.length > 0 ? (
+                        {listLocationsCount(list.locations) > 0 ? (
                           <div
                             className={
                               isSidebar
@@ -1630,10 +1634,10 @@ export default function LocationListsDrawer({
             Delete list
           </DialogTitle>
           <DialogDescription className="body-medium text-base leading-relaxed text-white/90 mapHd:text-lg">
-            {`Delete "${selectedCustomList?.title ?? 'this list'}"? Its ${
-              selectedCustomList?.locations.length ?? 0
-            } saved location${
-              (selectedCustomList?.locations.length ?? 0) === 1 ? '' : 's'
+            {`Delete "${selectedCustomList?.title ?? 'this list'}"? Its ${listLocationsCount(
+              selectedCustomList?.locations
+            )} saved location${
+              listLocationsCount(selectedCustomList?.locations) === 1 ? '' : 's'
             } will be removed from the list. This can't be undone.`}
           </DialogDescription>
           <div className="flex w-full gap-2">

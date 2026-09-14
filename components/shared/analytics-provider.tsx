@@ -144,7 +144,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
 
     // Only include tier when we can actually resolve it; avoids overwriting
     // a server-set value with undefined when tiers haven't loaded yet
-    if (player?.total_points !== undefined && tiers.length > 0) {
+    if (player?.total_points !== undefined && (tiers?.length ?? 0) > 0) {
       const userTier = tiers.find(
         (t) =>
           player.total_points >= t.min_points &&
