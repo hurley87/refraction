@@ -153,8 +153,8 @@ export default async function RewardsSection() {
               <WelcomeEllipse />
               <h2 className="title4 text-left text-white">Membership unlocks the world of IRL</h2>
             </div>
-            <p className="title0 text-left text-white">
-            rom welcome drinks to guest list spots and hotel discounts, we got you.
+            <p className="title1 text-left text-white">
+              From welcome drinks to guest list spots and hotel discounts, we got you.
             </p>
           </div>
           <ViewAllRewardsButton className="inline-flex w-[243px] shrink-0" />
