@@ -16,7 +16,6 @@ import { useModalStatus, usePrivy } from '@privy-io/react-auth';
 import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
-import { X } from 'lucide-react';
 import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { usePlayerCustomLists } from '@/hooks/usePlayerCustomLists';
 import AddToListDrawer from '@/components/map/add-to-list-drawer';
@@ -27,6 +26,7 @@ import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack
 import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';
 import { MapPinImage } from '@/components/map/map-pin-image';
 import { MapWelcomeTour } from '@/components/map/map-welcome-tour';
+import { MapYellowTip } from '@/components/map/map-yellow-tip';
 import { PlayerLocationPrompt } from '@/components/map/player-location-prompt';
 import LocationListsDrawer, {
   DrawerLocationSummary,
@@ -338,6 +338,7 @@ export default function InteractiveMap({
    * lists drawer does not cover the yellow “add more spots” bubble.
    */
   const [showListCreateMapTip, setShowListCreateMapTip] = useState(false);
+  const [showSearchTourTip, setShowSearchTourTip] = useState(false);
   const { data: popupCustomLists = [] } = usePlayerCustomLists(
     walletAddress,
     popupInfo?.place_id
@@ -350,6 +351,10 @@ export default function InteractiveMap({
   useEffect(() => {
     if (!popupInfo) setAddToListTarget(null);
   }, [popupInfo]);
+
+  const dismissSearchTourTip = useCallback(() => {
+    setShowSearchTourTip(false);
+  }, []);
 
   const dismissListCreateMapTip = useCallback(() => {
     setShowListCreateMapTip((wasShowing) => {
@@ -597,12 +602,18 @@ export default function InteractiveMap({
       setShowLocationPrompt(false);
       return;
     }
-    if (showWelcomeBanner) {
+    if (showWelcomeBanner || showSearchTourTip) {
       setShowLocationPrompt(false);
       return;
     }
     setShowLocationPrompt(true);
-  }, [user, walletAddress, needsLocationPrompt, showWelcomeBanner]);
+  }, [
+    user,
+    walletAddress,
+    needsLocationPrompt,
+    showWelcomeBanner,
+    showSearchTourTip,
+  ]);
 
   // The map requires an account: open Privy before the welcome tour, and reopen
   // it whenever a guest dismisses the modal without finishing sign-in.
@@ -642,6 +653,7 @@ export default function InteractiveMap({
 
   const handleWelcomeTourComplete = () => {
     dismissWelcomeBanner();
+    setShowSearchTourTip(true);
   };
 
   const handleLocationPromptComplete = () => {
@@ -1150,6 +1162,7 @@ export default function InteractiveMap({
     placeFormatted?: string;
     featureType?: string;
   }) => {
+    dismissSearchTourTip();
     const { longitude, latitude, name, placeFormatted, id, featureType } =
       picked;
 
@@ -1970,12 +1983,12 @@ export default function InteractiveMap({
   return (
     <div className="fixed inset-0 h-full w-full xl:rounded-none">
       {/* Mobile / tablet nav */}
-      <div className="absolute left-0 right-0 top-0 z-20 bg-gradient-to-b from-black/20 to-transparent xl:hidden">
+      <div className="absolute left-0 right-0 top-0 z-20 overflow-visible bg-gradient-to-b from-black/20 to-transparent xl:hidden">
         <div className="mx-auto flex min-w-0 w-full justify-center py-4">
           <MapNav
             leftSlot={guideBackLink}
             center={
-              <div className="flex w-full min-w-0 max-w-[163px] items-center md:hidden">
+              <div className="relative flex w-full min-w-0 max-w-[163px] items-center md:hidden">
                 <LocationSearch
                   placeholder="Search"
                   proximity={searchProximity}
@@ -1983,6 +1996,15 @@ export default function InteractiveMap({
                   className="w-full min-w-0"
                   inputClassName={MAP_SEARCH_INPUT_CLASS}
                 />
+                {showSearchTourTip ? (
+                  <MapYellowTip
+                    className="absolute left-1/2 top-full z-40 mt-2.5 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2"
+                    pointer="top"
+                    onDismiss={dismissSearchTourTip}
+                  >
+                    Search a spot you love
+                  </MapYellowTip>
+                ) : null}
               </div>
             }
           />
@@ -1994,7 +2016,7 @@ export default function InteractiveMap({
         <MapDesktopNav
           leftSlot={guideBackLink}
           searchSlot={
-            <div className="pointer-events-auto flex h-16 w-[255px] items-center gap-4 px-2 py-[var(--sds-size-space-300)]">
+            <div className="pointer-events-auto relative flex h-16 w-[255px] items-center gap-4 px-2 py-[var(--sds-size-space-300)]">
               <LocationSearch
                 placeholder="Search"
                 proximity={searchProximity}
@@ -2002,6 +2024,15 @@ export default function InteractiveMap({
                 className="h-full min-w-0 flex-1"
                 inputClassName={MAP_SEARCH_INPUT_CLASS}
               />
+              {showSearchTourTip ? (
+                <MapYellowTip
+                  className="absolute left-2 right-2 top-full z-40 mt-2.5"
+                  pointer="top"
+                  onDismiss={dismissSearchTourTip}
+                >
+                  Search a spot you love
+                </MapYellowTip>
+              ) : null}
             </div>
           }
         />
@@ -2152,16 +2183,25 @@ export default function InteractiveMap({
       ) : null}
 
       {/* Search row (tablet only) */}
-      <div className="absolute left-1/2 top-20 z-10 w-full max-w-md -translate-x-1/2 transform px-4 xl:hidden">
+      <div className="absolute left-1/2 top-20 z-30 w-full max-w-md -translate-x-1/2 transform px-4 xl:hidden">
         <div className="space-y-3">
           <div className="hidden items-center gap-2 md:flex">
-            <div className="flex-1">
+            <div className="relative flex-1">
               <LocationSearch
                 placeholder="Search"
                 proximity={searchProximity}
                 onSelect={handleSearchSelect}
                 inputClassName={MAP_SEARCH_INPUT_CLASS}
               />
+              {showSearchTourTip ? (
+                <MapYellowTip
+                  className="absolute inset-x-0 top-full z-40 mt-2.5"
+                  pointer="top"
+                  onDismiss={dismissSearchTourTip}
+                >
+                  Search a spot you love
+                </MapYellowTip>
+              ) : null}
             </div>
             <button
               type="button"
@@ -2552,24 +2592,12 @@ export default function InteractiveMap({
               savedListCount={popupSavedListCount}
             />
             {showListCreateMapTip ? (
-              <div
-                role="status"
+              <MapYellowTip
                 className="absolute inset-x-3 top-12 z-30 sm:inset-x-4"
+                onDismiss={dismissListCreateMapTip}
               >
-                <div className="relative rounded-2xl bg-[#FFF200] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
-                  <button
-                    type="button"
-                    onClick={dismissListCreateMapTip}
-                    className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full text-[#171717]/opacity-70 transition-opacity hover:opacity-100"
-                    aria-label="Dismiss tip"
-                  >
-                    <X className="size-4" aria-hidden />
-                  </button>
-                  <p className="body-medium pr-8 text-[#171717]">
-                    Go to the map to add more spots to your list!
-                  </p>
-                </div>
-              </div>
+                Go to the map to add more spots to your list!
+              </MapYellowTip>
             ) : null}
           </div>
         </div>
