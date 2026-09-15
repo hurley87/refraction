@@ -2,18 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import ProfileAvatar from '@/components/profile-avatar';
 import { cn } from '@/lib/utils';
 
-const MALCOLM_LEVY_USERNAME = 'malcolm_levy';
-
-export type MapWelcomeTourStep =
-  | 'intro'
-  | 'page1'
-  | 'page2'
-  | 'page3'
-  | 'page4';
+export type MapWelcomeTourStep = 'page1' | 'page2' | 'page3' | 'page4';
 
 type MapWelcomeTourProps = {
   open: boolean;
@@ -21,13 +12,7 @@ type MapWelcomeTourProps = {
   className?: string;
 };
 
-const TOUR_STEPS: MapWelcomeTourStep[] = [
-  'intro',
-  'page1',
-  'page2',
-  'page3',
-  'page4',
-];
+const TOUR_STEPS: MapWelcomeTourStep[] = ['page1', 'page2', 'page3', 'page4'];
 
 /** Full-bleed on mobile; 393px centered rail on md+ until a desktop tour exists. */
 const TOUR_FRAME_CLASS =
@@ -59,94 +44,6 @@ function TourArrowIcon({
         fill={fill}
       />
     </svg>
-  );
-}
-
-function IntroStep({ onContinue }: { onContinue: () => void }) {
-  const [profilePictureUrl, setProfilePictureUrl] = useState<
-    string | undefined
-  >();
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const response = await fetch(
-          `/api/profile?username=${encodeURIComponent(MALCOLM_LEVY_USERNAME)}`
-        );
-        if (!response.ok) return;
-        const result = await response.json();
-        const profile = result.data ?? result;
-        const url =
-          typeof profile.profile_picture_url === 'string'
-            ? profile.profile_picture_url.trim()
-            : '';
-        if (!cancelled && url) setProfilePictureUrl(url);
-      } catch {
-        // Initials fallback when the IRL photo cannot be loaded.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <div
-      className={cn(
-        'pointer-events-auto absolute left-2 right-2 top-[53px] z-30 flex w-auto flex-col items-center gap-[var(--sds-size-space-600)] bg-[var(--Backgrounds-Background,#FFF)] px-[var(--sds-size-space-400)] pb-[var(--sds-size-space-400)] pt-10 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]'
-      )}
-    >
-      <div className="flex w-full flex-col items-center gap-[var(--sds-size-space-200)] self-stretch">
-        <div className="flex w-full flex-col items-start gap-4 self-stretch">
-          <h2 className="title2 text-[#171717]">Welcome to IRL</h2>
-        </div>
-
-        <div className="flex w-full flex-col items-start self-stretch">
-          <Link
-            href={`/${MALCOLM_LEVY_USERNAME}`}
-            className="mb-[var(--sds-size-space-200)] rounded-full transition-opacity hover:opacity-80"
-            aria-label="View Malcolm Levy's profile"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <ProfileAvatar
-              profilePictureUrl={profilePictureUrl}
-              name="Malcolm Levy"
-              username={MALCOLM_LEVY_USERNAME}
-              size={48}
-            />
-          </Link>
-          <p className="title5-bold text-[#000000]">Hi, I&apos;m Malcolm.</p>
-          <p className="body-medium mt-[var(--sds-size-space-200)] text-[#171717]">
-            IRL is a network of 2,000+ artists, DJs, venues and cultural spaces
-            building infrastructure for independent culture around the world.
-            <br />
-            <br />
-            Every check-in helps flow value back to the places and people where
-            culture actually happens. Earn points, discover new places, and get
-            rewards at the bars, clubs, galleries and spaces we work with.
-          </p>
-          <p className="title5-bold  mt-[var(--sds-size-space-200)] text-[#000000]">
-            Have fun out there.
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col items-end gap-[var(--sds-size-space-200)]">
-          <button
-            type="button"
-            onClick={onContinue}
-            className="flex h-11 w-full items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-4 py-2 transition-colors hover:bg-black"
-          >
-            <span className="label-medium label-large uppercase text-white">
-              Get Started
-            </span>
-            <TourArrowIcon fill="#FFFFFF" className="!size-6" />
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -212,11 +109,12 @@ function Page1Step({ onContinue }: { onContinue: () => void }) {
             Welcome
           </p>
 
-          <p className="title1 m-0 max-w-full self-start !font-semibold !leading-[52px] text-[#171717]">
+          <p className="title2 m-0 max-w-full self-start !font-semibold !leading-[52px] text-[#171717]">
             <span className="box-decoration-clone bg-[#FFF200] px-2 py-1.5">
               IRL is your global
               <br />
               guide to what&apos;s good.
+              2000+ local curators <br /> show you where <br /> to go.
             </span>
           </p>
         </div>
@@ -325,7 +223,7 @@ function Page3Step({ onContinue }: { onContinue: () => void }) {
 
         <div className="flex w-full shrink-0 items-end justify-between gap-3">
           <p className="title3 max-w-[280px] text-white">
-            Earn points for future rewards at clubs, bars and galleries
+          Welcome drinks, guest list spots, hotel discounts. Claim them with the points you earn.
           </p>
           <TourArrowIcon fill="#FFF200" />
         </div>
@@ -423,7 +321,7 @@ export function MapWelcomeTour({
 
   if (!open) return null;
 
-  const step = TOUR_STEPS[stepIndex] ?? 'intro';
+  const step = TOUR_STEPS[stepIndex] ?? 'page1';
 
   const advance = () => {
     const next = stepIndex + 1;
@@ -453,7 +351,6 @@ export function MapWelcomeTour({
         <span id="map-welcome-tour-title" className="sr-only">
           Welcome to IRL
         </span>
-        {step === 'intro' ? <IntroStep onContinue={advance} /> : null}
         {step === 'page1' ? <Page1Step onContinue={advance} /> : null}
         {step === 'page2' ? <Page2Step onContinue={advance} /> : null}
         {step === 'page3' ? <Page3Step onContinue={advance} /> : null}
