@@ -334,11 +334,15 @@ export default function InteractiveMap({
     null
   );
   /**
-   * Tip after creating a list from a location: keep that map card open so the
-   * lists drawer does not cover the yellow “add more spots” bubble.
+   * Tip after creating a first list from a location: keep that map card open
+   * so the lists drawer does not cover the yellow profile bubble.
    */
   const [showListCreateMapTip, setShowListCreateMapTip] = useState(false);
   const [showSearchTourTip, setShowSearchTourTip] = useState(false);
+  const [showSaveToListTourTip, setShowSaveToListTourTip] = useState(false);
+  const [showCreateListTourTip, setShowCreateListTourTip] = useState(false);
+  /** Search tour: offer the SAVE TO LIST tip once a result opens a map card. */
+  const pendingSaveToListTourTipRef = useRef(false);
   const { data: popupCustomLists = [] } = usePlayerCustomLists(
     walletAddress,
     popupInfo?.place_id
@@ -356,6 +360,15 @@ export default function InteractiveMap({
     setShowSearchTourTip(false);
   }, []);
 
+  const dismissSaveToListTourTip = useCallback(() => {
+    pendingSaveToListTourTipRef.current = false;
+    setShowSaveToListTourTip(false);
+  }, []);
+
+  const dismissCreateListTourTip = useCallback(() => {
+    setShowCreateListTourTip(false);
+  }, []);
+
   const dismissListCreateMapTip = useCallback(() => {
     setShowListCreateMapTip((wasShowing) => {
       if (wasShowing) {
@@ -366,22 +379,24 @@ export default function InteractiveMap({
   }, []);
 
   const handleListCreated = useCallback(
-    (_listId: string) => {
+    (_listId: string, _details?: { isFirstList: boolean }) => {
       const createdFromMarker = addToListTargetRef.current ?? addToListTarget;
       setAddToListTarget(null);
       setFocusCustomListId(null);
+      dismissCreateListTourTip();
 
       if (!createdFromMarker) {
         toast.success('List created');
         return;
       }
 
-      // Stay on the location that started save-to-list so the tip is visible.
+      // Stay on the location that started save-to-list so the profile tip
+      // is visible on the map card.
       setPopupInfo(createdFromMarker);
       setSelectedMarker(createdFromMarker);
       setShowListCreateMapTip(true);
     },
-    [addToListTarget]
+    [addToListTarget, dismissCreateListTourTip]
   );
 
   const [showLocationForm, setShowLocationForm] = useState(false);
@@ -602,7 +617,12 @@ export default function InteractiveMap({
       setShowLocationPrompt(false);
       return;
     }
-    if (showWelcomeBanner || showSearchTourTip) {
+    if (
+      showWelcomeBanner ||
+      showSearchTourTip ||
+      showSaveToListTourTip ||
+      showCreateListTourTip
+    ) {
       setShowLocationPrompt(false);
       return;
     }
@@ -613,6 +633,8 @@ export default function InteractiveMap({
     needsLocationPrompt,
     showWelcomeBanner,
     showSearchTourTip,
+    showSaveToListTourTip,
+    showCreateListTourTip,
   ]);
 
   // The map requires an account: open Privy before the welcome tour, and reopen
@@ -1162,6 +1184,10 @@ export default function InteractiveMap({
     placeFormatted?: string;
     featureType?: string;
   }) => {
+    if (showSearchTourTip) {
+      pendingSaveToListTourTipRef.current = true;
+    }
+    const followFromSearchTour = pendingSaveToListTourTipRef.current;
     dismissSearchTourTip();
     const { longitude, latitude, name, placeFormatted, id, featureType } =
       picked;
@@ -1233,6 +1259,10 @@ export default function InteractiveMap({
       setPendingMapCreateMarker(null);
       setPopupInfo(matchedMarker);
       setSelectedMarker(matchedMarker);
+      if (followFromSearchTour && walletAddress) {
+        pendingSaveToListTourTipRef.current = false;
+        setShowSaveToListTourTip(true);
+      }
       return;
     }
 
@@ -1924,7 +1954,9 @@ export default function InteractiveMap({
 
   const mapCardBottomOverlayClassName = cn(
     'pointer-events-none fixed inset-x-0 flex justify-center px-4 xl:pl-[394px]',
-    showListCreateMapTip ? 'z-[90]' : 'z-[75]',
+    showListCreateMapTip || showSaveToListTourTip || showCreateListTourTip
+      ? 'z-[90]'
+      : 'z-[75]',
     isListDetailOpen
       ? 'mapWide:pl-[452px] mapHd:pl-[880px]'
       : 'mapWide:pl-[559px] mapHd:pl-[809px]',
@@ -2579,6 +2611,7 @@ export default function InteractiveMap({
               onAction={() => handleStartCheckIn(popupInfo)}
               onClose={() => {
                 dismissListCreateMapTip();
+                dismissSaveToListTourTip();
                 setPopupInfo(null);
                 setSelectedMarker(null);
               }}
@@ -2587,7 +2620,26 @@ export default function InteractiveMap({
               placeId={popupInfo.place_id}
               eventUrl={popupInfo.event_url}
               onSaveToList={
-                walletAddress ? () => setAddToListTarget(popupInfo) : undefined
+                walletAddress
+                  ? () => {
+                      if (showSaveToListTourTip) {
+                        setShowCreateListTourTip(true);
+                      }
+                      dismissSaveToListTourTip();
+                      setAddToListTarget(popupInfo);
+                    }
+                  : undefined
+              }
+              saveToListTip={
+                showSaveToListTourTip && !showListCreateMapTip ? (
+                  <MapYellowTip
+                    className="absolute bottom-full left-0 right-0 z-30 mb-2.5"
+                    pointer="bottom"
+                    onDismiss={dismissSaveToListTourTip}
+                  >
+                    Start your first list
+                  </MapYellowTip>
+                ) : null
               }
               savedListCount={popupSavedListCount}
             />
@@ -2596,7 +2648,15 @@ export default function InteractiveMap({
                 className="absolute inset-x-3 top-12 z-30 sm:inset-x-4"
                 onDismiss={dismissListCreateMapTip}
               >
-                Go to the map to add more spots to your list!
+                You&apos;re in!{' '}
+                <Link
+                  href="/dashboard"
+                  className="underline underline-offset-2"
+                  onClick={() => dismissListCreateMapTip()}
+                >
+                  Go to your profile
+                </Link>{' '}
+                to view your lists
               </MapYellowTip>
             ) : null}
           </div>
@@ -2621,8 +2681,24 @@ export default function InteractiveMap({
                   addToListTarget.imageThumbUrl || addToListTarget.imageUrl,
               }}
               walletAddress={walletAddress}
-              onClose={() => setAddToListTarget(null)}
+              onClose={() => {
+                dismissCreateListTourTip();
+                setAddToListTarget(null);
+              }}
               onListCreated={handleListCreated}
+              createListTip={
+                showCreateListTourTip ? (
+                  <MapYellowTip
+                    className="absolute bottom-full right-0 z-40 mb-2.5 w-[min(20rem,calc(100vw-2rem))]"
+                    pointer="bottom"
+                    pointerAlign="end"
+                    onDismiss={dismissCreateListTourTip}
+                  >
+                    Group your favorite spots into something you can share with
+                    friends
+                  </MapYellowTip>
+                ) : null
+              }
             />
           </div>
         </div>

@@ -2,16 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import AddToListDrawer from '../add-to-list-drawer';
+import { MapYellowTip } from '../map-yellow-tip';
 
 const WALLET = '0x1234567890abcdef1234567890abcdef12345678';
 
 function renderDrawer({
   onClose = vi.fn(),
   onListCreated,
+  createListTip,
 }: {
   onClose?: ReturnType<typeof vi.fn>;
-  onListCreated?: (listId: string) => void;
+  onListCreated?: (listId: string, details: { isFirstList: boolean }) => void;
+  createListTip?: ReactNode;
 } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -28,6 +32,7 @@ function renderDrawer({
         walletAddress={WALLET}
         onClose={onClose}
         onListCreated={onListCreated}
+        createListTip={createListTip}
       />
     </QueryClientProvider>
   );
@@ -148,7 +153,9 @@ describe('AddToListDrawer create flow', () => {
     await user.click(saveButton);
 
     await waitFor(() => {
-      expect(onListCreated).toHaveBeenCalledWith('list-1');
+      expect(onListCreated).toHaveBeenCalledWith('list-1', {
+        isFirstList: true,
+      });
       expect(onClose).toHaveBeenCalled();
     });
 
@@ -164,5 +171,93 @@ describe('AddToListDrawer create flow', () => {
       placeId: 'place-1',
       listIds: ['list-1'],
     });
+  });
+
+  it('reports isFirstList false when the player already has lists', async () => {
+    const onListCreated = vi.fn();
+    vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.startsWith('/api/player-lists') && init?.method === 'POST') {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: { list: { id: 'list-2', title: 'Second list' } },
+          }),
+          { status: 200 }
+        );
+      }
+      if (
+        url.startsWith('/api/player-lists/add-location') &&
+        init?.method === 'POST'
+      ) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: { placeId: 'place-1', savedListCount: 1 },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            lists: [
+              {
+                id: 'list-1',
+                title: 'Existing',
+                location_count: 1,
+                contains_location: false,
+              },
+            ],
+          },
+        }),
+        { status: 200 }
+      );
+    });
+
+    const user = userEvent.setup();
+    renderDrawer({ onListCreated });
+
+    await screen.findByText('Existing');
+    await user.click(
+      screen.getByRole('button', { name: /new collection|create new list/i })
+    );
+
+    const nameInput = await screen.findByPlaceholderText('My favorite spots');
+    await user.type(nameInput, 'Second list');
+    await user.click(screen.getByRole('button', { name: 'Save new list' }));
+
+    await waitFor(() => {
+      expect(onListCreated).toHaveBeenCalledWith('list-2', {
+        isFirstList: false,
+      });
+    });
+  });
+
+  it('renders a coaching tip above CREATE NEW LIST', () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ success: true, data: { lists: [] } }), {
+        status: 200,
+      })
+    );
+
+    renderDrawer({
+      createListTip: (
+        <MapYellowTip pointer="bottom" pointerAlign="end" onDismiss={vi.fn()}>
+          Group your favorite spots into something you can share with friends
+        </MapYellowTip>
+      ),
+    });
+
+    expect(
+      screen.getByText(
+        'Group your favorite spots into something you can share with friends'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('map-yellow-tip-pointer')).toHaveAttribute(
+      'data-pointer-align',
+      'end'
+    );
   });
 });
