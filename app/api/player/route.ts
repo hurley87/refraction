@@ -97,8 +97,14 @@ export async function POST(request: NextRequest) {
       });
 
       const guideSlug = signup_attribution?.guide_slug?.trim();
-      if (signup_attribution?.from_gate && guideSlug) {
-        trackSignupFromGate(distinctId, { guide_slug: guideSlug });
+      const surface = signup_attribution?.surface;
+      if (signup_attribution?.from_gate && surface === 'map') {
+        trackSignupFromGate(distinctId, { surface: 'map' });
+      } else if (signup_attribution?.from_gate && guideSlug) {
+        trackSignupFromGate(distinctId, {
+          surface: 'city_guide',
+          guide_slug: guideSlug,
+        });
       }
     }
 

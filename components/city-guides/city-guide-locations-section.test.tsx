@@ -136,6 +136,7 @@ describe('CityGuideLocationsSection', () => {
     expect(screen.getByText('Alice • 3 RECCOS')).toBeTruthy();
     expect(screen.getByText(/Unlock the other 2/)).toBeTruthy();
     expect(mockTrackEvent).toHaveBeenCalledWith('gate_viewed', {
+      surface: 'city_guide',
       guide_slug: 'berlin',
     });
 
@@ -144,6 +145,7 @@ describe('CityGuideLocationsSection', () => {
       expect(mockLogin).toHaveBeenCalledOnce();
     });
     expect(mockTrackEvent).toHaveBeenCalledWith('gate_signup_clicked', {
+      surface: 'city_guide',
       guide_slug: 'berlin',
     });
   });
@@ -195,7 +197,10 @@ describe('CityGuideLocationsSection', () => {
 
     const raw = localStorage.getItem('irl_signup_from_gate_v1');
     expect(raw).toBeTruthy();
-    expect(JSON.parse(raw!)).toMatchObject({ guide_slug: 'berlin' });
+    expect(JSON.parse(raw!)).toMatchObject({
+      surface: 'city_guide',
+      guide_slug: 'berlin',
+    });
   });
 
   it('passes gate attribution on unlock and clears intent after success', async () => {

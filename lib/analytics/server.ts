@@ -9,6 +9,7 @@ import type {
   TierChangedProperties,
   TierProgressionProperties,
   AccountCreatedProperties,
+  SignupFromGateProperties,
   SpendRedemptionStartedProperties,
   SpendRedemptionCompletedProperties,
   CityMilestoneProperties,
@@ -158,10 +159,10 @@ export function trackAccountCreated(
   });
 }
 
-/** Net-new IRL account after Become a Member on a gated city guide. */
+/** Net-new IRL account after a membership / login gate (map or city guide). */
 export function trackSignupFromGate(
   distinctId: string,
-  properties: { guide_slug: string }
+  properties: SignupFromGateProperties
 ): void {
   trackEvent(distinctId, ANALYTICS_EVENTS.SIGNUP_FROM_GATE, properties);
 }

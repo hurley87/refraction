@@ -54,7 +54,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           walletAddress: evmWallet,
           playerId: player.id,
         });
-        trackSignupFromGate(distinctId, { guide_slug: guideSlug });
+        trackSignupFromGate(distinctId, {
+          surface: 'city_guide',
+          guide_slug: guideSlug,
+        });
       }
     } catch (error) {
       console.error('Failed to ensure player on city guide unlock:', error);

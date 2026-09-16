@@ -13,6 +13,7 @@ import {
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
 import { useModalStatus, usePrivy } from '@privy-io/react-auth';
+import { useMapGateAnalytics } from '@/hooks/use-map-gate-analytics';
 import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
@@ -299,6 +300,7 @@ export default function InteractiveMap({
 
   const { user, ready, authenticated, getAccessToken, login } = usePrivy();
   const { isOpen: isPrivyModalOpen } = useModalStatus();
+  useMapGateAnalytics({ ready, authenticated, isPrivyModalOpen });
   const walletAddress = useEvmWalletAddress();
   const { data: favoritePlaceIds } = useFavoritePlaceIds(walletAddress);
   const { mutate: toggleFavorite, isPending: isFavoritePending } =

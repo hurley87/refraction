@@ -88,14 +88,23 @@ describe('signup attribution client persistence', () => {
   });
 
   it('includes from_gate + guide_slug after markSignupFromGate', () => {
-    markSignupFromGate('berlin');
+    markSignupFromGate({ surface: 'city_guide', guide_slug: 'berlin' });
     const body = getSignupAttributionBodyFields();
     expect(body.signup_attribution?.from_gate).toBe(true);
+    expect(body.signup_attribution?.surface).toBe('city_guide');
     expect(body.signup_attribution?.guide_slug).toBe('berlin');
   });
 
+  it('includes from_gate + map surface without a guide slug', () => {
+    markSignupFromGate({ surface: 'map' });
+    const body = getSignupAttributionBodyFields();
+    expect(body.signup_attribution?.from_gate).toBe(true);
+    expect(body.signup_attribution?.surface).toBe('map');
+    expect(body.signup_attribution?.guide_slug).toBeUndefined();
+  });
+
   it('clears gate intent via clearSignupFromGate', () => {
-    markSignupFromGate('berlin');
+    markSignupFromGate({ surface: 'city_guide', guide_slug: 'berlin' });
     clearSignupFromGate();
     const body = getSignupAttributionBodyFields();
     expect(body.signup_attribution?.from_gate).toBeUndefined();
@@ -103,8 +112,22 @@ describe('signup attribution client persistence', () => {
   });
 
   it('consumeSignupFromGate returns and clears intent', () => {
-    markSignupFromGate('berlin');
-    expect(consumeSignupFromGate()).toMatchObject({ guide_slug: 'berlin' });
+    markSignupFromGate({ surface: 'city_guide', guide_slug: 'berlin' });
+    expect(consumeSignupFromGate()).toMatchObject({
+      surface: 'city_guide',
+      guide_slug: 'berlin',
+    });
     expect(consumeSignupFromGate()).toBeNull();
+  });
+
+  it('treats legacy gate intent without surface as city_guide', () => {
+    localStorage.setItem(
+      'irl_signup_from_gate_v1',
+      JSON.stringify({ guide_slug: 'berlin', marked_at: Date.now() })
+    );
+    const body = getSignupAttributionBodyFields();
+    expect(body.signup_attribution?.from_gate).toBe(true);
+    expect(body.signup_attribution?.surface).toBe('city_guide');
+    expect(body.signup_attribution?.guide_slug).toBe('berlin');
   });
 });

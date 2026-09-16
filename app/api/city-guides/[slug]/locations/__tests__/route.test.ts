@@ -113,6 +113,7 @@ describe('GET /api/city-guides/[slug]/locations', () => {
 
     expect(response.status).toBe(200);
     expect(mockTrackSignupFromGate).toHaveBeenCalledWith('gate@example.com', {
+      surface: 'city_guide',
       guide_slug: 'berlin',
     });
   });
