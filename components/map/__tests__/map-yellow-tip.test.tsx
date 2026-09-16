@@ -27,6 +27,46 @@ describe('MapYellowTip', () => {
         Search a spot you love
       </MapYellowTip>
     );
-    expect(screen.getByTestId('map-yellow-tip-pointer')).toBeInTheDocument();
+    expect(screen.getByTestId('map-yellow-tip-pointer')).toHaveAttribute(
+      'data-pointer',
+      'top'
+    );
+  });
+
+  it('renders a downward speech-bubble pointer', () => {
+    render(
+      <MapYellowTip pointer="bottom" onDismiss={vi.fn()}>
+        Start your first list
+      </MapYellowTip>
+    );
+    expect(screen.getByTestId('map-yellow-tip-pointer')).toHaveAttribute(
+      'data-pointer',
+      'bottom'
+    );
+  });
+
+  it('aligns the pointer to the end of the bubble', () => {
+    render(
+      <MapYellowTip pointer="bottom" pointerAlign="end" onDismiss={vi.fn()}>
+        Group your favorite spots
+      </MapYellowTip>
+    );
+    expect(screen.getByTestId('map-yellow-tip-pointer')).toHaveAttribute(
+      'data-pointer-align',
+      'end'
+    );
+  });
+
+  it('renders a dashboard link in the first-list message', () => {
+    render(
+      <MapYellowTip onDismiss={vi.fn()}>
+        You&apos;re in! <a href="/dashboard">Go to your profile</a> to view your
+        lists
+      </MapYellowTip>
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Go to your profile' })
+    ).toHaveAttribute('href', '/dashboard');
   });
 });

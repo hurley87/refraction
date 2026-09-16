@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useRef, useState } from 'react';
+import { FormEvent, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,7 +31,9 @@ interface AddToListDrawerProps {
    * After creating a list (and saving the current spot into it), hand off so
    * the parent can open the lists drawer focused on that list.
    */
-  onListCreated?: (listId: string) => void;
+  onListCreated?: (listId: string, details: { isFirstList: boolean }) => void;
+  /** Coaching bubble anchored above the CREATE NEW LIST control. */
+  createListTip?: ReactNode;
 }
 
 /** Bookmark-style "add list" icon from the design (16×16). */
@@ -105,6 +107,7 @@ export default function AddToListDrawer({
   walletAddress,
   onClose,
   onListCreated,
+  createListTip,
 }: AddToListDrawerProps) {
   const [view, setView] = useState<'lists' | 'create'>('lists');
   const [selectedListIds, setSelectedListIds] = useState<Set<string>>(
@@ -125,6 +128,11 @@ export default function AddToListDrawer({
     walletAddress,
     location.placeId
   );
+  /** Lock first-list detection before create invalidates the lists query. */
+  const hadNoListsRef = useRef<boolean | null>(null);
+  if (hadNoListsRef.current === null && !isLoadingLists) {
+    hadNoListsRef.current = lists.length === 0;
+  }
   const { mutateAsync: createList, isPending: isCreatingList } =
     useCreateCustomList(walletAddress);
   const { mutateAsync: addToLists, isPending: isAddingToLists } =
@@ -200,6 +208,7 @@ export default function AddToListDrawer({
     if (isCreatingList || isUploadingThumbnail || isAddingToLists) return;
 
     try {
+      const isFirstList = hadNoListsRef.current ?? lists.length === 0;
       const result = await createList({
         walletAddress,
         title,
@@ -224,7 +233,7 @@ export default function AddToListDrawer({
           // List exists; add-location hook already toasts. Still hand off focus.
           console.error('Failed to add location to new list', error);
         }
-        onListCreated(createdId);
+        onListCreated(createdId, { isFirstList });
         onClose();
         return;
       }
@@ -243,7 +252,12 @@ export default function AddToListDrawer({
   const headerLabel = view === 'create' ? 'NEW COLLECTION' : 'ADD TO LIST';
 
   return (
-    <div className="flex max-h-[70vh] w-full flex-col overflow-hidden border border-[rgba(255,255,255,0.15)] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] sm:pb-0">
+    <div
+      className={cn(
+        'flex max-h-[70vh] w-full flex-col border border-[rgba(255,255,255,0.15)] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] sm:pb-0',
+        createListTip ? 'overflow-visible' : 'overflow-hidden'
+      )}
+    >
       {/* Row 1: back + centered title (+ create confirm checkmark) */}
       <div className="flex h-16 w-full shrink-0 items-center justify-between px-4">
         <button
@@ -384,16 +398,19 @@ export default function AddToListDrawer({
                 {formatLocationCategory(location.category)}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setView('create')}
-              className="ml-auto flex shrink-0 items-center gap-[var(--sds-size-space-200)] self-end border-b border-[#171717] transition-opacity hover:opacity-80"
-            >
-              <span className="label-medium uppercase tracking-wide text-[#171717]">
-                CREATE NEW LIST
-              </span>
-              <CreateNewListIcon />
-            </button>
+            <div className="relative ml-auto shrink-0 self-end">
+              {createListTip}
+              <button
+                type="button"
+                onClick={() => setView('create')}
+                className="flex shrink-0 items-center gap-[var(--sds-size-space-200)] border-b border-[#171717] transition-opacity hover:opacity-80"
+              >
+                <span className="label-medium uppercase tracking-wide text-[#171717]">
+                  CREATE NEW LIST
+                </span>
+                <CreateNewListIcon />
+              </button>
+            </div>
           </div>
 
           {/* User's lists */}

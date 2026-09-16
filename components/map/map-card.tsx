@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import {
   Tooltip,
@@ -42,6 +43,8 @@ interface MapCardProps {
   isFavoriteLoading?: boolean;
   /** Opens the ADD TO LIST drawer (default variant only). */
   onSaveToList?: () => void;
+  /** Coaching bubble anchored above the SAVE TO LIST button. */
+  saveToListTip?: ReactNode;
   /** How many of the user's custom lists already contain this location. */
   savedListCount?: number;
   /** Remove this spot from the current custom list (`drawerTile` only). */
@@ -148,6 +151,7 @@ export default function MapCard({
   onToggleFavorite,
   isFavoriteLoading = false,
   onSaveToList,
+  saveToListTip,
   savedListCount = 0,
   onRemoveFromList,
   isRemoveFromListPending = false,
@@ -359,7 +363,7 @@ export default function MapCard({
       ) : null}
 
       {/* Card Content */}
-      <div className="relative z-10 mt-auto flex self-stretch flex-col items-start gap-2 bg-white p-2">
+      <div className="relative z-10 mt-auto flex self-stretch flex-col items-start gap-2 overflow-visible bg-white p-2">
         {/* Location Info */}
         <div className="flex self-stretch flex-col items-start justify-center gap-[5px] pb-1">
           {/* Name */}
@@ -387,34 +391,37 @@ export default function MapCard({
         </div>
 
         {/* Action Buttons - Horizontal Layout */}
-        <div className="flex w-full self-stretch gap-2">
+        <div className="relative z-20 flex w-full self-stretch gap-2">
           {onSaveToList && (
-            <button
-              type="button"
-              onClick={onSaveToList}
-              className={cn(
-                'flex h-8 flex-[1_0_0] items-center justify-between border border-[var(--Borders-Heavy-Border,#454545)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] transition-colors',
-                savedListCount > 0
-                  ? 'bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] hover:bg-[#d0d0d0]'
-                  : 'bg-[var(--Backgrounds-Background,#FFF)] hover:bg-neutral-50'
-              )}
-              aria-label={
-                savedListCount > 0
-                  ? `Added to ${savedListCount} list${savedListCount === 1 ? '' : 's'}. Manage lists`
-                  : 'Save location to a list'
-              }
-            >
-              <span className="label-medium uppercase text-[#171717]">
-                {savedListCount > 0
-                  ? `ADDED TO ${savedListCount} LIST${savedListCount === 1 ? '' : 'S'}`
-                  : 'SAVE TO LIST'}
-              </span>
-              {savedListCount > 0 ? (
-                <FilledBookmarkIcon />
-              ) : (
-                <DrawerFavoriteBookmarkIcon isFavorited={false} />
-              )}
-            </button>
+            <div className="relative min-w-0 flex-[1_0_0]">
+              {saveToListTip}
+              <button
+                type="button"
+                onClick={onSaveToList}
+                className={cn(
+                  'flex h-8 w-full items-center justify-between border border-[var(--Borders-Heavy-Border,#454545)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] transition-colors',
+                  savedListCount > 0
+                    ? 'bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] hover:bg-[#d0d0d0]'
+                    : 'bg-[var(--Backgrounds-Background,#FFF)] hover:bg-neutral-50'
+                )}
+                aria-label={
+                  savedListCount > 0
+                    ? `Added to ${savedListCount} list${savedListCount === 1 ? '' : 's'}. Manage lists`
+                    : 'Save location to a list'
+                }
+              >
+                <span className="label-medium uppercase text-[#171717]">
+                  {savedListCount > 0
+                    ? `ADDED TO ${savedListCount} LIST${savedListCount === 1 ? '' : 'S'}`
+                    : 'SAVE TO LIST'}
+                </span>
+                {savedListCount > 0 ? (
+                  <FilledBookmarkIcon />
+                ) : (
+                  <DrawerFavoriteBookmarkIcon isFavorited={false} />
+                )}
+              </button>
+            </div>
           )}
 
           {/* Check In / Create Location Button */}
