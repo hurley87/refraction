@@ -73,6 +73,7 @@ export type {
   TierChangedProperties,
   TierProgressionProperties,
   AccountCreatedProperties,
+  SignupFromGateProperties,
   SpendRedemptionStartedProperties,
   SpendRedemptionCompletedProperties,
   CityMilestoneProperties,

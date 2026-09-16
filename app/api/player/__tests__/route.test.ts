@@ -232,7 +232,40 @@ describe('Player API Route', () => {
       expect(response.status).toBe(200);
 
       expect(trackSignupFromGate).toHaveBeenCalledWith('gate@example.com', {
+        surface: 'city_guide',
         guide_slug: 'berlin',
+      });
+    });
+
+    it('fires signup_from_gate for new players attributed to the map gate', async () => {
+      const mockPlayer = {
+        id: '128',
+        wallet_address: '0x6234567890abcdef6234567890abcdef62345678',
+        username: 'mapgate',
+        email: 'mapgate@example.com',
+        total_points: 0,
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(null);
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x6234567890abcdef6234567890abcdef62345678',
+        username: 'mapgate',
+        email: 'mapgate@example.com',
+        signup_attribution: {
+          from_gate: true,
+          surface: 'map',
+          current_path: '/interactive-map',
+        },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      expect(trackSignupFromGate).toHaveBeenCalledWith('mapgate@example.com', {
+        surface: 'map',
       });
     });
 
@@ -256,6 +289,34 @@ describe('Player API Route', () => {
         signup_attribution: {
           guide_slug: 'berlin',
           current_path: '/city-guides/berlin',
+        },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+      expect(trackSignupFromGate).not.toHaveBeenCalled();
+    });
+
+    it('does not fire signup_from_gate for map without from_gate', async () => {
+      const mockPlayer = {
+        id: '129',
+        wallet_address: '0x7234567890abcdef7234567890abcdef72345678',
+        username: 'nomapgate',
+        email: 'nomapgate@example.com',
+        total_points: 0,
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(null);
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x7234567890abcdef7234567890abcdef72345678',
+        username: 'nomapgate',
+        email: 'nomapgate@example.com',
+        signup_attribution: {
+          surface: 'map',
+          current_path: '/interactive-map',
         },
       });
 

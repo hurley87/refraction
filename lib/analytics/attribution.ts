@@ -8,6 +8,7 @@ import {
   type AttributionTouch,
   type SignupAttributionPayload,
   type SignupAttributionSession,
+  type GateSurface,
   type SignupFromGateIntent,
   extractCheckpointIdFromPath,
   extractOptionalQueryIds,
@@ -169,43 +170,71 @@ function buildPayload(
   };
 }
 
+function parseSignupFromGateIntent(raw: unknown): SignupFromGateIntent | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const parsed = raw as Partial<SignupFromGateIntent> & { guide_slug?: string };
+  const guideSlug =
+    typeof parsed.guide_slug === 'string' ? parsed.guide_slug.trim() : '';
+  const markedAt =
+    typeof parsed.marked_at === 'number' ? parsed.marked_at : NaN;
+  if (!Number.isFinite(markedAt)) return null;
+
+  const surface: GateSurface | null =
+    parsed.surface === 'map' || parsed.surface === 'city_guide'
+      ? parsed.surface
+      : guideSlug
+        ? 'city_guide'
+        : null;
+  if (!surface) return null;
+  if (surface === 'city_guide' && !guideSlug) return null;
+
+  return {
+    surface,
+    marked_at: markedAt,
+    ...(guideSlug ? { guide_slug: guideSlug } : {}),
+  };
+}
+
 function readSignupFromGateIntent(): SignupFromGateIntent | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(SIGNUP_FROM_GATE_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<SignupFromGateIntent>;
-    const guideSlug =
-      typeof parsed.guide_slug === 'string' ? parsed.guide_slug.trim() : '';
-    const markedAt =
-      typeof parsed.marked_at === 'number' ? parsed.marked_at : NaN;
-    if (!guideSlug || !Number.isFinite(markedAt)) {
+    const intent = parseSignupFromGateIntent(JSON.parse(raw));
+    if (!intent) {
       localStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
       return null;
     }
-    if (Date.now() - markedAt > SIGNUP_FROM_GATE_TTL_MS) {
+    if (Date.now() - intent.marked_at > SIGNUP_FROM_GATE_TTL_MS) {
       localStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
       return null;
     }
-    return { guide_slug: guideSlug, marked_at: markedAt };
+    return intent;
   } catch {
     return null;
   }
 }
 
 /**
- * Remember that the reader started signup from a city-guide membership gate.
+ * Remember that the visitor started signup from a membership / login gate.
  * Survives Privy OAuth and a later username step so Mixpanel can attribute
  * `signup_from_gate`.
  */
-export function markSignupFromGate(guideSlug: string): void {
+export function markSignupFromGate(input: {
+  surface: GateSurface;
+  guide_slug?: string;
+}): void {
   if (typeof window === 'undefined') return;
-  const slug = guideSlug.trim();
-  if (!slug) return;
+  const surface = input.surface;
+  const guideSlug = input.guide_slug?.trim() ?? '';
+  if (surface === 'city_guide' && !guideSlug) return;
   try {
     const intent: SignupFromGateIntent = {
-      guide_slug: slug.slice(0, ATTRIBUTION_LIMITS.id),
+      surface,
       marked_at: Date.now(),
+      ...(guideSlug
+        ? { guide_slug: guideSlug.slice(0, ATTRIBUTION_LIMITS.id) }
+        : {}),
     };
     localStorage.setItem(SIGNUP_FROM_GATE_STORAGE_KEY, JSON.stringify(intent));
   } catch {
@@ -248,7 +277,13 @@ export function getSignupAttributionBodyFields(): {
   const gate = readSignupFromGateIntent();
   const payload: SignupAttributionPayload = {
     ...(session ? buildPayload(session) : {}),
-    ...(gate ? { from_gate: true, guide_slug: gate.guide_slug } : {}),
+    ...(gate
+      ? {
+          from_gate: true,
+          surface: gate.surface,
+          ...(gate.guide_slug ? { guide_slug: gate.guide_slug } : {}),
+        }
+      : {}),
   };
   if (!signupAttributionPayloadHasData(payload)) return {};
   return { signup_attribution: payload };

@@ -14,11 +14,11 @@ export const ANALYTICS_EVENTS = {
   // Interest
   ACCOUNT_CREATED: 'account_created',
 
-  /** City guide membership gate: modal became visible to a signed-out reader. */
+  /** Membership / login gate: modal became visible to a signed-out visitor. */
   GATE_VIEWED: 'gate_viewed',
-  /** City guide membership gate: reader tapped Become a Member. */
+  /** Membership / login gate: visitor started sign-in. */
   GATE_SIGNUP_CLICKED: 'gate_signup_clicked',
-  /** City guide membership gate: net-new player created on gate unlock (or username POST). */
+  /** Membership / login gate: net-new player created (unlock API or username POST). */
   SIGNUP_FROM_GATE: 'signup_from_gate',
 
   // Conversion

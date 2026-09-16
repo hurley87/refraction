@@ -78,7 +78,7 @@ function contributorLineForLocation(
 function locationsUnlockPath(slug: string): string {
   const base = `/api/city-guides/${encodeURIComponent(slug)}/locations`;
   const intent = peekSignupFromGate();
-  if (!intent) return base;
+  if (!intent?.guide_slug || intent.surface === 'map') return base;
   const params = new URLSearchParams({
     from_gate: '1',
     guide_slug: intent.guide_slug,
@@ -233,7 +233,10 @@ export function CityGuideLocationsSection({
     }
     if (gateViewTrackedForOpenRef.current) return;
     gateViewTrackedForOpenRef.current = true;
-    trackEvent(ANALYTICS_EVENTS.GATE_VIEWED, { guide_slug: slug });
+    trackEvent(ANALYTICS_EVENTS.GATE_VIEWED, {
+      surface: 'city_guide',
+      guide_slug: slug,
+    });
   }, [isGateOpen, slug, trackEvent]);
 
   const gateContributorName = locationGate?.primaryContributorName || 'IRL';
@@ -246,8 +249,11 @@ export function CityGuideLocationsSection({
    */
   const handleGateSignupClick = () => {
     reopenGateAfterPrivyRef.current = true;
-    markSignupFromGate(slug);
-    trackEvent(ANALYTICS_EVENTS.GATE_SIGNUP_CLICKED, { guide_slug: slug });
+    markSignupFromGate({ surface: 'city_guide', guide_slug: slug });
+    trackEvent(ANALYTICS_EVENTS.GATE_SIGNUP_CLICKED, {
+      surface: 'city_guide',
+      guide_slug: slug,
+    });
     setIsGateOpen(false);
     loginTimeoutRef.current = setTimeout(login, GATE_CLOSE_DURATION_MS);
   };

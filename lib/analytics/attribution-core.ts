@@ -12,8 +12,14 @@ export const SIGNUP_FROM_GATE_STORAGE_KEY = 'irl_signup_from_gate_v1';
 /** Drop stale gate intents so a later unrelated signup is not attributed. */
 export const SIGNUP_FROM_GATE_TTL_MS = 2 * 60 * 60 * 1000;
 
+/** Membership / login gate surface. Split Mixpanel funnels with this property. */
+export const GATE_SURFACES = ['map', 'city_guide'] as const;
+export type GateSurface = (typeof GATE_SURFACES)[number];
+
 export type SignupFromGateIntent = {
-  guide_slug: string;
+  surface: GateSurface;
+  /** Present for city-guide gates; omitted on the map. */
+  guide_slug?: string;
   marked_at: number;
 };
 
@@ -198,9 +204,11 @@ export type SignupAttributionPayload = {
   event_id?: string;
   location_id?: string;
 
-  /** True when the reader tapped Become a Member on a gated city guide. */
+  /** True when the visitor started signup from a membership / login gate. */
   from_gate?: boolean;
-  /** Guide slug for `signup_from_gate` (paired with `from_gate`). */
+  /** `map` or `city_guide` — one funnel, split by surface. */
+  surface?: GateSurface;
+  /** Guide slug for city-guide gates (paired with `from_gate`). Omitted on the map. */
   guide_slug?: string;
 };
 

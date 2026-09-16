@@ -103,6 +103,11 @@ export interface TierProgressionProperties {
   total_points: number;
 }
 
+export interface SignupFromGateProperties {
+  surface: 'map' | 'city_guide';
+  guide_slug?: string;
+}
+
 export interface AccountCreatedProperties {
   wallet_type: 'EVM' | 'Solana' | 'Stellar' | 'Aptos';
   has_email: boolean;
