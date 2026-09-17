@@ -4,7 +4,7 @@ import Footer from '@/components/layout/footer';
 import { FaqContactForm } from '@/components/faq/faq-contact-form';
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 
-const FAQ_ITEMS: { question: string; answer: ReactNode }[] = [
+const FAQ_ITEMS: { id?: string; question: string; answer: ReactNode }[] = [
   {
     question: 'What is IRL?',
     answer: (
@@ -16,6 +16,7 @@ const FAQ_ITEMS: { question: string; answer: ReactNode }[] = [
     ),
   },
   {
+    id: 'earn-points',
     question: 'How do I earn IRL Points?',
     answer: (
       <p>
@@ -157,7 +158,11 @@ export default function FAQPage() {
 
               <div className="space-y-12 md:space-y-16">
                 {FAQ_ITEMS.map((item) => (
-                  <article key={item.question} className="space-y-4">
+                  <article
+                    key={item.question}
+                    id={item.id}
+                    className="space-y-4 scroll-mt-28"
+                  >
                     <FaqQuestionHeading>{item.question}</FaqQuestionHeading>
                     <Body>{item.answer}</Body>
                   </article>

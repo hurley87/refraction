@@ -19,14 +19,14 @@ function collectFavoritePlaces(
   if (profile.favorite_music_venue?.place_id) {
     items.push({
       key: 'favorite_music_venue',
-      label: 'Favorite Venue',
+      label: 'Favorite Club',
       place: profile.favorite_music_venue,
     });
   }
   if (profile.favorite_gallery?.place_id) {
     items.push({
       key: 'favorite_gallery',
-      label: 'Favorite Gallery',
+      label: 'Favorite Bar',
       place: profile.favorite_gallery,
     });
   }

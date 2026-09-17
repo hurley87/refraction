@@ -11,7 +11,7 @@ import {
 import { loadShareablePerk } from '@/lib/perks/shareable-perk';
 
 type RewardsPageProps = {
-  searchParams?: { perkId?: string | string[] };
+  searchParams?: { perkId?: string | string[]; tab?: string | string[] };
 };
 
 function firstSearchParam(value: string | string[] | undefined): string {
