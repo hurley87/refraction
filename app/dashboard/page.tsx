@@ -14,7 +14,11 @@ import {
 } from '@/hooks/usePlayer';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useTiers } from '@/hooks/useTiers';
-import type { Tier } from '@/lib/types';
+import {
+  findNextTier,
+  formatNextTierProgress,
+  resolveTierForPoints,
+} from '@/lib/tier-for-points';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import DashboardSocialLinks from '@/components/dashboard/dashboard-social-links';
 import ProfileFavoritePlacesCarousel from '@/components/dashboard/profile-favorite-places-carousel';
@@ -30,17 +34,6 @@ const DASHBOARD_SHELL_STYLE = {
   backgroundPosition: 'top center',
   backgroundRepeat: 'no-repeat',
 } as const;
-
-function findTierForPoints(tiers: Tier[], totalPoints: number): Tier | null {
-  if (!tiers.length) return null;
-  return (
-    tiers.find(
-      (tier) =>
-        totalPoints >= tier.min_points &&
-        (tier.max_points === null || totalPoints < tier.max_points)
-    ) ?? null
-  );
-}
 
 export default function DashboardPage() {
   const { user, ready } = usePrivy();
@@ -123,8 +116,15 @@ export default function DashboardPage() {
   const totalPoints = userStats?.total_points ?? 0;
   const currentTier =
     !isLoadingUserStats && !isLoadingTiers
-      ? findTierForPoints(tiers, totalPoints)
+      ? resolveTierForPoints(tiers, totalPoints)
       : null;
+  const nextTier = currentTier ? findNextTier(tiers, currentTier) : null;
+  const tierProgressLabel = currentTier
+    ? formatNextTierProgress(totalPoints, nextTier)
+    : null;
+  const tierDescription = nextTier?.description?.trim()
+    ? nextTier.description
+    : currentTier?.description;
 
   return (
     <div className="min-h-screen bg-white font-grotesk md:bg-[#F5F5F5]">
@@ -146,24 +146,19 @@ export default function DashboardPage() {
           </div>
 
           {currentUserAddress && (
-            <>
-              <div className="mt-[50px] flex flex-col items-start gap-3 self-stretch px-1 py-1">
-                <LeaderboardAvatar
-                  walletAddress={currentUserAddress}
-                  size={64}
+            <div className="mt-[50px] flex flex-col items-start gap-3 self-stretch px-1 py-1">
+              <LeaderboardAvatar walletAddress={currentUserAddress} size={64} />
+              {isLoadingPlayer ? (
+                <div
+                  className="h-6 w-32 max-w-[60%] animate-pulse rounded-md bg-white/25"
+                  aria-hidden
                 />
-                {isLoadingPlayer ? (
-                  <div
-                    className="h-6 w-32 max-w-[60%] animate-pulse rounded-md bg-white/25"
-                    aria-hidden
-                  />
-                ) : (
-                  <span className="min-w-0 max-w-full truncate rounded bg-[var(--IRL-Yellow,#FFF200)] p-1 title1 font-normal text-[#171717]">
-                    {handleText ?? '—'}
-                  </span>
-                )}
-              </div>
-            </>
+              ) : (
+                <span className="min-w-0 max-w-full truncate rounded bg-[var(--IRL-Yellow,#FFF200)] p-1 title1 font-normal text-[#171717]">
+                  {handleText ?? '—'}
+                </span>
+              )}
+            </div>
           )}
 
           {/* Points block — full column width so gutter matches activity (shell px-4 + inner p-4 only; no extra inset from a narrower centered card) */}
@@ -174,19 +169,28 @@ export default function DashboardPage() {
                 background: 'var(--Backgrounds-Background, #FFF)',
               }}
             >
+              <DashboardSocialLinks profile={userProfile} />
               <div className="flex w-full flex-col gap-6">
                 {/* Row 1 */}
-                <div className="flex w-full items-center gap-2 self-stretch">
-                  <Image
-                    src="/ep-coin-white.svg"
-                    alt="Points"
-                    width={12}
-                    height={12}
-                    className="h-4 w-4 shrink-0 brightness-0"
-                  />
-                  <div className="label-small uppercase tracking-wide text-[#7D7D7D]">
-                    YOUR POINTS
+                <div className="flex w-full items-center justify-between gap-2 self-stretch">
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src="/ep-coin-white.svg"
+                      alt="Points"
+                      width={12}
+                      height={12}
+                      className="h-4 w-4 shrink-0 brightness-0"
+                    />
+                    <div className="label-small uppercase tracking-wide text-[#7D7D7D]">
+                      YOUR POINTS
+                    </div>
                   </div>
+                  <Link
+                    href="/faq#earn-points"
+                    className="label-small shrink-0 font-semibold normal-case tracking-normal text-[#171717] transition-opacity hover:opacity-80"
+                  >
+                    How points are earned
+                  </Link>
                 </div>
                 {/* Row 2 */}
                 <div className="flex h-[35px] w-full items-end justify-end self-stretch">
@@ -217,31 +221,36 @@ export default function DashboardPage() {
               </div>
 
               {/* Tier card — 24px gap from points block comes from parent gap-6 */}
-              <div className="flex w-full flex-col items-left justify-start gap-2 self-stretch border-t border-[var(--Borders-Light-Border,#DBDBDB)] pt-4">
-                <div className="flex w-full items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="11"
-                      viewBox="0 0 12 11"
-                      fill="none"
-                      aria-hidden
-                    >
-                      <path
-                        d="M11.9235 2.39412C11.8035 1.99122 11.5423 1.6521 11.1893 1.4385C10.7274 1.1591 10.1889 1.13683 9.70781 1.34132C9.70075 0.878688 9.65637 0.429221 9.57872 0H2.42027C2.34261 0.428209 2.29824 0.877681 2.29118 1.34031C1.8091 1.13582 1.27056 1.15809 0.809664 1.43749C0.456684 1.65108 0.195478 1.99021 0.0754643 2.39311C-0.0536258 2.82334 -0.0163119 3.29913 0.181357 3.77087C0.70982 5.03019 2.92049 6.32898 4.16298 6.97889C4.57446 7.1935 4.88004 7.33826 4.98391 7.38584L5.38732 7.57312C5.2663 9.043 4.36065 10.033 3.62141 10.2102C3.48728 10.2426 3.39046 10.359 3.39046 10.4977V10.7052H5.76551V10.6991H6.23548V10.7052C6.23548 10.7052 8.61659 10.7052 8.61054 10.7052V10.4977C8.61054 10.359 8.51372 10.2426 8.37959 10.2102C7.64035 10.032 6.7347 9.04199 6.61368 7.57211L7.01708 7.38483C7.12096 7.33624 7.42654 7.19249 7.83802 6.97788C9.08152 6.32798 11.2922 5.02918 11.8196 3.76986C12.0173 3.29812 12.0536 2.82233 11.9255 2.3921L11.9235 2.39412ZM1.04566 3.40542C0.796553 2.8112 1.02347 2.41032 1.29274 2.24734C1.40973 2.17648 1.52571 2.14712 1.63867 2.14712C1.90996 2.14712 2.15704 2.32022 2.31437 2.51358L2.35673 2.56622C2.47271 3.51273 2.72887 4.45014 3.09093 5.27011C1.59732 4.3155 1.16769 3.69697 1.04465 3.40542H1.04566ZM10.9513 3.40542C10.8283 3.69697 10.3986 4.31651 8.90503 5.27011C9.26709 4.45014 9.52325 3.51273 9.63923 2.56622L9.68159 2.51358C9.90447 2.24025 10.3049 2.00641 10.7032 2.24734C10.9735 2.41032 11.2004 2.81221 10.9503 3.40542H10.9513Z"
-                        fill="#757575"
-                      />
-                    </svg>
-                    <span className="label-small font-semibold normal-case tracking-normal text-[#757575]">
-                      YOUR TIER
-                    </span>
-                  </div>
+              {isLoadingTiers || isLoadingUserStats ? (
+                <div className="flex w-full flex-col items-start justify-start gap-2 self-stretch border-t border-[var(--Borders-Light-Border,#DBDBDB)] pt-4">
+                  <div className="h-20 w-full max-w-[280px] animate-pulse rounded bg-gray-100" />
+                </div>
+              ) : (
+                <div className="relative flex w-full cursor-pointer flex-col items-start justify-start gap-2 self-stretch border-t border-[var(--Borders-Light-Border,#DBDBDB)] pt-4 transition-opacity hover:opacity-80">
                   <Link
                     href="/rewards?tab=tiers"
                     aria-label="Learn more about tiers"
-                    className="inline-flex shrink-0 items-center text-[#171717] transition-opacity hover:opacity-80"
-                  >
+                    className="absolute inset-0 z-10"
+                  />
+                  <div className="pointer-events-none flex w-full items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="11"
+                        viewBox="0 0 12 11"
+                        fill="none"
+                        aria-hidden
+                      >
+                        <path
+                          d="M11.9235 2.39412C11.8035 1.99122 11.5423 1.6521 11.1893 1.4385C10.7274 1.1591 10.1889 1.13683 9.70781 1.34132C9.70075 0.878688 9.65637 0.429221 9.57872 0H2.42027C2.34261 0.428209 2.29824 0.877681 2.29118 1.34031C1.8091 1.13582 1.27056 1.15809 0.809664 1.43749C0.456684 1.65108 0.195478 1.99021 0.0754643 2.39311C-0.0536258 2.82334 -0.0163119 3.29913 0.181357 3.77087C0.70982 5.03019 2.92049 6.32898 4.16298 6.97889C4.57446 7.1935 4.88004 7.33826 4.98391 7.38584L5.38732 7.57312C5.2663 9.043 4.36065 10.033 3.62141 10.2102C3.48728 10.2426 3.39046 10.359 3.39046 10.4977V10.7052H5.76551V10.6991H6.23548V10.7052C6.23548 10.7052 8.61659 10.7052 8.61054 10.7052V10.4977C8.61054 10.359 8.51372 10.2426 8.37959 10.2102C7.64035 10.032 6.7347 9.04199 6.61368 7.57211L7.01708 7.38483C7.12096 7.33624 7.42654 7.19249 7.83802 6.97788C9.08152 6.32798 11.2922 5.02918 11.8196 3.76986C12.0173 3.29812 12.0536 2.82233 11.9255 2.3921L11.9235 2.39412ZM1.04566 3.40542C0.796553 2.8112 1.02347 2.41032 1.29274 2.24734C1.40973 2.17648 1.52571 2.14712 1.63867 2.14712C1.90996 2.14712 2.15704 2.32022 2.31437 2.51358L2.35673 2.56622C2.47271 3.51273 2.72887 4.45014 3.09093 5.27011C1.59732 4.3155 1.16769 3.69697 1.04465 3.40542H1.04566ZM10.9513 3.40542C10.8283 3.69697 10.3986 4.31651 8.90503 5.27011C9.26709 4.45014 9.52325 3.51273 9.63923 2.56622L9.68159 2.51358C9.90447 2.24025 10.3049 2.00641 10.7032 2.24734C10.9735 2.41032 11.2004 2.81221 10.9503 3.40542H10.9513Z"
+                          fill="#757575"
+                        />
+                      </svg>
+                      <span className="label-small font-semibold normal-case tracking-normal text-[#757575]">
+                        YOUR TIER
+                      </span>
+                    </div>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="16"
@@ -249,46 +258,46 @@ export default function DashboardPage() {
                       viewBox="0 0 24 24"
                       fill="none"
                       aria-hidden
+                      className="shrink-0 text-[#171717]"
                     >
                       <path
                         d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
                         fill="currentColor"
                       />
                     </svg>
-                  </Link>
-                </div>
-                {isLoadingTiers || isLoadingUserStats ? (
-                  <div className="h-20 w-full max-w-[280px] animate-pulse rounded bg-gray-100" />
-                ) : currentTier ? (
-                  <>
-                    <div className="flex w-full items-center justify-between gap-3">
-                      <h3 className="min-w-0 flex-1 text-left text-[#171717]">
-                        {currentTier.title}
-                      </h3>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Image
-                          src="/ep_coin.svg"
-                          alt=""
-                          width={16}
-                          height={16}
-                          className="h-4 w-4"
-                        />
-                        <span className="label-small font-semibold normal-case tracking-normal text-[black]">
-                          {currentTier.min_points.toLocaleString()}{' '}
-                          &nbsp;&nbsp;NEEDED
-                        </span>
+                  </div>
+                  {currentTier ? (
+                    <>
+                      <div className="pointer-events-none flex w-full items-center justify-between gap-3">
+                        <h3 className="min-w-0 flex-1 text-left text-[#171717]">
+                          {currentTier.title}
+                        </h3>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Image
+                            src="/ep_coin.svg"
+                            alt=""
+                            width={16}
+                            height={16}
+                            className="h-4 w-4"
+                          />
+                          <span className="label-small font-semibold normal-case tracking-normal text-[black]">
+                            {tierProgressLabel}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <p className="body-small w-full text-left leading-tight text-[#757575]">
-                      {currentTier.description}
+                      {tierDescription ? (
+                        <p className="pointer-events-none body-small w-full text-left leading-tight text-[#757575]">
+                          {tierDescription}
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="pointer-events-none body-small text-left text-[#757575]">
+                      Tier information unavailable.
                     </p>
-                  </>
-                ) : (
-                  <p className="body-small text-center text-[#757575]">
-                    Tier information unavailable.
-                  </p>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -303,7 +312,6 @@ export default function DashboardPage() {
                 walletAddress={currentUserAddress}
                 className="-mx-4 px-4"
               />
-              <DashboardSocialLinks profile={userProfile} />
               <Transactions
                 activities={activities}
                 isLoading={isLoadingActivities}

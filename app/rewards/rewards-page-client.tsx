@@ -44,6 +44,12 @@ import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
+import RewardsTiersView, {
+  REWARDS_INTRO,
+  RewardsViewTabs,
+  TIERS_INTRO,
+  type RewardsTab,
+} from '@/components/rewards/rewards-tiers-view';
 
 // Perks tagged with this city value apply everywhere; they yield to more
 // specific local picks when a city filter is active.
@@ -122,6 +128,21 @@ function PerksPageInner() {
   const searchParams = useSearchParams();
   const address = useEvmWalletAddress();
   const { trackEvent, trackPage } = useAnalytics();
+
+  const activeTab: RewardsTab =
+    searchParams.get('tab') === 'tiers' ? 'tiers' : 'rewards';
+  const intro = activeTab === 'tiers' ? TIERS_INTRO : REWARDS_INTRO;
+
+  const setActiveTab = (tab: RewardsTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === 'tiers') {
+      params.set('tab', 'tiers');
+    } else {
+      params.delete('tab');
+    }
+    const query = params.toString();
+    router.replace(query ? `/rewards?${query}` : '/rewards', { scroll: false });
+  };
 
   // Track page view on mount
   useEffect(() => {
@@ -279,7 +300,13 @@ function PerksPageInner() {
   const deepLinkOpenedRef = useRef(false);
 
   useEffect(() => {
-    if (deepLinkOpenedRef.current || !deepLinkPerkId || perksLoading) return;
+    if (
+      deepLinkOpenedRef.current ||
+      !deepLinkPerkId ||
+      perksLoading ||
+      activeTab === 'tiers'
+    )
+      return;
     const perk = perks.find((item) => item.id === deepLinkPerkId);
     if (!perk) return;
     deepLinkOpenedRef.current = true;
@@ -290,7 +317,7 @@ function PerksPageInner() {
       reward_type: perk.type,
       points_required: perk.points_threshold,
     });
-  }, [deepLinkPerkId, perks, perksLoading, trackEvent]);
+  }, [activeTab, deepLinkPerkId, perks, perksLoading, trackEvent]);
 
   const handlePerkShared = (method: PerkShareMethod) => {
     if (!selectedPerk) return;
@@ -639,10 +666,9 @@ function PerksPageInner() {
         aria-label="Rewards page introduction"
       >
         <div className="flex max-w-[1440px] flex-1 basis-0 items-center gap-[var(--sds-size-space-800)]">
-          <h2 className="h-8 shrink-0 text-[#171717]">Rewards</h2>
+          <h2 className="h-8 shrink-0 text-[#171717]">{intro.title}</h2>
           <p className="title4 flex h-8 min-w-0 flex-1 basis-0 flex-col justify-end text-[#171717]">
-            Curated perks from our partners across the IRL Venue Network. From
-            free drinks to hotel stays to guest list spots, we got you.
+            {intro.body}
           </p>
         </div>
       </section>
@@ -651,524 +677,529 @@ function PerksPageInner() {
         className="flex w-full items-start justify-center gap-4 bg-[var(--Backgrounds-Highlight,#FFF200)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] xl:hidden"
         aria-label="Rewards page introduction"
       >
-        <h3 className="shrink-0 text-[#171717]">Rewards</h3>
-        <p className="title6 min-w-0 flex-1 text-[#171717]">
-          Curated perks from our partners across the IRL Venue Network. From
-          free drinks to hotel stays to guest list spots, we got you.
-        </p>
+        <h3 className="shrink-0 text-[#171717]">{intro.title}</h3>
+        <p className="title6 min-w-0 flex-1 text-[#171717]">{intro.body}</p>
       </section>
 
       <div className="mx-auto max-w-md px-4 pt-0 md:px-2 md:pt-3">
-        {/* Main Content */}
-        <div className="space-y-1 px-0 pt-0 md:pt-2">
-          {/* LATEST REWARD Section */}
-          {latestReward && !perksLoading && !hasActiveFilters && (
-            <div className="mb-1">
-              {/* Edge-to-edge: ignores page px-4 gutter */}
-              {latestReward.thumbnail_url && (
-                <div className="relative left-1/2 mb-4 aspect-[86/79] w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden md:left-auto md:w-full md:translate-x-0">
-                  <Image
-                    src={latestReward.thumbnail_url}
-                    alt={latestReward.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 767px) 100vw, 448px"
-                  />
-                </div>
-              )}
-              <div
-                style={{
-                  display: 'flex',
-                  padding: latestReward.thumbnail_url ? '0 0 24px 0' : '24px',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: '8px',
-                  alignSelf: 'stretch',
-                  borderRadius: '26px',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  background:
-                    'linear-gradient(180deg, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.92) 100%)',
-                }}
-              >
-                <p className="label-small self-stretch text-left text-black">
-                  LATEST REWARD
-                </p>
-
-                {/* Reward Title */}
-                <h2 className="text-[#171717] self-stretch font-medium w-full break-words text-left">
-                  {latestReward.title}
-                </h2>
-
-                {/* Description */}
-                {latestReward.description && (
-                  <p className="text-[#757575] body-small  w-full break-words text-left mb-4">
-                    {latestReward.description.split(/[.!?]+/)[0].trim()}
-                    {latestReward.description.match(/[.!?]/) ? '.' : ''}
-                  </p>
-                )}
-
-                {/* Points, Location, and Date — metadata left, Details right */}
-                <div className="mb-2 flex h-5 min-w-0 items-center justify-between gap-2 self-stretch">
-                  <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch overflow-hidden">
-                    {/* Category Pill */}
-                    <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
-                      {latestReward.type
-                        ? formatTypeLabel(latestReward.type)
-                        : 'Reward'}
-                    </div>
-
-                    {!latestReward.end_date && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'row',
-                          padding: '0 8px',
-                          height: '20px',
-                          alignItems: 'center',
-                          gap: '8px',
-                          alignSelf: 'stretch',
-                          flexWrap: 'nowrap',
-                        }}
-                        className="shrink-0 text-[#171717] label-small uppercase"
-                      >
-                        <span className="whitespace-nowrap">Ongoing</span>
-                      </div>
-                    )}
-
-                    {latestReward.end_date && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          padding: '0 8px',
-                          height: '20px',
-                          alignItems: 'center',
-                          gap: '8px',
-                          alignSelf: 'stretch',
-                        }}
-                        className="shrink-0"
-                      >
-                        <TimeLeft
-                          endDate={latestReward.end_date}
-                          className={`text-black body-small uppercase font-abc-monument-regular ${
-                            latestRewardExpired
-                              ? 'text-red-600'
-                              : latestRewardExpiringSoon
-                                ? 'text-orange-600'
-                                : ''
-                          }`}
-                        />
-                      </div>
-                    )}
+        <RewardsViewTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        {activeTab === 'tiers' ? (
+          <RewardsTiersView />
+        ) : (
+          <div className="space-y-1 px-0 pt-0 md:pt-2">
+            {/* LATEST REWARD Section */}
+            {latestReward && !perksLoading && !hasActiveFilters && (
+              <div className="mb-1">
+                {/* Edge-to-edge: ignores page px-4 gutter */}
+                {latestReward.thumbnail_url && (
+                  <div className="relative left-1/2 mb-4 aspect-[86/79] w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden md:left-auto md:w-full md:translate-x-0">
+                    <Image
+                      src={latestReward.thumbnail_url}
+                      alt={latestReward.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 767px) 100vw, 448px"
+                    />
                   </div>
-
-                  {latestRewardAffordable && (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenPerk(latestReward)}
-                      disabled={latestRewardExpired}
-                      style={{
-                        background: 'transparent',
-                        cursor: latestRewardExpired ? 'not-allowed' : 'pointer',
-                        opacity: latestRewardExpired ? 0.5 : 1,
-                      }}
-                      className="inline-flex h-5 shrink-0 items-center gap-2  text-[#171717] label-medium uppercase transition-colors hover:bg-gray-50 border-b border-black"
-                    >
-                      <span>Details</span>
-                      <svg
-                        width={12}
-                        height={12}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 shrink-0"
-                        aria-hidden
-                      >
-                        <path
-                          d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                          fill="#171717"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-
-                {/* View Details Button or Eligibility Message */}
-                {address ? (
-                  latestRewardAffordable ? (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenPerk(latestReward)}
-                      className={`label-large  uppercase flex h-[44px] w-full cursor-pointer items-center justify-between bg-black py-2 pr-2 pl-4 text-white transition-colors hover:bg-neutral-900 ${
-                        latestRewardExpired
-                          ? 'cursor-not-allowed opacity-50'
-                          : ''
-                      }`}
-                      disabled={latestRewardExpired}
-                    >
-                      <span className="whitespace-nowrap">
-                        {latestRewardRedeemed
-                          ? '✓ Redeemed'
-                          : latestRewardExpired
-                            ? 'Expired'
-                            : 'Claim Reward'}
-                      </span>
-                      <Image
-                        src="/guidance_up-right-2-short-arrow.svg"
-                        alt=""
-                        width={24}
-                        height={24}
-                        className="h-6 w-6 shrink-0"
-                        aria-hidden
-                      />
-                    </button>
-                  ) : (
-                    <div className="w-full rounded-full bg-white/80 py-3 px-4 text-center">
-                      <p className="text-black body-small font-abc-monument-regular">
-                        You don&apos;t have the required points to claim this.
-                        Come back when you reach{' '}
-                        <span className="font-bold">
-                          {latestReward.points_threshold.toLocaleString()}{' '}
-                          points
-                        </span>
-                        .
-                      </p>
-                    </div>
-                  )
-                ) : (
-                  <button
-                    onClick={() => handleOpenPerk(latestReward)}
-                    className="w-full h-[40px] bg-white text-black font-bold rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
-                  >
-                    <h4 className="font-grotesk text-left">View Details</h4>
-                    <div
-                      style={{
-                        display: 'flex',
-                        width: '24px',
-                        height: '24px',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Image
-                        src="/home/arrow-right.svg"
-                        alt="arrow-right"
-                        width={20}
-                        height={20}
-                        className="w-5 h-5"
-                      />
-                    </div>
-                  </button>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {perksLoading && (
-            <div className="space-y-1">
-              {[...Array(3)].map((_, i) => (
                 <div
-                  key={i}
                   style={{
                     display: 'flex',
-                    padding: '16px',
+                    padding: latestReward.thumbnail_url ? '0 0 24px 0' : '24px',
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     gap: '8px',
                     alignSelf: 'stretch',
                     borderRadius: '26px',
-                    border: '1px solid #EDEDED',
-                    background: '#FFF',
-                    boxShadow: '0 1px 8px 0 rgba(0, 0, 0, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    background:
+                      'linear-gradient(180deg, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.92) 100%)',
                   }}
-                  className="animate-pulse"
                 >
-                  <div className="flex justify-between items-start mb-3 w-full">
-                    <div className="w-16 h-6 bg-gray-200 rounded-full"></div>
-                    <div className="w-20 h-6 bg-gray-200 rounded"></div>
+                  <p className="label-small self-stretch text-left text-black">
+                    LATEST REWARD
+                  </p>
+
+                  {/* Reward Title */}
+                  <h2 className="text-[#171717] self-stretch font-medium w-full break-words text-left">
+                    {latestReward.title}
+                  </h2>
+
+                  {/* Description */}
+                  {latestReward.description && (
+                    <p className="text-[#757575] body-small  w-full break-words text-left mb-4">
+                      {latestReward.description.split(/[.!?]+/)[0].trim()}
+                      {latestReward.description.match(/[.!?]/) ? '.' : ''}
+                    </p>
+                  )}
+
+                  {/* Points, Location, and Date — metadata left, Details right */}
+                  <div className="mb-2 flex h-5 min-w-0 items-center justify-between gap-2 self-stretch">
+                    <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch overflow-hidden">
+                      {/* Category Pill */}
+                      <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
+                        {latestReward.type
+                          ? formatTypeLabel(latestReward.type)
+                          : 'Reward'}
+                      </div>
+
+                      {!latestReward.end_date && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            padding: '0 8px',
+                            height: '20px',
+                            alignItems: 'center',
+                            gap: '8px',
+                            alignSelf: 'stretch',
+                            flexWrap: 'nowrap',
+                          }}
+                          className="shrink-0 text-[#171717] label-small uppercase"
+                        >
+                          <span className="whitespace-nowrap">Ongoing</span>
+                        </div>
+                      )}
+
+                      {latestReward.end_date && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            padding: '0 8px',
+                            height: '20px',
+                            alignItems: 'center',
+                            gap: '8px',
+                            alignSelf: 'stretch',
+                          }}
+                          className="shrink-0"
+                        >
+                          <TimeLeft
+                            endDate={latestReward.end_date}
+                            className={`text-black body-small uppercase font-abc-monument-regular ${
+                              latestRewardExpired
+                                ? 'text-red-600'
+                                : latestRewardExpiringSoon
+                                  ? 'text-orange-600'
+                                  : ''
+                            }`}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {latestRewardAffordable && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPerk(latestReward)}
+                        disabled={latestRewardExpired}
+                        style={{
+                          background: 'transparent',
+                          cursor: latestRewardExpired
+                            ? 'not-allowed'
+                            : 'pointer',
+                          opacity: latestRewardExpired ? 0.5 : 1,
+                        }}
+                        className="inline-flex h-5 shrink-0 items-center gap-2  text-[#171717] label-medium uppercase transition-colors hover:bg-gray-50 border-b border-black"
+                      >
+                        <span>Details</span>
+                        <svg
+                          width={12}
+                          height={12}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-3 w-3 shrink-0"
+                          aria-hidden
+                        >
+                          <path
+                            d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                            fill="#171717"
+                          />
+                        </svg>
+                      </button>
+                    )}
                   </div>
-                  <div className="w-3/4 h-6 bg-gray-200 rounded mb-2"></div>
-                  <div className="w-full h-4 bg-gray-200 rounded mb-4"></div>
-                  <div className="w-full h-10 bg-gray-200 rounded"></div>
-                </div>
-              ))}
-            </div>
-          )}
 
-          {/* Filter chips — city + type, derived from the perk feed */}
-          {!perksLoading &&
-            (cityOptions.length > 0 || typeOptions.length > 0) && (
-              <div className="mb-4 flex flex-col gap-2">
-                <div className="flex items-stretch gap-2">
-                  {cityOptions.length > 0 && (
-                    <Select
-                      value={selectedCity}
-                      onValueChange={setSelectedCity}
-                    >
-                      <SelectTrigger
-                        aria-label="Filter rewards by city"
-                        className="flex h-10 flex-1 items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 shadow-none transition-colors hover:bg-[#9a9a9a] focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden"
+                  {/* View Details Button or Eligibility Message */}
+                  {address ? (
+                    latestRewardAffordable ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPerk(latestReward)}
+                        className={`label-large  uppercase flex h-[44px] w-full cursor-pointer items-center justify-between bg-black py-2 pr-2 pl-4 text-white transition-colors hover:bg-neutral-900 ${
+                          latestRewardExpired
+                            ? 'cursor-not-allowed opacity-50'
+                            : ''
+                        }`}
+                        disabled={latestRewardExpired}
                       >
-                        <span className="truncate label-small uppercase tracking-wide text-black">
-                          <SelectValue placeholder="All cities" />
+                        <span className="whitespace-nowrap">
+                          {latestRewardRedeemed
+                            ? '✓ Redeemed'
+                            : latestRewardExpired
+                              ? 'Expired'
+                              : 'Claim Reward'}
                         </span>
-                        <MapPin
-                          className="size-5 shrink-0 text-black"
+                        <Image
+                          src="/guidance_up-right-2-short-arrow.svg"
+                          alt=""
+                          width={24}
+                          height={24}
+                          className="h-6 w-6 shrink-0"
                           aria-hidden
                         />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All cities</SelectItem>
-                        {cityOptions.map((city) => (
-                          <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {typeOptions.length > 0 && (
-                    <Select
-                      value={selectedType}
-                      onValueChange={setSelectedType}
+                      </button>
+                    ) : (
+                      <div className="w-full rounded-full bg-white/80 py-3 px-4 text-center">
+                        <p className="text-black body-small font-abc-monument-regular">
+                          You don&apos;t have the required points to claim this.
+                          Come back when you reach{' '}
+                          <span className="font-bold">
+                            {latestReward.points_threshold.toLocaleString()}{' '}
+                            points
+                          </span>
+                          .
+                        </p>
+                      </div>
+                    )
+                  ) : (
+                    <button
+                      onClick={() => handleOpenPerk(latestReward)}
+                      className="w-full h-[40px] bg-white text-black font-bold rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
                     >
-                      <SelectTrigger
-                        aria-label="Filter rewards by type"
-                        className="flex h-10 flex-1 items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 shadow-none transition-colors hover:bg-[#9a9a9a] focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden"
+                      <h4 className="font-grotesk text-left">View Details</h4>
+                      <div
+                        style={{
+                          display: 'flex',
+                          width: '24px',
+                          height: '24px',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
                       >
-                        <span className="truncate label-small uppercase tracking-wide text-black">
-                          <SelectValue placeholder="All types" />
-                        </span>
-                        <Tag
-                          className="size-5 shrink-0 text-black"
-                          aria-hidden
+                        <Image
+                          src="/home/arrow-right.svg"
+                          alt="arrow-right"
+                          width={20}
+                          height={20}
+                          className="w-5 h-5"
                         />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All types</SelectItem>
-                        {typeOptions.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {formatTypeLabel(type)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      </div>
+                    </button>
                   )}
                 </div>
-
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="self-start label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
-                  >
-                    Clear filters
-                  </button>
-                )}
               </div>
             )}
 
-          {/* Perks List */}
-          {!perksLoading && (
-            <div className="flex flex-col">
-              {displayedRewards.length > 0 ? (
-                displayedRewards.map((perk) => {
-                  const affordable = !address || canAfford(perk);
-                  const isExpired = Boolean(
-                    perk.end_date && new Date(perk.end_date) < new Date()
-                  );
-                  const isExpiringSoon = Boolean(
-                    perk.end_date &&
-                    new Date(perk.end_date) <
-                      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                  );
-                  const userRedeemed = perk.id ? hasRedeemed(perk.id) : false;
-
-                  return (
-                    <div
-                      key={perk.id}
-                      className={`flex items-stretch gap-4 self-stretch border-t border-[var(--Text-Secondary-Text,#757575)] bg-[var(--Backgrounds-Background,#FFF)] py-6 ${
-                        !affordable || isExpired ? 'opacity-60' : ''
-                      }`}
-                    >
-                      {/* Thumbnail — fixed square, top-aligned so right-column height never stretches it */}
-                      <div className="relative h-[107px] w-[107px] shrink-0 self-start overflow-hidden rounded-lg bg-[#EDEDED]">
-                        {perk.thumbnail_url ? (
-                          <Image
-                            src={perk.thumbnail_url}
-                            alt={perk.title}
-                            fill
-                            className="object-cover"
-                            sizes="107px"
-                          />
-                        ) : null}
-                      </div>
-
-                      {/* Content — aligned with featured / latest reward */}
-                      <div className="flex min-w-0 flex-1 flex-col items-start gap-2 self-stretch">
-                        {(isExpiringSoon && !isExpired) ||
-                        isExpired ||
-                        userRedeemed ? (
-                          <div className="flex w-full flex-wrap gap-2">
-                            {isExpiringSoon && !isExpired && perk.end_date && (
-                              <span className="flex h-5 items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED] px-2 body-small uppercase font-abc-monument-regular text-red-600">
-                                <TimeLeft endDate={perk.end_date} />
-                              </span>
-                            )}
-                            {isExpired && (
-                              <span className="flex h-5 items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED] px-2 body-small uppercase font-abc-monument-regular text-black">
-                                Expired
-                              </span>
-                            )}
-                            {userRedeemed && (
-                              <span className="flex h-5 items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED] px-2 body-small uppercase font-abc-monument-regular text-black">
-                                ✓ Redeemed
-                              </span>
-                            )}
-                          </div>
-                        ) : null}
-
-                        <h2 className="w-full break-words text-left font-medium text-[#171717]">
-                          {perk.title}
-                        </h2>
-
-                        {perk.description ? (
-                          <p className="body-small w-full break-words text-left text-[#757575]">
-                            {perk.description.split(/[.!?]+/)[0].trim()}
-                            {perk.description.match(/[.!?]/) ? '.' : ''}
-                          </p>
-                        ) : null}
-
-                        {/* Metadata row — same pattern as LATEST REWARD */}
-                        <div className="mb-2 flex h-5 min-w-0 w-full items-center justify-between gap-2 self-stretch">
-                          <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2 self-stretch overflow-hidden">
-                            <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
-                              {perk.type
-                                ? formatTypeLabel(perk.type)
-                                : 'Reward'}
-                            </div>
-
-                            <div
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'row',
-                                padding: '0 8px 0 0',
-                                height: '20px',
-                                alignItems: 'center',
-                                gap: '8px',
-                                alignSelf: 'stretch',
-                                flexWrap: 'nowrap',
-                              }}
-                              className="shrink-0 text-[#171717] label-small uppercase"
-                            >
-                              <span className="whitespace-nowrap">
-                                {getPerkDateRange(perk)}
-                              </span>
-                            </div>
-
-                            {perk.end_date &&
-                              !(isExpiringSoon && !isExpired) && (
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    padding: '0 8px',
-                                    height: '20px',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    alignSelf: 'stretch',
-                                  }}
-                                  className="shrink-0"
-                                >
-                                  <TimeLeft
-                                    endDate={perk.end_date}
-                                    className={`text-black body-small uppercase font-abc-monument-regular ${
-                                      isExpired ? 'text-red-600' : ''
-                                    }`}
-                                  />
-                                </div>
-                              )}
-                          </div>
-
-                          {perk.id && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenPerk(perk)}
-                              disabled={!affordable || isExpired}
-                              style={{
-                                background: 'transparent',
-                                cursor:
-                                  !affordable || isExpired
-                                    ? 'not-allowed'
-                                    : 'pointer',
-                                opacity: !affordable || isExpired ? 0.5 : 1,
-                              }}
-                              className="inline-flex h-5 shrink-0 items-center gap-2 text-[#171717] label-medium uppercase transition-colors hover:bg-gray-50 border-b border-black disabled:pointer-events-none"
-                              aria-label="View Details"
-                            >
-                              <span>Details</span>
-                              <svg
-                                width={12}
-                                height={12}
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-3 w-3 shrink-0"
-                                aria-hidden
-                              >
-                                <path
-                                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                                  fill="#171717"
-                                />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-
-                        {!affordable &&
-                          address &&
-                          !isExpired &&
-                          !userRedeemed && (
-                            <div className="body-small font-abc-monument-regular text-black">
-                              Need{' '}
-                              {(
-                                perk.points_threshold - userPoints
-                              ).toLocaleString()}{' '}
-                              more points
-                            </div>
-                          )}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : hasActiveFilters ? (
-                <div className="flex flex-col items-center gap-2 self-stretch border-t border-[var(--Text-Secondary-Text,#757575)] bg-[var(--Backgrounds-Background,#FFF)] py-8 text-center">
-                  <Gift className="mx-auto mb-3 h-12 w-12 text-gray-300" />
-                  <p className="body-small mb-2 font-abc-monument-regular text-black">
-                    No perks match your filters
-                  </p>
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
+            {/* Loading State */}
+            {perksLoading && (
+              <div className="space-y-1">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      padding: '16px',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      alignSelf: 'stretch',
+                      borderRadius: '26px',
+                      border: '1px solid #EDEDED',
+                      background: '#FFF',
+                      boxShadow: '0 1px 8px 0 rgba(0, 0, 0, 0.08)',
+                    }}
+                    className="animate-pulse"
                   >
-                    Clear filters
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 self-stretch border-t border-[var(--Text-Secondary-Text,#757575)] bg-[var(--Backgrounds-Background,#FFF)] py-8 text-center">
-                  <Gift className="mx-auto mb-3 h-12 w-12 text-gray-300" />
-                  <p className="body-small mb-2 font-abc-monument-regular text-black">
-                    No perks available
-                  </p>
-                  <p className="body-small font-abc-monument-regular text-black">
-                    Check back later for new rewards!
-                  </p>
+                    <div className="flex justify-between items-start mb-3 w-full">
+                      <div className="w-16 h-6 bg-gray-200 rounded-full"></div>
+                      <div className="w-20 h-6 bg-gray-200 rounded"></div>
+                    </div>
+                    <div className="w-3/4 h-6 bg-gray-200 rounded mb-2"></div>
+                    <div className="w-full h-4 bg-gray-200 rounded mb-4"></div>
+                    <div className="w-full h-10 bg-gray-200 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Filter chips — city + type, derived from the perk feed */}
+            {!perksLoading &&
+              (cityOptions.length > 0 || typeOptions.length > 0) && (
+                <div className="mb-4 flex flex-col gap-2">
+                  <div className="flex items-stretch gap-2">
+                    {cityOptions.length > 0 && (
+                      <Select
+                        value={selectedCity}
+                        onValueChange={setSelectedCity}
+                      >
+                        <SelectTrigger
+                          aria-label="Filter rewards by city"
+                          className="flex h-10 flex-1 items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 shadow-none transition-colors hover:bg-[#9a9a9a] focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden"
+                        >
+                          <span className="truncate label-small uppercase tracking-wide text-black">
+                            <SelectValue placeholder="All cities" />
+                          </span>
+                          <MapPin
+                            className="size-5 shrink-0 text-black"
+                            aria-hidden
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All cities</SelectItem>
+                          {cityOptions.map((city) => (
+                            <SelectItem key={city} value={city}>
+                              {city}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {typeOptions.length > 0 && (
+                      <Select
+                        value={selectedType}
+                        onValueChange={setSelectedType}
+                      >
+                        <SelectTrigger
+                          aria-label="Filter rewards by type"
+                          className="flex h-10 flex-1 items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 shadow-none transition-colors hover:bg-[#9a9a9a] focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden"
+                        >
+                          <span className="truncate label-small uppercase tracking-wide text-black">
+                            <SelectValue placeholder="All types" />
+                          </span>
+                          <Tag
+                            className="size-5 shrink-0 text-black"
+                            aria-hidden
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All types</SelectItem>
+                          {typeOptions.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {formatTypeLabel(type)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="self-start label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
+                    >
+                      Clear filters
+                    </button>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-        </div>
+
+            {/* Perks List */}
+            {!perksLoading && (
+              <div className="flex flex-col">
+                {displayedRewards.length > 0 ? (
+                  displayedRewards.map((perk) => {
+                    const affordable = !address || canAfford(perk);
+                    const isExpired = Boolean(
+                      perk.end_date && new Date(perk.end_date) < new Date()
+                    );
+                    const isExpiringSoon = Boolean(
+                      perk.end_date &&
+                      new Date(perk.end_date) <
+                        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                    );
+                    const userRedeemed = perk.id ? hasRedeemed(perk.id) : false;
+
+                    return (
+                      <div
+                        key={perk.id}
+                        className={`flex items-stretch gap-4 self-stretch border-t border-[var(--Text-Secondary-Text,#757575)] bg-[var(--Backgrounds-Background,#FFF)] py-6 ${
+                          !affordable || isExpired ? 'opacity-60' : ''
+                        }`}
+                      >
+                        {/* Thumbnail — fixed square, top-aligned so right-column height never stretches it */}
+                        <div className="relative h-[107px] w-[107px] shrink-0 self-start overflow-hidden rounded-lg bg-[#EDEDED]">
+                          {perk.thumbnail_url ? (
+                            <Image
+                              src={perk.thumbnail_url}
+                              alt={perk.title}
+                              fill
+                              className="object-cover"
+                              sizes="107px"
+                            />
+                          ) : null}
+                        </div>
+
+                        {/* Content — aligned with featured / latest reward */}
+                        <div className="flex min-w-0 flex-1 flex-col items-start gap-2 self-stretch">
+                          {(isExpiringSoon && !isExpired) ||
+                          isExpired ||
+                          userRedeemed ? (
+                            <div className="flex w-full flex-wrap gap-2">
+                              {isExpiringSoon &&
+                                !isExpired &&
+                                perk.end_date && (
+                                  <span className="flex h-5 items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED] px-2 body-small uppercase font-abc-monument-regular text-red-600">
+                                    <TimeLeft endDate={perk.end_date} />
+                                  </span>
+                                )}
+                              {isExpired && (
+                                <span className="flex h-5 items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED] px-2 body-small uppercase font-abc-monument-regular text-black">
+                                  Expired
+                                </span>
+                              )}
+                              {userRedeemed && (
+                                <span className="flex h-5 items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED] px-2 body-small uppercase font-abc-monument-regular text-black">
+                                  ✓ Redeemed
+                                </span>
+                              )}
+                            </div>
+                          ) : null}
+
+                          <h2 className="w-full break-words text-left font-medium text-[#171717]">
+                            {perk.title}
+                          </h2>
+
+                          {perk.description ? (
+                            <p className="body-small w-full break-words text-left text-[#757575]">
+                              {perk.description.split(/[.!?]+/)[0].trim()}
+                              {perk.description.match(/[.!?]/) ? '.' : ''}
+                            </p>
+                          ) : null}
+
+                          {/* Metadata row — same pattern as LATEST REWARD */}
+                          <div className="mb-2 flex h-5 min-w-0 w-full items-center justify-between gap-2 self-stretch">
+                            <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2 self-stretch overflow-hidden">
+                              <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
+                                {perk.type
+                                  ? formatTypeLabel(perk.type)
+                                  : 'Reward'}
+                              </div>
+
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'row',
+                                  padding: '0 8px 0 0',
+                                  height: '20px',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  alignSelf: 'stretch',
+                                  flexWrap: 'nowrap',
+                                }}
+                                className="shrink-0 text-[#171717] label-small uppercase"
+                              >
+                                <span className="whitespace-nowrap">
+                                  {getPerkDateRange(perk)}
+                                </span>
+                              </div>
+
+                              {perk.end_date &&
+                                !(isExpiringSoon && !isExpired) && (
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      padding: '0 8px',
+                                      height: '20px',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      alignSelf: 'stretch',
+                                    }}
+                                    className="shrink-0"
+                                  >
+                                    <TimeLeft
+                                      endDate={perk.end_date}
+                                      className={`text-black body-small uppercase font-abc-monument-regular ${
+                                        isExpired ? 'text-red-600' : ''
+                                      }`}
+                                    />
+                                  </div>
+                                )}
+                            </div>
+
+                            {perk.id && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenPerk(perk)}
+                                disabled={!affordable || isExpired}
+                                style={{
+                                  background: 'transparent',
+                                  cursor:
+                                    !affordable || isExpired
+                                      ? 'not-allowed'
+                                      : 'pointer',
+                                  opacity: !affordable || isExpired ? 0.5 : 1,
+                                }}
+                                className="inline-flex h-5 shrink-0 items-center gap-2 text-[#171717] label-medium uppercase transition-colors hover:bg-gray-50 border-b border-black disabled:pointer-events-none"
+                                aria-label="View Details"
+                              >
+                                <span>Details</span>
+                                <svg
+                                  width={12}
+                                  height={12}
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-3 w-3 shrink-0"
+                                  aria-hidden
+                                >
+                                  <path
+                                    d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                                    fill="#171717"
+                                  />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+
+                          {!affordable &&
+                            address &&
+                            !isExpired &&
+                            !userRedeemed && (
+                              <div className="body-small font-abc-monument-regular text-black">
+                                Need{' '}
+                                {(
+                                  perk.points_threshold - userPoints
+                                ).toLocaleString()}{' '}
+                                more points
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : hasActiveFilters ? (
+                  <div className="flex flex-col items-center gap-2 self-stretch border-t border-[var(--Text-Secondary-Text,#757575)] bg-[var(--Backgrounds-Background,#FFF)] py-8 text-center">
+                    <Gift className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+                    <p className="body-small mb-2 font-abc-monument-regular text-black">
+                      No perks match your filters
+                    </p>
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 self-stretch border-t border-[var(--Text-Secondary-Text,#757575)] bg-[var(--Backgrounds-Background,#FFF)] py-8 text-center">
+                    <Gift className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+                    <p className="body-small mb-2 font-abc-monument-regular text-black">
+                      No perks available
+                    </p>
+                    <p className="body-small font-abc-monument-regular text-black">
+                      Check back later for new rewards!
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ height: '100px' }} />
       </div>
@@ -1279,7 +1310,7 @@ function PerksPageInner() {
               {/* Container 3: Details */}
               <div className="w-full  border border-[#131313]/10 bg-white p-6 relative">
                 <div className="space-y-4">
-                  <h3 className="flex h-9 grow basis-0 shrink-0 flex-col justify-center text-[#171717]">
+                  <h3 className="min-h-9 min-w-0 break-words text-[#171717]">
                     {selectedPerk.title}
                   </h3>
 

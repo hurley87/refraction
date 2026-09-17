@@ -34,28 +34,6 @@ function LocationPinIcon() {
   );
 }
 
-function BioInfoIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M8 14C4.69123 14 2 11.3088 2 8C2 4.69123 4.69123 2 8 2C11.3088 2 14 4.69123 14 8C14 11.3088 11.3088 14 8 14ZM8 4.00974C5.80024 4.00974 4.00974 5.80024 4.00974 8C4.00974 10.1998 5.80024 11.9903 8 11.9903C10.1998 11.9903 11.9903 10.1998 11.9903 8C11.9903 5.80024 10.1998 4.00974 8 4.00974Z"
-        fill="#757575"
-      />
-      <path
-        d="M7.26495 10.7395V6.62753H8.75295V10.7395H7.26495ZM7.27295 6.13953V5.01953H8.75295V6.13953H7.27295Z"
-        fill="#757575"
-      />
-    </svg>
-  );
-}
-
 function EditPencilIcon() {
   return (
     <svg
@@ -74,80 +52,120 @@ function EditPencilIcon() {
   );
 }
 
-/** Collapsed state: show “expand” chevron */
-function SocialsChevronCollapsedIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M11.8095 7.88328L9.23713 10.6548V1.33398H6.76291V10.6548L4.1905 7.88328L2.66669 9.38876L8.00952 14.6673L13.3334 9.38876L11.8095 7.88328Z"
-        fill="#171717"
-      />
-    </svg>
-  );
-}
-
-/** Expanded (default): show “collapse” chevron */
-function SocialsChevronExpandedIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M11.8095 8.11672L9.23711 5.3452V14.666H6.7629V5.3452L4.19048 8.11672L2.66667 6.61124L8.00951 1.33268L13.3333 6.61124L11.8095 8.11672Z"
-        fill="#171717"
-      />
-    </svg>
-  );
-}
-
 /**
- * ABOUT YOU toolbar (edit profile, expand/collapse), optional FOLLOW | WEBSITE row,
- * then location (361px) + bio blocks — all toggled together.
+ * Identity extras under the username: city + country, then Instagram / X / website icons.
  */
 export default function DashboardSocialLinks({
   profile,
 }: DashboardSocialLinksProps) {
-  const [aboutYouExpanded, setAboutYouExpanded] = useState(true);
   const [editSocialsOpen, setEditSocialsOpen] = useState(false);
 
   if (!profile) return null;
 
   const tw = getSocialUrl('twitter', profile.twitter_handle || '');
   const ig = getSocialUrl('instagram', profile.instagram_handle || '');
-
   const href = websiteHref(profile.website);
-  const websiteLabel = profile.website?.trim() ?? '';
 
   const city = profile.city?.trim() ?? '';
   const country = profile.country?.trim() ?? '';
-  const bio = profile.bio?.trim() ?? '';
-  // Prefer FK-backed location (API enriches city/country from geo tables).
   const hasLocation = Boolean(
     profile.geo_city_id || profile.country_id || city || country
   );
-  const hasBio = Boolean(bio);
+  const hasFollowIcons = Boolean(ig || tw || href);
 
   return (
-    <div className="mb-[20px] flex flex-col gap-3 self-stretch pt-3">
-      <div className="flex items-start gap-3 self-stretch">
-        <div className="flex min-w-0 flex-[1_0_0] items-start gap-2">
-          <BioInfoIcon />
-          <span className="label-small uppercase text-[#171717]">
-            ABOUT YOU
-          </span>
+    <div className="flex w-full flex-col items-start gap-3 self-stretch">
+      {hasLocation && (
+        <div className="flex w-full max-w-full items-end gap-6 self-stretch">
+          <div className="flex w-[168px] shrink-0 flex-col items-start justify-center gap-2">
+            <div className="flex items-center gap-2">
+              <LocationPinIcon />
+              <span className="label-small uppercase text-[#171717]">CITY</span>
+            </div>
+            <span className="label-medium min-w-0 w-full text-left font-bold uppercase text-[#171717]">
+              {city || '—'}
+            </span>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-2">
+            <div className="flex items-center gap-2">
+              <LocationPinIcon />
+              <span className="label-small uppercase text-[#171717]">
+                COUNTRY
+              </span>
+            </div>
+            <span className="label-medium min-w-0 w-full text-left font-bold uppercase text-[#171717]">
+              {country || '—'}
+            </span>
+          </div>
         </div>
+      )}
+
+      <div
+        className={`flex w-full items-center gap-3 self-stretch ${
+          hasFollowIcons ? 'justify-between' : 'justify-end'
+        }`}
+      >
+        {hasFollowIcons ? (
+          <div className="flex items-center justify-start gap-1">
+            {ig && (
+              <a
+                href={ig}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex shrink-0 items-center justify-center transition-opacity hover:opacity-70"
+                aria-label="Instagram"
+              >
+                <Image
+                  src="/logos/socials/iconoir_instagram.svg"
+                  alt="Instagram"
+                  width={24}
+                  height={24}
+                  className="shrink-0"
+                />
+              </a>
+            )}
+            {tw && (
+              <a
+                href={tw}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex shrink-0 items-center justify-center transition-opacity hover:opacity-70"
+                aria-label="X (Twitter)"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 48 48"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M33.2016 10H38.1088L27.3888 21.8611L40 38H30.1248L22.392 28.2109L13.5424 38H8.6304L20.0976 25.3144L8 10H18.1248L25.1168 18.9476L33.2016 10ZM31.48 35.1564H34.2L16.6464 12.6942H13.728L31.48 35.1564Z"
+                    fill="#171717"
+                  />
+                </svg>
+              </a>
+            )}
+            {href && (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex size-6 shrink-0 items-center justify-center transition-opacity hover:opacity-70"
+                aria-label="Website"
+              >
+                <Image
+                  src="/globe.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 shrink-0 brightness-0"
+                />
+              </a>
+            )}
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => setEditSocialsOpen(true)}
@@ -156,195 +174,7 @@ export default function DashboardSocialLinks({
           <span className="label-medium uppercase">EDIT</span>
           <EditPencilIcon />
         </button>
-        <button
-          type="button"
-          onClick={() => setAboutYouExpanded((e) => !e)}
-          className="flex shrink-0 items-center justify-center gap-4 p-1 transition-opacity hover:opacity-90"
-          style={{
-            background: 'var(--Backgrounds-Secondary-CTA-BG, #DBDBDB)',
-          }}
-          aria-expanded={aboutYouExpanded}
-          aria-label={
-            aboutYouExpanded
-              ? 'Hide about you details'
-              : 'Show about you details'
-          }
-        >
-          {aboutYouExpanded ? (
-            <SocialsChevronExpandedIcon />
-          ) : (
-            <SocialsChevronCollapsedIcon />
-          )}
-        </button>
       </div>
-
-      {aboutYouExpanded && (
-        <div className="flex flex-col gap-3 self-stretch">
-          <div className="flex items-end gap-6 self-stretch">
-            {/* Left: 141px, column, center, start align, gap 8px */}
-            <div className="flex w-[141px] shrink-0 flex-col items-start justify-center gap-2 self-stretch">
-              <div className="flex items-center gap-2">
-                <svg
-                  width="12"
-                  height="11"
-                  viewBox="0 0 12 11"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden
-                >
-                  <path
-                    d="M11.2532 10.6667H0C0.746444 8.18309 3.03832 6.48657 5.60279 6.47662C8.17718 6.46667 10.4919 8.15224 11.2532 10.6667ZM5.62559 0C3.97905 0 2.64477 1.3393 2.64477 2.99204C2.64477 4.64478 3.97905 5.98408 5.62559 5.98408C7.27213 5.98408 8.60641 4.64478 8.60641 2.99204C8.60641 1.3393 7.27213 0 5.62559 0Z"
-                    fill="#171717"
-                  />
-                </svg>
-                <span className="label-small uppercase text-[#171717]">
-                  FOLLOW
-                </span>
-              </div>
-              <div className="flex w-full items-center justify-start gap-1">
-                {tw && (
-                  <a
-                    href={tw}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex shrink-0 items-center justify-center transition-opacity hover:opacity-70"
-                    aria-label="X (Twitter)"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 48 48"
-                      fill="none"
-                      aria-hidden
-                    >
-                      <path
-                        d="M33.2016 10H38.1088L27.3888 21.8611L40 38H30.1248L22.392 28.2109L13.5424 38H8.6304L20.0976 25.3144L8 10H18.1248L25.1168 18.9476L33.2016 10ZM31.48 35.1564H34.2L16.6464 12.6942H13.728L31.48 35.1564Z"
-                        fill="#171717"
-                      />
-                    </svg>
-                  </a>
-                )}
-
-                {ig && (
-                  <a
-                    href={ig}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex shrink-0 items-center justify-center transition-opacity hover:opacity-70"
-                    aria-label="Instagram"
-                  >
-                    <Image
-                      src="/logos/socials/iconoir_instagram.svg"
-                      alt="Instagram"
-                      width={24}
-                      height={24}
-                      className="shrink-0 "
-                    />
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* Right: WEBSITE + url — column 56px, padding 0 16px 0 24px, gap 12px */}
-            <div className="flex h-14 min-w-0 flex-[1_0_0] flex-col items-start gap-3 self-stretch py-0 pl-6 pr-4">
-              <div className="flex w-full items-center gap-2 self-stretch">
-                <Image
-                  src="/globe.svg"
-                  alt=""
-                  width={16}
-                  height={16}
-                  className="h-4 w-4 shrink-0 brightness-0"
-                />
-                <span className="label-small uppercase text-[#171717]">
-                  WEBSITE
-                </span>
-              </div>
-              {href ? (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-[21px] w-[172px] shrink-0 items-center justify-start gap-1 transition-opacity hover:opacity-80"
-                >
-                  <span className="label-small inline-block min-w-0 w-fit max-w-[calc(172px-20px)] truncate border-b-2 border-[#171717] text-left text-[#171717] font-extrabold">
-                    {websiteLabel}
-                  </span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                  >
-                    <path
-                      d="M5.68767 2.42969V4.64061L9.57161 4.46205L2.7338 11.3124L4.51454 13.0964L11.341 6.24118L11.1741 10.1566H13.4005V2.42969H5.68767Z"
-                      fill="#171717"
-                    />
-                  </svg>
-                </a>
-              ) : (
-                <span className="label-small flex h-[21px] w-[172px] shrink-0 items-center text-left text-white/60">
-                  No website
-                </span>
-              )}
-            </div>
-          </div>
-
-          {(hasLocation || hasBio) && (
-            <div className="flex flex-col gap-3 self-stretch">
-              {hasLocation && (
-                <div className="self-stretch border-t border-[#A9A9A9] pt-3">
-                  <div className="flex w-[361px] max-w-full shrink-0 items-end gap-6 self-stretch">
-                    <div className="flex w-[168px] shrink-0 flex-col items-start justify-center gap-2 self-stretch">
-                      <div className="flex items-center gap-2">
-                        <LocationPinIcon />
-                        <span className="label-small uppercase text-[#171717]">
-                          CITY
-                        </span>
-                      </div>
-                      <span className="label-medium min-w-0 w-full text-left font-bold uppercase text-[#171717]">
-                        {city || '—'}
-                      </span>
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-2 self-stretch">
-                      <div className="flex items-center gap-2">
-                        <LocationPinIcon />
-                        <span className="label-small uppercase text-[#171717]">
-                          COUNTRY
-                        </span>
-                      </div>
-                      <span className="label-medium min-w-0 w-full text-left font-bold uppercase text-[#171717]">
-                        {country || '—'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {hasBio && (
-                <div
-                  className="flex w-[361px] max-w-full shrink-0 flex-col items-end gap-6 self-stretch pt-3"
-                  style={{
-                    borderTop: '1px solid var(--Borders-Light-Border, #DBDBDB)',
-                  }}
-                >
-                  <div className="flex w-full items-center gap-2 self-stretch">
-                    <BioInfoIcon />
-                    <span className="label-small uppercase text-[#171717]">
-                      BIO
-                    </span>
-                  </div>
-                  <div className="flex w-full items-start gap-4 self-stretch">
-                    <p className="body-small min-w-0 flex-1 whitespace-pre-wrap text-left text-[#171717]">
-                      {bio}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       <EditSocialsModal
         open={editSocialsOpen}
