@@ -9,7 +9,8 @@ type MapYellowTipPointerAlign = 'center' | 'start' | 'end';
 
 type MapYellowTipProps = {
   children: ReactNode;
-  onDismiss: () => void;
+  /** Omit for tips that stay until the underlying task is done. */
+  onDismiss?: () => void;
   className?: string;
   /**
    * Speech-bubble caret. `top` points up at the control above the tip;
@@ -57,15 +58,19 @@ export function MapYellowTip({
         />
       ) : null}
       <div className="relative rounded-2xl bg-[#FFF200] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full text-[#171717]/opacity-70 transition-opacity hover:opacity-100"
-          aria-label="Dismiss tip"
-        >
-          <X className="size-4" aria-hidden />
-        </button>
-        <p className="body-medium pr-8 text-[#171717]">{children}</p>
+        {onDismiss ? (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full text-[#171717]/opacity-70 transition-opacity hover:opacity-100"
+            aria-label="Dismiss tip"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        ) : null}
+        <div className={cn('body-medium text-[#171717]', onDismiss && 'pr-8')}>
+          {children}
+        </div>
       </div>
     </div>
   );

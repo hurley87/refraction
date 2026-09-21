@@ -13,6 +13,7 @@ export const ANALYTICS_EVENTS = {
 
   // Interest
   ACCOUNT_CREATED: 'account_created',
+  PROFILE_COMPLETED: 'profile_completed',
 
   /** Membership / login gate: modal became visible to a signed-out visitor. */
   GATE_VIEWED: 'gate_viewed',

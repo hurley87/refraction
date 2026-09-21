@@ -1,30 +1,30 @@
-import { NextRequest } from "next/server";
+import { NextRequest } from 'next/server';
 
-export const dynamic = "force-dynamic";
-import { supabase } from "@/lib/db/client";
-import { apiSuccess, apiError } from "@/lib/api/response";
+export const dynamic = 'force-dynamic';
+import { supabase } from '@/lib/db/client';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get("wallet_address");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const walletAddress = searchParams.get('wallet_address');
+    const limit = parseInt(searchParams.get('limit') || '20');
 
     if (!walletAddress) {
-      return apiError("Wallet address is required", 400);
+      return apiError('Wallet address is required', 400);
     }
 
     // Fetch user activities from points_activities table
     const { data: activities, error } = await supabase
-      .from("points_activities")
-      .select("*")
-      .eq("user_wallet_address", walletAddress)
-      .order("created_at", { ascending: false })
+      .from('points_activities')
+      .select('*')
+      .eq('user_wallet_address', walletAddress)
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) {
-      console.error("Error fetching activities:", error);
-      return apiError("Failed to fetch activities", 500);
+      console.error('Error fetching activities:', error);
+      return apiError('Failed to fetch activities', 500);
     }
 
     // Transform the activities to a more readable format
@@ -36,44 +36,50 @@ export async function GET(request: NextRequest) {
         const day = date.getDate();
         const year = date.getFullYear().toString().slice(-2); // Last 2 digits of year
         const formattedDate = `${month}/${day}/${year}`;
-        
+
         return {
-        id: activity.id,
+          id: activity.id,
           date: formattedDate,
-        description: activity.description,
-        activityType: activity.activity_type,
-        points: activity.points_earned,
-        event: getEventName(activity.activity_type),
-        metadata: activity.metadata,
+          description: activity.description,
+          activityType: activity.activity_type,
+          points: activity.points_earned,
+          event: getEventName(activity.activity_type),
+          metadata: activity.metadata,
         };
       }) || [];
 
     return apiSuccess(formattedActivities);
   } catch (error) {
-    console.error("Error fetching activities:", error);
-    return apiError("Failed to fetch activities", 500);
+    console.error('Error fetching activities:', error);
+    return apiError('Failed to fetch activities', 500);
   }
 }
 
 // Helper function to get readable event names
 function getEventName(activityType: string): string {
   const eventNames: { [key: string]: string } = {
-    checkpoint_checkin: "Checkpoint Check-in",
-    daily_checkin: "Daily Check-in",
-    profile_field_email: "Added Email",
-    profile_field_name: "Added Name",
-    profile_field_username: "Added Username",
-    profile_field_twitter: "Added X Handle",
-    profile_field_towns: "Added Towns Handle",
-    profile_field_farcaster: "Added Farcaster Handle",
-    profile_field_telegram: "Added Telegram Handle",
-    profile_field_picture: "Added Profile Picture",
-    profile_field_website: "Added Website",
-    wallet_connect: "Connected Wallet",
-    transaction_complete: "Transaction Complete",
-    social_share: "Social Share",
-    referral_signup: "Referral Signup",
-    location_creation: "Location Creation",
+    checkpoint_checkin: 'Checkpoint Check-in',
+    daily_checkin: 'Daily Check-in',
+    profile_field_email: 'Added Email',
+    profile_field_name: 'Added Name',
+    profile_field_username: 'Added Username',
+    profile_field_twitter: 'Added X Handle',
+    profile_field_towns: 'Added Towns Handle',
+    profile_field_farcaster: 'Added Farcaster Handle',
+    profile_field_telegram: 'Added Telegram Handle',
+    profile_field_instagram: 'Added Instagram Handle',
+    profile_field_picture: 'Added Profile Picture',
+    profile_field_bio: 'Added Bio',
+    profile_field_favorite_club: 'Added Favorite Club',
+    profile_field_favorite_bar: 'Added Favorite Bar',
+    profile_field_favorite_restaurant: 'Added Favorite Restaurant',
+    profile_complete: 'Completed Profile',
+    profile_field_website: 'Added Website',
+    wallet_connect: 'Connected Wallet',
+    transaction_complete: 'Transaction Complete',
+    social_share: 'Social Share',
+    referral_signup: 'Referral Signup',
+    location_creation: 'Location Creation',
     // Add more activity types as needed
   };
 
@@ -87,8 +93,8 @@ function getEventName(activityType: string): string {
   // Filter out empty strings, capitalize each word, join with spaces
   return activityType
     .trim()
-    .split("_")
+    .split('_')
     .filter((word) => word.length > 0) // Remove empty strings from leading/trailing underscores
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
+    .join(' ');
 }

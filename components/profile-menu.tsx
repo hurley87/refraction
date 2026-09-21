@@ -12,6 +12,10 @@ import type { UserProfile } from '@/lib/types';
 import { toast } from 'sonner';
 import { invalidateProfileRelatedQueries } from '@/lib/invalidate-profile-queries';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
+import {
+  pointsAwardedFromProfileResponse,
+  withProfilePointsToast,
+} from '@/lib/profile-completion';
 
 // Reusable Pencil Icon Component
 const PencilIcon = ({
@@ -293,17 +297,15 @@ export default function ProfileMenu({
         result !== null &&
         'data' in result &&
         (result as { data?: unknown }).data != null
-          ? (result as { data: { pointsAwarded?: unknown[] } }).data
-          : (result as { pointsAwarded?: unknown[] });
+          ? (result as { data: { pointsAwarded?: { points: number }[] } }).data
+          : (result as { pointsAwarded?: { points: number }[] });
 
-      // Show success feedback with points info
-      let successMessage = 'Profile updated successfully';
-      if (payload?.pointsAwarded && payload.pointsAwarded.length > 0) {
-        const totalPoints = payload.pointsAwarded.length * 5;
-        successMessage += ` - Earned ${totalPoints} points!`;
-      }
-
-      toast.success(successMessage);
+      toast.success(
+        withProfilePointsToast(
+          'Profile updated successfully',
+          payload?.pointsAwarded ?? []
+        )
+      );
 
       invalidateProfileRelatedQueries(queryClient, walletAddress);
 
@@ -392,7 +394,12 @@ export default function ProfileMenu({
       }
 
       setProfile(updatedProfile);
-      toast.success('Profile picture updated successfully');
+      toast.success(
+        withProfilePointsToast(
+          'Profile picture updated successfully',
+          pointsAwardedFromProfileResponse(profilePutBody)
+        )
+      );
       invalidateProfileRelatedQueries(queryClient, walletAddress);
     } catch (error) {
       console.error('Error uploading image:', error);

@@ -159,6 +159,10 @@ export function trackAccountCreated(
   });
 }
 
+export function trackProfileCompleted(distinctId: string): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.PROFILE_COMPLETED);
+}
+
 /** Net-new IRL account after a membership / login gate (map or city guide). */
 export function trackSignupFromGate(
   distinctId: string,

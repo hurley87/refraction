@@ -275,6 +275,8 @@ export type UserProfile = {
   favorite_music_venue?: ProfileFavoritePlace | null;
   favorite_gallery?: ProfileFavoritePlace | null;
   favorite_restaurant?: ProfileFavoritePlace | null;
+  /** Derived, not a column: the one-time profile completion bonus has been granted */
+  profile_completion_awarded?: boolean;
   created_at?: string;
   updated_at?: string;
 };
