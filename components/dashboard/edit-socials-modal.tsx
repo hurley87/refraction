@@ -22,6 +22,10 @@ import {
 } from '@/components/shared/player-location-fields';
 import { LocationSearchDialog } from '@/components/dashboard/location-search-dialog';
 import MapCard from '@/components/map/map-card';
+import {
+  pointsAwardedFromProfileResponse,
+  withProfilePointsToast,
+} from '@/lib/profile-completion';
 
 type FavoritePlaceField =
   | 'favorite_music_venue'
@@ -35,13 +39,13 @@ const FAVORITE_PLACE_FIELDS: {
 }[] = [
   {
     key: 'favorite_music_venue',
-    label: 'Your Favorite Music Venue',
-    searchTitle: 'Search music venue',
+    label: 'Your Favorite Club',
+    searchTitle: 'Search club',
   },
   {
     key: 'favorite_gallery',
-    label: 'Your Favorite Gallery',
-    searchTitle: 'Search gallery',
+    label: 'Your Favorite Bar',
+    searchTitle: 'Search bar',
   },
   {
     key: 'favorite_restaurant',
@@ -52,7 +56,12 @@ const FAVORITE_PLACE_FIELDS: {
 
 type AboutYouDraft = Pick<
   UserProfile,
-  'username' | 'website' | 'bio' | 'twitter_handle' | 'instagram_handle'
+  | 'name'
+  | 'username'
+  | 'website'
+  | 'bio'
+  | 'twitter_handle'
+  | 'instagram_handle'
 >;
 
 /** Editable inputs — white field, light border */
@@ -74,6 +83,7 @@ interface EditSocialsModalProps {
 }
 
 const emptyDraft: AboutYouDraft = {
+  name: '',
   username: '',
   website: '',
   bio: '',
@@ -83,6 +93,7 @@ const emptyDraft: AboutYouDraft = {
 
 function draftFromProfile(p: UserProfile): AboutYouDraft {
   return {
+    name: p.name ?? '',
     username: (p.username ?? '').toLowerCase(),
     website: p.website ?? '',
     bio: p.bio ?? '',
@@ -249,7 +260,12 @@ export default function EditSocialsModal({
       }
 
       setProfilePictureUrl(imageUrl);
-      toast.success('Profile picture updated');
+      toast.success(
+        withProfilePointsToast(
+          'Profile picture updated',
+          pointsAwardedFromProfileResponse(profilePutBody)
+        )
+      );
       invalidateProfileRelatedQueries(queryClient, profile.wallet_address);
     } catch (error) {
       console.error(error);
@@ -320,8 +336,8 @@ export default function EditSocialsModal({
       const raw = (await response.json().catch(() => ({}))) as {
         success?: boolean;
         error?: string;
-        data?: { pointsAwarded?: unknown[] };
-        pointsAwarded?: unknown[];
+        data?: { pointsAwarded?: { points: number }[] };
+        pointsAwarded?: { points: number }[];
       };
 
       if (!response.ok) {
@@ -353,11 +369,9 @@ export default function EditSocialsModal({
       }
 
       const result = raw.data ?? raw;
-      let message = 'Profile updated';
-      if (result?.pointsAwarded && result.pointsAwarded.length > 0) {
-        message += ` — +${result.pointsAwarded.length * 5} points`;
-      }
-      toast.success(message);
+      toast.success(
+        withProfilePointsToast('Profile updated', result?.pointsAwarded ?? [])
+      );
       invalidateProfileRelatedQueries(queryClient, profile.wallet_address);
       onOpenChange(false);
     } catch (e) {
@@ -460,6 +474,25 @@ export default function EditSocialsModal({
           </div>
 
           <div className="flex flex-col items-stretch gap-4 px-6 py-4">
+            <div className="space-y-2">
+              <label
+                htmlFor="edit-about-name"
+                className="label-small uppercase text-[#757575]"
+              >
+                Display name
+              </label>
+              <Input
+                id="edit-about-name"
+                type="text"
+                placeholder="Your display name"
+                maxLength={100}
+                value={draft.name ?? ''}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, name: e.target.value }))
+                }
+                className={editFieldInputClassName}
+              />
+            </div>
             <div className="space-y-2">
               <label
                 htmlFor="edit-about-email"

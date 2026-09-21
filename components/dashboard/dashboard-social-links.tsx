@@ -5,6 +5,12 @@ import { useState } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { getSocialUrl } from '@/lib/utils/social-links';
 import EditSocialsModal from '@/components/dashboard/edit-socials-modal';
+import { MapYellowTip } from '@/components/map/map-yellow-tip';
+import {
+  getMissingProfileCompletionLabels,
+  getProfileCompletionCount,
+  PROFILE_COMPLETION_FIELDS,
+} from '@/lib/profile-completion';
 
 interface DashboardSocialLinksProps {
   profile: UserProfile | null | undefined;
@@ -73,6 +79,13 @@ export default function DashboardSocialLinks({
   );
   const hasFollowIcons = Boolean(ig || tw || href);
 
+  const completedFields = getProfileCompletionCount(profile);
+  const missingFields = getMissingProfileCompletionLabels(profile);
+  // Once the 1,000 points are earned the tip stays gone, even if a field is later cleared.
+  const showCompletionTip =
+    !profile.profile_completion_awarded &&
+    completedFields < PROFILE_COMPLETION_FIELDS.length;
+
   return (
     <div className="flex w-full flex-col items-start gap-3 self-stretch">
       {hasLocation && (
@@ -98,6 +111,24 @@ export default function DashboardSocialLinks({
             </span>
           </div>
         </div>
+      )}
+
+      {showCompletionTip && (
+        <MapYellowTip
+          pointer="bottom"
+          pointerAlign="end"
+          className="w-full max-w-[280px] self-end"
+        >
+          <span className="block">
+            {completedFields} / {PROFILE_COMPLETION_FIELDS.length} · Complete
+            your profile to earn 1,000 IRL Points
+          </span>
+          <ul className="mt-2 list-disc space-y-0.5 pl-4">
+            {missingFields.map((label) => (
+              <li key={label}>{label}</li>
+            ))}
+          </ul>
+        </MapYellowTip>
       )}
 
       <div

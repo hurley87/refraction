@@ -25,7 +25,6 @@ import ProfileFavoritePlacesCarousel from '@/components/dashboard/profile-favori
 import ProfilePersonalListsCarousel from '@/components/dashboard/profile-personal-lists-carousel';
 import Transactions from '@/components/dashboard/transactions';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
-
 /** Shell background: profile card art at top; solid fill below where the image ends */
 const DASHBOARD_SHELL_STYLE = {
   backgroundColor: '#FFF',
@@ -125,7 +124,6 @@ export default function DashboardPage() {
   const tierDescription = nextTier?.description?.trim()
     ? nextTier.description
     : currentTier?.description;
-
   return (
     <div className="min-h-screen bg-white font-grotesk md:bg-[#F5F5F5]">
       <div

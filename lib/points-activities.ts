@@ -37,6 +37,10 @@ export type PointsActivityType =
   | 'profile_field_telegram'
   | 'profile_field_instagram'
   | 'profile_field_picture'
+  | 'profile_field_bio'
+  | 'profile_field_favorite_club'
+  | 'profile_field_favorite_bar'
+  | 'profile_field_favorite_restaurant'
   | 'social_share'
   | 'referral_signup'
   | 'referral_complete'
@@ -112,11 +116,11 @@ export const POINTS_ACTIVITIES_CONFIG: PointsActivityConfig[] = [
   {
     type: 'profile_complete',
     name: 'Complete Profile',
-    description: 'Fill out your complete user profile',
+    description: 'Fill all seven profile fields',
     icon: '👤',
     category: 'onboarding',
-    base_points: 100,
-    max_total_points: 100,
+    base_points: 300,
+    max_total_points: 300,
     is_active: true,
   },
   {
@@ -135,8 +139,8 @@ export const POINTS_ACTIVITIES_CONFIG: PointsActivityConfig[] = [
     description: 'Add your name to your profile',
     icon: '👤',
     category: 'onboarding',
-    base_points: 5,
-    max_total_points: 5,
+    base_points: 100,
+    max_total_points: 100,
     is_active: true,
   },
   {
@@ -195,8 +199,8 @@ export const POINTS_ACTIVITIES_CONFIG: PointsActivityConfig[] = [
     description: 'Add your Instagram handle to your profile',
     icon: '📷',
     category: 'social',
-    base_points: 5,
-    max_total_points: 5,
+    base_points: 100,
+    max_total_points: 100,
     is_active: true,
   },
   {
@@ -205,8 +209,48 @@ export const POINTS_ACTIVITIES_CONFIG: PointsActivityConfig[] = [
     description: 'Add a profile picture to your profile',
     icon: '🖼️',
     category: 'onboarding',
-    base_points: 5,
-    max_total_points: 5,
+    base_points: 100,
+    max_total_points: 100,
+    is_active: true,
+  },
+  {
+    type: 'profile_field_bio',
+    name: 'Add Bio',
+    description: 'Add a bio to your profile',
+    icon: '✍️',
+    category: 'onboarding',
+    base_points: 100,
+    max_total_points: 100,
+    is_active: true,
+  },
+  {
+    type: 'profile_field_favorite_club',
+    name: 'Add Favorite Club',
+    description: 'Add your favorite club to your profile',
+    icon: '🎵',
+    category: 'onboarding',
+    base_points: 100,
+    max_total_points: 100,
+    is_active: true,
+  },
+  {
+    type: 'profile_field_favorite_bar',
+    name: 'Add Favorite Bar',
+    description: 'Add your favorite bar to your profile',
+    icon: '🍸',
+    category: 'onboarding',
+    base_points: 100,
+    max_total_points: 100,
+    is_active: true,
+  },
+  {
+    type: 'profile_field_favorite_restaurant',
+    name: 'Add Favorite Restaurant',
+    description: 'Add your favorite restaurant to your profile',
+    icon: '🍽️',
+    category: 'onboarding',
+    base_points: 100,
+    max_total_points: 100,
     is_active: true,
   },
   {

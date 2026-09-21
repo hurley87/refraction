@@ -290,12 +290,32 @@ export const updatePlayerGeoLocation = async (
 };
 
 /**
+ * True once the member has been granted the one-time profile completion bonus,
+ * even if they later clear one of the seven fields.
+ */
+export const hasProfileCompletionAward = async (
+  walletAddress: string
+): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from('points_activities')
+    .select('id')
+    .eq('user_wallet_address', walletAddress)
+    .eq('activity_type', 'profile_complete')
+    .limit(1);
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+};
+
+/**
  * Award points for profile field completion
  */
 export const awardProfileFieldPoints = async (
   walletAddress: string,
   fieldType: string,
-  fieldValue: string
+  fieldValue: unknown,
+  points = 5,
+  description = `Added ${fieldType.replace('profile_field_', '')} to profile`
 ) => {
   try {
     // Check if points have already been awarded for this field
@@ -314,22 +334,26 @@ export const awardProfileFieldPoints = async (
       };
     }
 
-    // Award 5 points for the field
+    // The profile activity type is the idempotency key for this member.
     const { data, error } = await supabase
       .from('points_activities')
       .insert({
         user_wallet_address: walletAddress,
         activity_type: fieldType,
-        points_earned: 5,
-        description: `Added ${fieldType.replace(
-          'profile_field_',
-          ''
-        )} to profile`,
+        points_earned: points,
+        description,
         metadata: { field_value: fieldValue },
         processed: true,
       })
       .select()
       .single();
+
+    if (error?.code === '23505') {
+      return {
+        success: false,
+        reason: 'Points already awarded for this field',
+      };
+    }
 
     if (error) {
       throw error;

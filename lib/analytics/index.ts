@@ -35,6 +35,7 @@ export {
   setUserPropertiesOnce,
   incrementUserProperty,
   trackAccountCreated,
+  trackProfileCompleted,
   trackSignupFromGate,
   trackCheckinCompleted,
   trackRewardClaimed,

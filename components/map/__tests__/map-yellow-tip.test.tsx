@@ -14,6 +14,15 @@ describe('MapYellowTip', () => {
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 
+  it('omits the dismiss control when the tip cannot be dismissed', () => {
+    render(<MapYellowTip>Complete your profile</MapYellowTip>);
+
+    expect(screen.getByText('Complete your profile')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Dismiss tip' })
+    ).not.toBeInTheDocument();
+  });
+
   it('renders an upward speech-bubble pointer', () => {
     const { rerender } = render(
       <MapYellowTip onDismiss={vi.fn()}>Search a spot you love</MapYellowTip>

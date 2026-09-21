@@ -6,13 +6,34 @@ import {
   getUserProfileByUsername,
   createOrUpdateUserProfile,
   awardProfileFieldPoints,
+  hasProfileCompletionAward,
   isUsernameTakenByOther,
   isPostgresUniqueUsernameViolation,
 } from '@/lib/db/profiles';
 import type { ProfileFavoritePlace, UserProfile } from '@/lib/types';
+import type { PointsActivityType } from '@/lib/points-activities';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { profileFavoritePlaceSchema } from '@/lib/schemas/player';
 import { normalizeUsername, usernameSchema } from '@/lib/username';
+import {
+  isProfileComplete,
+  isProfileCompletionFieldFilled,
+  type ProfileCompletionField,
+} from '@/lib/profile-completion';
+import {
+  resolveServerIdentity,
+  trackProfileCompleted,
+} from '@/lib/analytics/server';
+
+const PROFILE_FIELD_ACTIVITY_MAP = {
+  profile_picture_url: 'profile_field_picture',
+  name: 'profile_field_name',
+  bio: 'profile_field_bio',
+  instagram_handle: 'profile_field_instagram',
+  favorite_music_venue: 'profile_field_favorite_club',
+  favorite_gallery: 'profile_field_favorite_bar',
+  favorite_restaurant: 'profile_field_favorite_restaurant',
+} satisfies Record<ProfileCompletionField, PointsActivityType>;
 
 function parseFavoritePlaceField(
   value: unknown
@@ -80,10 +101,15 @@ export async function GET(request: NextRequest) {
         favorite_music_venue: null,
         favorite_gallery: null,
         favorite_restaurant: null,
+        profile_completion_awarded: false,
       });
     }
 
-    return apiSuccess(profile);
+    return apiSuccess({
+      ...profile,
+      profile_completion_awarded:
+        await hasProfileCompletionAward(walletAddress),
+    });
   } catch (error) {
     console.error('Error fetching profile:', error);
     return apiError('Failed to fetch profile', 500);
@@ -195,56 +221,75 @@ export async function PUT(request: NextRequest) {
       throw err;
     }
 
-    // Award points for new fields that were filled out
-    const profileFieldsMap = {
-      email: 'profile_field_email',
-      name: 'profile_field_name',
-      username: 'profile_field_username',
-      website: 'profile_field_website',
-      twitter_handle: 'profile_field_twitter',
-      towns_handle: 'profile_field_towns',
-      farcaster_handle: 'profile_field_farcaster',
-      telegram_handle: 'profile_field_telegram',
-      instagram_handle: 'profile_field_instagram',
-      profile_picture_url: 'profile_field_picture',
-    };
-
     const pointsAwarded: Array<{
       field: string;
       points: number;
-      activity: any;
+      activity: unknown;
     }> = [];
 
-    for (const [fieldName, activityType] of Object.entries(profileFieldsMap)) {
-      const newValue = validatedData[fieldName as keyof typeof validatedData];
-      const currentValue = currentProfile?.[fieldName as keyof UserProfile];
+    for (const [fieldName, activityType] of Object.entries(
+      PROFILE_FIELD_ACTIVITY_MAP
+    ) as [ProfileCompletionField, PointsActivityType][]) {
+      const newValue = validatedData[fieldName];
+      const currentValue = currentProfile?.[fieldName];
 
-      // Award points if:
-      // 1. New value exists and is not empty
-      // 2. Current value was empty or null (first time filling)
       if (
-        newValue &&
-        newValue.trim() &&
-        (!currentValue || !currentValue.trim())
+        isProfileCompletionFieldFilled(fieldName, newValue) &&
+        !isProfileCompletionFieldFilled(fieldName, currentValue)
       ) {
         const result = await awardProfileFieldPoints(
           wallet_address,
           activityType,
-          newValue
+          newValue,
+          100
         );
 
         if (result.success) {
           pointsAwarded.push({
             field: fieldName,
-            points: 5,
+            points: 100,
             activity: result.activity,
           });
         }
       }
     }
 
+    const justCompleted =
+      isProfileComplete(updatedProfile) && !isProfileComplete(currentProfile);
+
+    if (isProfileComplete(updatedProfile)) {
+      const completionResult = await awardProfileFieldPoints(
+        wallet_address,
+        'profile_complete',
+        '7/7',
+        300,
+        'Completed profile'
+      );
+
+      if (completionResult.success) {
+        pointsAwarded.push({
+          field: 'profile_complete',
+          points: 300,
+          activity: completionResult.activity,
+        });
+      }
+    }
+
+    if (justCompleted) {
+      trackProfileCompleted(
+        resolveServerIdentity({
+          email: updatedProfile.email ?? currentProfile?.email,
+          walletAddress: wallet_address,
+        })
+      );
+    }
+
     return apiSuccess({
-      profile: updatedProfile,
+      profile: {
+        ...updatedProfile,
+        profile_completion_awarded:
+          await hasProfileCompletionAward(wallet_address),
+      },
       pointsAwarded,
     });
   } catch (error) {
