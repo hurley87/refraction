@@ -70,6 +70,7 @@ vi.mock('@/lib/activation/explorer-url', () => ({
 import { POSTER_CHECKOUT_USDC_ADDRESS_BASE } from '@/lib/walletconnect-poster-direct-usdc';
 import { DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG } from '@/lib/schemas/activation-eligibility-config';
 import { TEMPO_CADD_CONTRACT_ADDRESS } from '@/lib/activation/tempo-config';
+import { SOLANA_USDC_MINT_BY_CLUSTER } from '@/lib/activation/solana-config';
 import { GET as listGET, POST as listPOST } from '../route';
 import { GET as oneGET, PATCH as onePATCH } from '../[activationId]/route';
 import {
@@ -112,6 +113,24 @@ const baseFixture = {
   updated_at: '2026-01-01T00:00:00.000Z',
   activation_create_idempotency_key: 'k1',
   privy_campaign_wallet_id: 'pw1',
+};
+
+const SOLANA_CAMPAIGN = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
+const SOLANA_VENUE = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+
+const solanaFixture = {
+  ...baseFixture,
+  id: 'act-sol',
+  slug: 'act-sol',
+  settlement_rail: 'solana' as const,
+  campaign_wallet_address: SOLANA_CAMPAIGN,
+  venue_settlement_wallet_address: SOLANA_VENUE,
+  usdc_asset_config: {
+    mint: SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'],
+    decimals: 6,
+    symbol: 'USDC',
+  },
+  privy_campaign_wallet_id: 'pw-sol',
 };
 
 function jsonReq(
@@ -359,6 +378,128 @@ describe('POST /api/admin/sponsored-activations', () => {
     });
   });
 
+  it('provisions a dedicated Privy Solana wallet with the configured USDC mint', async () => {
+    mockCreatePrivy.mockResolvedValue({
+      privy_campaign_wallet_id: 'pw-sol',
+      campaign_wallet_address: SOLANA_CAMPAIGN,
+      campaign_wallet_chain: 'solana-mainnet-beta',
+      campaign_wallet_created_at: '2026-04-28T00:00:00.000Z',
+    });
+    mockCreate.mockResolvedValue(solanaFixture);
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'solana',
+          title: 'Solana activation',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address: ` ${SOLANA_VENUE} `,
+        },
+        'idem-solana'
+      )
+    );
+    expect(res.status).toBe(200);
+    expect(mockCreatePrivy).toHaveBeenCalledWith({
+      idempotencyKey: 'idem-solana',
+      settlementRail: 'solana',
+    });
+    expect(mockCreate.mock.calls[0][0]).toMatchObject({
+      settlement_rail: 'solana',
+      campaign_wallet_address: SOLANA_CAMPAIGN,
+      privy_campaign_wallet_id: 'pw-sol',
+      venue_settlement_wallet_address: SOLANA_VENUE,
+      usdc_asset_config: {
+        mint: SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'],
+        decimals: 6,
+        symbol: 'USDC',
+      },
+    });
+    const j = await res.json();
+    expect(j.data.activation.settlement_rail).toBe('solana');
+  });
+
+  it.each([
+    ['EVM', '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'],
+    ['Stellar', STELLAR_VENUE],
+    ['malformed base58', '0OIl-not-a-solana-address'],
+  ])(
+    'rejects a %s venue address for Solana before provisioning',
+    async (_label, venue) => {
+      const res = await listPOST(
+        jsonReq(
+          'POST',
+          'http://localhost/api/admin/sponsored-activations',
+          {
+            settlement_rail: 'solana',
+            title: 't',
+            sponsor_name: 's',
+            max_redemptions: 1,
+            ...validWindow,
+            venue_settlement_wallet_address: venue,
+          },
+          'idem-solana-bad-venue'
+        )
+      );
+      expect(res.status).toBe(400);
+      expect(mockCreatePrivy).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rejects Solana create when the provisioned wallet equals the venue wallet', async () => {
+    mockCreatePrivy.mockResolvedValue({
+      privy_campaign_wallet_id: 'pw-sol',
+      campaign_wallet_address: SOLANA_VENUE,
+      campaign_wallet_chain: 'solana-mainnet-beta',
+      campaign_wallet_created_at: '2026-04-28T00:00:00.000Z',
+    });
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'solana',
+          title: 't',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address: SOLANA_VENUE,
+        },
+        'idem-solana-dup'
+      )
+    );
+    expect(res.status).toBe(400);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 with the Privy error when Solana wallet provisioning fails', async () => {
+    mockCreatePrivy.mockRejectedValue(
+      new Error('Privy campaign wallet could not be created')
+    );
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'solana',
+          title: 't',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address: SOLANA_VENUE,
+        },
+        'idem-solana-fail'
+      )
+    );
+    expect(res.status).toBe(500);
+    const j = await res.json();
+    expect(j.error).toBe('Privy campaign wallet could not be created');
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
   it('rejects Stellar create when venue equals shared campaign wallet', async () => {
     const res = await listPOST(
       jsonReq(
@@ -431,6 +572,49 @@ describe('PATCH /api/admin/sponsored-activations/[activationId]', () => {
     );
     expect(res.status).toBe(400);
     expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-Solana venue wallet on a draft Solana activation', async () => {
+    mockGetById.mockResolvedValue(solanaFixture);
+    const res = await onePATCH(
+      jsonReq(
+        'PATCH',
+        'http://localhost/api/admin/sponsored-activations/act-sol',
+        {
+          settlement_rail: 'solana',
+          venue_settlement_wallet_address:
+            '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+        }
+      ),
+      { params: { activationId: 'act-sol' } }
+    );
+    expect(res.status).toBe(400);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it('updates the venue wallet on a draft Solana activation', async () => {
+    const nextVenue = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+    mockGetById.mockResolvedValue(solanaFixture);
+    mockUpdate.mockResolvedValue({
+      ...solanaFixture,
+      venue_settlement_wallet_address: nextVenue,
+    });
+    const res = await onePATCH(
+      jsonReq(
+        'PATCH',
+        'http://localhost/api/admin/sponsored-activations/act-sol',
+        {
+          settlement_rail: 'solana',
+          venue_settlement_wallet_address: nextVenue,
+        }
+      ),
+      { params: { activationId: 'act-sol' } }
+    );
+    expect(res.status).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith('act-sol', {
+      settlement_rail: 'solana',
+      venue_settlement_wallet_address: nextVenue,
+    });
   });
 
   it('allows activating when reward items exist', async () => {

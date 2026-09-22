@@ -45,4 +45,24 @@ describe('SponsoredActivationFormPanel settlement rails', () => {
       screen.getByText('Campaign wallet is provisioned automatically (Privy).')
     ).toBeInTheDocument();
   });
+
+  it('offers Solana with USDC budget, base58 venue input, and SOL fee guidance', async () => {
+    const user = userEvent.setup();
+    render(<FormHarness />);
+
+    const settlementRailSelect = screen.getAllByRole('combobox')[0]!;
+    await user.click(settlementRailSelect);
+    await user.click(screen.getByRole('option', { name: 'Solana' }));
+
+    expect(settlementRailSelect).toHaveTextContent('Solana');
+    expect(screen.getByText('Max budget (USDC)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Venue settlement wallet')).toHaveAttribute(
+      'placeholder',
+      'Solana address (base58)'
+    );
+    expect(
+      screen.getByText(/dedicated Solana campaign wallet is provisioned/i)
+    ).toHaveTextContent(/USDC plus a small amount of SOL for network fees/);
+    expect(screen.queryByText('Payment token')).not.toBeInTheDocument();
+  });
 });

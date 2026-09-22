@@ -53,6 +53,27 @@ describe('settlement explorer helpers (sponsored activation)', () => {
     );
   });
 
+  it('builds Solscan transaction and account URLs for the Solana rail', () => {
+    const wallet = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
+    const signature =
+      '5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW';
+    expect(getSettlementExplorerTxUrlTemplate('solana')).toBe(
+      'https://solscan.io/tx/{txHash}'
+    );
+    expect(formatSettlementExplorerTxUrl('solana', signature)).toBe(
+      `https://solscan.io/tx/${signature}`
+    );
+    expect(formatSettlementWalletExplorerUrl('solana', wallet)).toBe(
+      `https://solscan.io/account/${wallet}`
+    );
+    expect(
+      formatSettlementWalletExplorerUrl(
+        'solana',
+        '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+      )
+    ).toBeNull();
+  });
+
   it('builds Stellar account explorer URL', () => {
     const g = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
     const url = formatSettlementWalletExplorerUrl('stellar', g);
