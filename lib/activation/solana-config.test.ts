@@ -2,15 +2,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   formatSolscanAccountUrl,
   formatSolscanTxUrl,
-  getDefaultSolanaSponsoredActivationAssetConfig,
+  getSolanaCaddEnvConfig,
   getSolanaRpcUrl,
-  getSolanaUsdcMint,
   getSolscanTxUrlTemplate,
   isSolanaAddress,
-  SOLANA_USDC_MINT_BY_CLUSTER,
+  isValidSolanaTokenDecimals,
+  SolanaCaddConfigError,
+  tryGetSolanaCaddMint,
 } from '@/lib/activation/solana-config';
 
 const WALLET = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
+/** Test-only stand-in for the deployment-supplied CADD mint. */
+const TEST_CADD_MINT = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 const SIGNATURE =
   '5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW';
 
@@ -29,31 +32,64 @@ describe('isSolanaAddress', () => {
   });
 });
 
-describe('Solana USDC asset configuration', () => {
-  it('defaults to mainnet Circle USDC with 6 decimals', () => {
-    expect(getDefaultSolanaSponsoredActivationAssetConfig()).toEqual({
-      mint: SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'],
-      decimals: 6,
-      symbol: 'USDC',
-    });
+describe('isValidSolanaTokenDecimals', () => {
+  it('accepts integer precisions from 0 to 18', () => {
+    for (const d of [0, 6, 9, 18])
+      expect(isValidSolanaTokenDecimals(d)).toBe(true);
   });
 
-  it('switches mint and RPC with the devnet cluster', () => {
-    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CLUSTER', 'devnet');
-    expect(getSolanaUsdcMint()).toBe(SOLANA_USDC_MINT_BY_CLUSTER.devnet);
-    expect(getSolanaRpcUrl()).toBe('https://api.devnet.solana.com');
+  it('rejects out-of-range and non-integer precisions', () => {
+    for (const d of [-1, 19, 6.5, NaN, '6']) {
+      expect(isValidSolanaTokenDecimals(d)).toBe(false);
+    }
   });
+});
 
-  it('honors a valid mint override and rejects an invalid one', () => {
-    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_USDC_MINT', WALLET);
-    expect(getSolanaUsdcMint()).toBe(WALLET);
-    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_USDC_MINT', 'not-a-mint');
-    expect(() => getSolanaUsdcMint()).toThrow(
-      'SPONSORED_ACTIVATION_SOLANA_USDC_MINT is not a valid Solana address'
+describe('Solana CADD env config', () => {
+  it('has no default mint', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', '');
+    expect(tryGetSolanaCaddMint()).toBeNull();
+    expect(() => getSolanaCaddEnvConfig()).toThrow(SolanaCaddConfigError);
+    expect(() => getSolanaCaddEnvConfig()).toThrow(
+      'SPONSORED_ACTIVATION_SOLANA_CADD_MINT is not configured'
     );
   });
 
-  it('honors an RPC URL override', () => {
+  it('rejects a mint that is not a Solana address', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', '0xabc');
+    expect(tryGetSolanaCaddMint()).toBeNull();
+    expect(() => getSolanaCaddEnvConfig()).toThrow(
+      'SPONSORED_ACTIVATION_SOLANA_CADD_MINT is not a valid Solana address'
+    );
+  });
+
+  it('returns the configured mint with unpinned decimals', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', ` ${TEST_CADD_MINT} `);
+    expect(tryGetSolanaCaddMint()).toBe(TEST_CADD_MINT);
+    expect(getSolanaCaddEnvConfig()).toEqual({
+      mint: TEST_CADD_MINT,
+      decimals: null,
+    });
+  });
+
+  it('parses pinned decimals and rejects invalid values', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', TEST_CADD_MINT);
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_DECIMALS', '9');
+    expect(getSolanaCaddEnvConfig().decimals).toBe(9);
+    for (const bad of ['19', '-1', '6.5', 'six']) {
+      vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_DECIMALS', bad);
+      expect(() => getSolanaCaddEnvConfig()).toThrow(
+        'SPONSORED_ACTIVATION_SOLANA_CADD_DECIMALS must be an integer between 0 and 18'
+      );
+    }
+  });
+});
+
+describe('Solana RPC URL', () => {
+  it('defaults per cluster and honors an override', () => {
+    expect(getSolanaRpcUrl()).toBe('https://api.mainnet-beta.solana.com');
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CLUSTER', 'devnet');
+    expect(getSolanaRpcUrl()).toBe('https://api.devnet.solana.com');
     vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_RPC_URL', 'https://rpc.example');
     expect(getSolanaRpcUrl()).toBe('https://rpc.example');
   });

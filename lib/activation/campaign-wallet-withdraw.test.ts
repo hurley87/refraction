@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockLoadActivationReservedUsdc = vi.fn();
 const mockFetchUsdcBalanceOnBase = vi.fn();
 const mockSubmitTreasuryUsdcTransfer = vi.fn();
 const mockWaitForTreasuryTxReceipt = vi.fn();
 const mockFetchSolanaCampaignWalletBalances = vi.fn();
+const mockFetchSolanaSplTokenBalance = vi.fn();
 
 vi.mock('@/lib/db/sponsored-activation-admin', () => ({
   loadActivationReservedUsdc: (...a: unknown[]) =>
@@ -23,10 +24,11 @@ vi.mock('@/lib/walletconnect-poster-direct-usdc', async (importOriginal) => {
   };
 });
 
-vi.mock('@/lib/activation/solana-campaign-wallet-balance', () => ({
+vi.mock('@/lib/activation/solana-token-rpc', () => ({
   fetchSolanaCampaignWalletBalances: (...a: unknown[]) =>
     mockFetchSolanaCampaignWalletBalances(...a),
-  fetchSolanaSplTokenBalance: vi.fn(),
+  fetchSolanaSplTokenBalance: (...a: unknown[]) =>
+    mockFetchSolanaSplTokenBalance(...a),
 }));
 
 vi.mock('@/lib/spend-treasury-usdc-transfer', () => ({
@@ -42,7 +44,6 @@ import {
 } from '@/lib/activation/campaign-wallet-withdraw';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
 import { CADD_ADDRESS_BASE } from '@/lib/schemas/sponsored-activation-tokens';
-import { SOLANA_USDC_MINT_BY_CLUSTER } from '@/lib/activation/solana-config';
 
 const CADD = CADD_ADDRESS_BASE;
 
@@ -165,30 +166,34 @@ describe('campaign-wallet-withdraw (CADD / 18-decimal Base tokens)', () => {
   });
 });
 
-describe('campaign-wallet-withdraw (Solana)', () => {
+describe('campaign-wallet-withdraw (Solana CADD)', () => {
   const SOLANA_CAMPAIGN = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
-  const solanaActivation = () =>
+  /** Test-only stand-in for the deployment-supplied CADD mint. */
+  const TEST_CADD_MINT = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+  const solanaActivation = (overrides: Partial<SponsoredActivationRow> = {}) =>
     baseActivation({
       settlement_rail: 'solana',
       campaign_wallet_address: SOLANA_CAMPAIGN,
       venue_settlement_wallet_address:
         '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
-      usdc_asset_config: {
-        mint: SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'],
-        decimals: 6,
-        symbol: 'USDC',
-      },
+      usdc_asset_config: { mint: TEST_CADD_MINT, decimals: 9, symbol: 'CADD' },
       privy_campaign_wallet_id: 'pw-sol',
+      ...overrides,
     });
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', TEST_CADD_MINT);
     mockLoadActivationReservedUsdc.mockResolvedValue(2);
   });
 
-  it('reads USDC (configured mint) and SOL balances of the campaign wallet', async () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('reads CADD with the persisted precision plus the SOL balance', async () => {
     mockFetchSolanaCampaignWalletBalances.mockResolvedValue({
-      usdcBalance: 250.5,
+      tokenBalance: 250.5,
       solBalance: 0.12,
     });
 
@@ -199,8 +204,8 @@ describe('campaign-wallet-withdraw (Solana)', () => {
 
     expect(mockFetchSolanaCampaignWalletBalances).toHaveBeenCalledWith({
       ownerAddress: SOLANA_CAMPAIGN,
-      mint: SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'],
-      decimals: 6,
+      mint: TEST_CADD_MINT,
+      decimals: 9,
     });
     expect(mockFetchUsdcBalanceOnBase).not.toHaveBeenCalled();
     expect(pack).toEqual({
@@ -222,14 +227,13 @@ describe('campaign-wallet-withdraw (Solana)', () => {
     expect(pack.campaign_wallet_sol_balance).toBeNull();
   });
 
-  it('does not read a USDC balance for an unconfigured mint', async () => {
+  it('does not read a token balance for a mint other than the configured CADD mint', async () => {
     const pack = await loadSponsoredActivationCampaignWalletBalancePack(
-      baseActivation({
-        ...solanaActivation(),
+      solanaActivation({
         usdc_asset_config: {
           mint: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
-          decimals: 6,
-          symbol: 'USDC',
+          decimals: 9,
+          symbol: 'CADD',
         },
       })
     );
@@ -240,7 +244,7 @@ describe('campaign-wallet-withdraw (Solana)', () => {
   it('rejects withdrawals explicitly instead of routing to another rail', async () => {
     const result = await withdrawSponsoredActivationCampaignWallet({
       activation: solanaActivation(),
-      destinationAddress: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+      destinationAddress: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH',
     });
     expect(result).toEqual({
       ok: false,
@@ -248,6 +252,7 @@ describe('campaign-wallet-withdraw (Solana)', () => {
       statusCode: 400,
     });
     expect(mockFetchSolanaCampaignWalletBalances).not.toHaveBeenCalled();
+    expect(mockFetchSolanaSplTokenBalance).not.toHaveBeenCalled();
     expect(mockSubmitTreasuryUsdcTransfer).not.toHaveBeenCalled();
   });
 });

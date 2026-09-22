@@ -1,19 +1,18 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   adminCreateSponsoredActivationRequestSchema,
   createSponsoredActivationSchema,
   settlementRailSchema,
   solanaAddressSchema,
-  solanaUsdcAssetConfigSchema,
+  solanaCaddAssetConfigSchema,
   sponsoredActivationSettlementBundleSchema,
   updateSponsoredActivationSchema,
 } from '../sponsored-activation';
-import { SOLANA_USDC_MINT_BY_CLUSTER } from '@/lib/activation/solana-config';
 
 const SOLANA_CAMPAIGN = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
 const SOLANA_VENUE = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
-const MAINNET_USDC = SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'];
-const DEVNET_USDC = SOLANA_USDC_MINT_BY_CLUSTER.devnet;
+/** Test-only stand-in for the deployment-supplied CADD mint. */
+const TEST_CADD_MINT = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 
 const validTime = {
   starts_at: '2026-06-01T12:00:00.000Z',
@@ -26,7 +25,7 @@ const sampleEligibilityConfig = {
   required_checkpoint_ids: [],
 };
 
-const solanaAssetConfig = { mint: MAINNET_USDC, decimals: 6, symbol: 'USDC' };
+const solanaAssetConfig = { mint: TEST_CADD_MINT, decimals: 9, symbol: 'CADD' };
 
 function solanaCreatePayload(overrides: Record<string, unknown> = {}) {
   return {
@@ -43,6 +42,10 @@ function solanaCreatePayload(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+beforeEach(() => {
+  vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', TEST_CADD_MINT);
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -75,47 +78,58 @@ describe('solanaAddressSchema', () => {
   });
 });
 
-describe('solanaUsdcAssetConfigSchema', () => {
-  it('accepts the configured mainnet USDC mint', () => {
+describe('solanaCaddAssetConfigSchema', () => {
+  it('accepts the configured CADD mint', () => {
     expect(
-      solanaUsdcAssetConfigSchema.safeParse(solanaAssetConfig).success
+      solanaCaddAssetConfigSchema.safeParse(solanaAssetConfig).success
     ).toBe(true);
+  });
+
+  it.each([0, 6, 9, 18])(
+    'accepts %i decimals (precision is not fixed to USDC)',
+    (decimals) => {
+      expect(
+        solanaCaddAssetConfigSchema.safeParse({
+          ...solanaAssetConfig,
+          decimals,
+        }).success
+      ).toBe(true);
+    }
+  );
+
+  it.each([-1, 19, 6.5])('rejects invalid decimals %s', (decimals) => {
+    expect(
+      solanaCaddAssetConfigSchema.safeParse({ ...solanaAssetConfig, decimals })
+        .success
+    ).toBe(false);
   });
 
   it('rejects a mint other than the configured one', () => {
     expect(
-      solanaUsdcAssetConfigSchema.safeParse({
+      solanaCaddAssetConfigSchema.safeParse({
         ...solanaAssetConfig,
         mint: SOLANA_VENUE,
       }).success
     ).toBe(false);
   });
 
-  it('rejects mismatched decimals or symbol', () => {
-    expect(
-      solanaUsdcAssetConfigSchema.safeParse({
-        ...solanaAssetConfig,
-        decimals: 9,
-      }).success
-    ).toBe(false);
-    expect(
-      solanaUsdcAssetConfigSchema.safeParse({
-        ...solanaAssetConfig,
-        symbol: 'USDT',
-      }).success
-    ).toBe(false);
+  it('rejects any mint when no CADD mint is configured', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', '');
+    const r = solanaCaddAssetConfigSchema.safeParse(solanaAssetConfig);
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues[0]?.message).toBe(
+        'Solana settlement requires the configured CADD mint'
+      );
+    }
   });
 
-  it('follows the configured cluster mint', () => {
-    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CLUSTER', 'devnet');
+  it('rejects a non-CADD symbol', () => {
     expect(
-      solanaUsdcAssetConfigSchema.safeParse({
+      solanaCaddAssetConfigSchema.safeParse({
         ...solanaAssetConfig,
-        mint: DEVNET_USDC,
+        symbol: 'USDC',
       }).success
-    ).toBe(true);
-    expect(
-      solanaUsdcAssetConfigSchema.safeParse(solanaAssetConfig).success
     ).toBe(false);
   });
 });

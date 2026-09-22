@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const mockRequireAdmin = vi.fn();
@@ -10,6 +10,7 @@ const mockUpdate = vi.fn();
 const mockCountRedemptions = vi.fn();
 const mockCountActiveItems = vi.fn();
 const mockCreatePrivy = vi.fn();
+const mockResolveSolanaCadd = vi.fn();
 const mockListItems = vi.fn();
 const mockGetItem = vi.fn();
 const mockCreateItem = vi.fn();
@@ -58,6 +59,11 @@ vi.mock('@/lib/db/activation-reward-items', () => ({
   ) => mockUpdateItem(activationId, itemId, patch),
 }));
 
+vi.mock('@/lib/activation/solana-cadd-asset-config', () => ({
+  resolveSolanaCaddSponsoredActivationAssetConfig: () =>
+    mockResolveSolanaCadd(),
+}));
+
 vi.mock('@/lib/activation/explorer-url', () => ({
   sponsoredActivationAdminEnvelope: (row: Record<string, unknown>) => ({
     ...row,
@@ -70,7 +76,7 @@ vi.mock('@/lib/activation/explorer-url', () => ({
 import { POSTER_CHECKOUT_USDC_ADDRESS_BASE } from '@/lib/walletconnect-poster-direct-usdc';
 import { DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG } from '@/lib/schemas/activation-eligibility-config';
 import { TEMPO_CADD_CONTRACT_ADDRESS } from '@/lib/activation/tempo-config';
-import { SOLANA_USDC_MINT_BY_CLUSTER } from '@/lib/activation/solana-config';
+import { SolanaCaddConfigError } from '@/lib/activation/solana-config';
 import { GET as listGET, POST as listPOST } from '../route';
 import { GET as oneGET, PATCH as onePATCH } from '../[activationId]/route';
 import {
@@ -117,6 +123,13 @@ const baseFixture = {
 
 const SOLANA_CAMPAIGN = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
 const SOLANA_VENUE = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+/** Test-only stand-in for the deployment-supplied CADD mint. */
+const TEST_CADD_MINT = 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH';
+const SOLANA_CADD_ASSET_CONFIG = {
+  mint: TEST_CADD_MINT,
+  decimals: 9,
+  symbol: 'CADD' as const,
+};
 
 const solanaFixture = {
   ...baseFixture,
@@ -125,11 +138,7 @@ const solanaFixture = {
   settlement_rail: 'solana' as const,
   campaign_wallet_address: SOLANA_CAMPAIGN,
   venue_settlement_wallet_address: SOLANA_VENUE,
-  usdc_asset_config: {
-    mint: SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'],
-    decimals: 6,
-    symbol: 'USDC',
-  },
+  usdc_asset_config: SOLANA_CADD_ASSET_CONFIG,
   privy_campaign_wallet_id: 'pw-sol',
 };
 
@@ -157,6 +166,8 @@ beforeEach(() => {
     user: { email: 'admin@example.com' },
   });
   mockGetByIdempotency.mockResolvedValue(null);
+  mockResolveSolanaCadd.mockResolvedValue(SOLANA_CADD_ASSET_CONFIG);
+  vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', TEST_CADD_MINT);
   mockCountRedemptions.mockResolvedValue(0);
   mockCountActiveItems.mockResolvedValue(1);
   mockCreatePrivy.mockResolvedValue({
@@ -165,6 +176,10 @@ beforeEach(() => {
     campaign_wallet_chain: 'base-mainnet',
     campaign_wallet_created_at: '2026-04-28T00:00:00.000Z',
   });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('GET /api/admin/sponsored-activations', () => {
@@ -378,7 +393,7 @@ describe('POST /api/admin/sponsored-activations', () => {
     });
   });
 
-  it('provisions a dedicated Privy Solana wallet with the configured USDC mint', async () => {
+  it('provisions a dedicated Privy Solana wallet with the verified CADD asset config', async () => {
     mockCreatePrivy.mockResolvedValue({
       privy_campaign_wallet_id: 'pw-sol',
       campaign_wallet_address: SOLANA_CAMPAIGN,
@@ -411,11 +426,7 @@ describe('POST /api/admin/sponsored-activations', () => {
       campaign_wallet_address: SOLANA_CAMPAIGN,
       privy_campaign_wallet_id: 'pw-sol',
       venue_settlement_wallet_address: SOLANA_VENUE,
-      usdc_asset_config: {
-        mint: SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'],
-        decimals: 6,
-        symbol: 'USDC',
-      },
+      usdc_asset_config: SOLANA_CADD_ASSET_CONFIG,
     });
     const j = await res.json();
     expect(j.data.activation.settlement_rail).toBe('solana');
@@ -473,6 +484,77 @@ describe('POST /api/admin/sponsored-activations', () => {
     );
     expect(res.status).toBe(400);
     expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 before provisioning when the Solana CADD asset is misconfigured', async () => {
+    mockResolveSolanaCadd.mockRejectedValue(
+      new SolanaCaddConfigError(
+        'SPONSORED_ACTIVATION_SOLANA_CADD_MINT is not configured'
+      )
+    );
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'solana',
+          title: 't',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address: SOLANA_VENUE,
+        },
+        'idem-solana-no-mint'
+      )
+    );
+    expect(res.status).toBe(500);
+    const j = await res.json();
+    expect(j.error).toBe(
+      'SPONSORED_ACTIVATION_SOLANA_CADD_MINT is not configured'
+    );
+    expect(mockCreatePrivy).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects the CADD mint as a Solana venue wallet before provisioning', async () => {
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'solana',
+          title: 't',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address: TEST_CADD_MINT,
+        },
+        'idem-solana-mint-venue'
+      )
+    );
+    expect(res.status).toBe(400);
+    expect(mockCreatePrivy).not.toHaveBeenCalled();
+  });
+
+  it('does not resolve Solana CADD config for other rails', async () => {
+    mockCreate.mockResolvedValue(baseFixture);
+    await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'base',
+          title: 't',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address:
+            '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+        },
+        'idem-base-no-solana'
+      )
+    );
+    expect(mockResolveSolanaCadd).not.toHaveBeenCalled();
   });
 
   it('returns 500 with the Privy error when Solana wallet provisioning fails', async () => {
