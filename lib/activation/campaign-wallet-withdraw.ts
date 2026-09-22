@@ -42,8 +42,8 @@ import {
 import {
   fetchSolanaCampaignWalletBalances,
   fetchSolanaSplTokenBalance,
-} from '@/lib/activation/solana-campaign-wallet-balance';
-import { solanaUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
+} from '@/lib/activation/solana-token-rpc';
+import { solanaCaddAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
 
 export type SponsoredActivationCampaignWalletBalancePack = {
   campaign_wallet_usdc_balance: number | null;
@@ -169,7 +169,7 @@ async function readCampaignWalletOnChainBalance(
     return readTempoCampaignWalletBalance(activation);
   }
   if (activation.settlement_rail === 'solana') {
-    return readSolanaCampaignWalletUsdcBalance(activation);
+    return readSolanaCampaignWalletCaddBalance(activation);
   }
   return readStellarCampaignWalletBalance(activation);
 }
@@ -186,14 +186,14 @@ async function catchSolanaBalanceRead<T>(
   }
 }
 
-async function readSolanaCampaignWalletUsdcBalance(
+async function readSolanaCampaignWalletCaddBalance(
   activation: SponsoredActivationRow
 ): Promise<number | null> {
-  const cfg = solanaUsdcAssetConfigSchema.safeParse(
+  const cfg = solanaCaddAssetConfigSchema.safeParse(
     activation.usdc_asset_config
   );
   if (!cfg.success) return null;
-  return catchSolanaBalanceRead('readSolanaCampaignWalletUsdcBalance', () =>
+  return catchSolanaBalanceRead('readSolanaCampaignWalletCaddBalance', () =>
     fetchSolanaSplTokenBalance({
       ownerAddress: activation.campaign_wallet_address,
       mint: cfg.data.mint,
@@ -204,11 +204,11 @@ async function readSolanaCampaignWalletUsdcBalance(
 
 async function readSolanaCampaignWalletBalances(
   activation: SponsoredActivationRow
-): Promise<{ usdc: number | null; sol: number | null }> {
-  const cfg = solanaUsdcAssetConfigSchema.safeParse(
+): Promise<{ cadd: number | null; sol: number | null }> {
+  const cfg = solanaCaddAssetConfigSchema.safeParse(
     activation.usdc_asset_config
   );
-  if (!cfg.success) return { usdc: null, sol: null };
+  if (!cfg.success) return { cadd: null, sol: null };
   const result = await catchSolanaBalanceRead(
     'readSolanaCampaignWalletBalances',
     async () => {
@@ -217,10 +217,10 @@ async function readSolanaCampaignWalletBalances(
         mint: cfg.data.mint,
         decimals: cfg.data.decimals,
       });
-      return { usdc: balances.usdcBalance, sol: balances.solBalance };
+      return { cadd: balances.tokenBalance, sol: balances.solBalance };
     }
   );
-  return result ?? { usdc: null, sol: null };
+  return result ?? { cadd: null, sol: null };
 }
 
 async function readBaseCampaignWalletBalance(
@@ -300,7 +300,7 @@ export async function loadSponsoredActivationCampaignWalletBalancePack(
       readSolanaCampaignWalletBalances(activation),
     ]);
     return {
-      campaign_wallet_usdc_balance: balances.usdc,
+      campaign_wallet_usdc_balance: balances.cadd,
       campaign_wallet_reserved_usdc: reservedUsdc,
       campaign_wallet_sol_balance: balances.sol,
     };

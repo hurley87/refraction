@@ -22,10 +22,15 @@ import {
   getStellarSponsoredCampaignPublicKey,
 } from '@/lib/activation/stellar-campaign-wallet-config';
 import { getDefaultTempoSponsoredActivationAssetConfig } from '@/lib/activation/tempo-config';
-import { getDefaultSolanaSponsoredActivationAssetConfig } from '@/lib/activation/solana-config';
+import {
+  SolanaCaddConfigError,
+  type SolanaCaddAssetConfig,
+} from '@/lib/activation/solana-config';
+import { resolveSolanaCaddSponsoredActivationAssetConfig } from '@/lib/activation/solana-cadd-asset-config';
 
 function resolveAdminSponsoredActivationAssetConfig(
-  data: AdminCreateSponsoredActivationRequest
+  data: AdminCreateSponsoredActivationRequest,
+  solanaCaddAssetConfig: SolanaCaddAssetConfig | null
 ): Record<string, unknown> {
   switch (data.settlement_rail) {
     case 'base':
@@ -33,7 +38,10 @@ function resolveAdminSponsoredActivationAssetConfig(
     case 'tempo':
       return getDefaultTempoSponsoredActivationAssetConfig();
     case 'solana':
-      return getDefaultSolanaSponsoredActivationAssetConfig();
+      if (!solanaCaddAssetConfig) {
+        throw new SolanaCaddConfigError('Solana CADD asset is not resolved');
+      }
+      return solanaCaddAssetConfig;
     case 'stellar':
       return getDefaultStellarSponsoredActivationUsdcAssetConfig();
   }
@@ -89,6 +97,29 @@ export async function POST(request: NextRequest) {
     }
     const data = validation.data;
 
+    let solanaCaddAssetConfig: SolanaCaddAssetConfig | null = null;
+    if (data.settlement_rail === 'solana') {
+      try {
+        solanaCaddAssetConfig =
+          await resolveSolanaCaddSponsoredActivationAssetConfig();
+      } catch (e) {
+        if (e instanceof SolanaCaddConfigError) return apiError(e.message, 500);
+        throw e;
+      }
+      if (data.venue_settlement_wallet_address === solanaCaddAssetConfig.mint) {
+        return apiValidationError(
+          new z.ZodError([
+            {
+              code: z.ZodIssueCode.custom,
+              message:
+                'Venue settlement wallet must be a wallet, not the CADD mint',
+              path: ['venue_settlement_wallet_address'],
+            },
+          ])
+        );
+      }
+    }
+
     let campaign_wallet_address: string;
     let privy_campaign_wallet_id: string | null = null;
 
@@ -132,7 +163,10 @@ export async function POST(request: NextRequest) {
     }
 
     const activationId = randomUUID();
-    const usdc_asset_config = resolveAdminSponsoredActivationAssetConfig(data);
+    const usdc_asset_config = resolveAdminSponsoredActivationAssetConfig(
+      data,
+      solanaCaddAssetConfig
+    );
 
     const description =
       data.description == null ? null : data.description.trim() || null;

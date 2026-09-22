@@ -14,10 +14,11 @@ import {
 } from '@/lib/schemas/sponsored-activation-tokens';
 import { TEMPO_CADD_CONTRACT_ADDRESS } from '@/lib/activation/tempo-config';
 import {
-  getSolanaUsdcMint,
   isSolanaAddress,
-  SOLANA_USDC_DECIMALS,
-  SOLANA_USDC_SYMBOL,
+  isValidSolanaTokenDecimals,
+  SOLANA_CADD_SYMBOL,
+  SOLANA_TOKEN_MAX_DECIMALS,
+  tryGetSolanaCaddMint,
 } from '@/lib/activation/solana-config';
 
 /**
@@ -101,13 +102,20 @@ export const tempoCaddAssetConfigSchema = z
   })
   .strict();
 
-export const solanaUsdcAssetConfigSchema = z
+/**
+ * Solana CADD settlement asset. `mint` must be the deployment's issuer-approved
+ * CADD mint; `decimals` is the precision verified against that mint at create time.
+ */
+export const solanaCaddAssetConfigSchema = z
   .object({
-    mint: solanaAddressSchema.refine((mint) => mint === getSolanaUsdcMint(), {
-      message: 'Solana settlement requires the configured USDC mint',
+    mint: solanaAddressSchema.refine(
+      (mint) => mint === tryGetSolanaCaddMint(),
+      { message: 'Solana settlement requires the configured CADD mint' }
+    ),
+    decimals: z.number().refine(isValidSolanaTokenDecimals, {
+      message: `decimals must be an integer between 0 and ${SOLANA_TOKEN_MAX_DECIMALS}`,
     }),
-    decimals: z.literal(SOLANA_USDC_DECIMALS),
-    symbol: z.literal(SOLANA_USDC_SYMBOL),
+    symbol: z.literal(SOLANA_CADD_SYMBOL),
   })
   .strict();
 
@@ -146,7 +154,7 @@ export const sponsoredActivationSettlementBundleSchema = z
         settlement_rail: z.literal('solana'),
         campaign_wallet_address: solanaAddressSchema,
         venue_settlement_wallet_address: solanaAddressSchema,
-        usdc_asset_config: solanaUsdcAssetConfigSchema,
+        usdc_asset_config: solanaCaddAssetConfigSchema,
       })
       .strict(),
   ])
@@ -229,7 +237,7 @@ const createSponsoredActivationSolanaObject = z
     settlement_rail: z.literal('solana'),
     campaign_wallet_address: solanaAddressSchema,
     venue_settlement_wallet_address: solanaAddressSchema,
-    usdc_asset_config: solanaUsdcAssetConfigSchema,
+    usdc_asset_config: solanaCaddAssetConfigSchema,
   })
   .strict();
 
@@ -613,7 +621,7 @@ export const updateSponsoredActivationSchema =
         }
         if (hasConfig) {
           mergeConfigParseIssues(
-            solanaUsdcAssetConfigSchema.safeParse(data.usdc_asset_config),
+            solanaCaddAssetConfigSchema.safeParse(data.usdc_asset_config),
             ctx,
             ['usdc_asset_config']
           );

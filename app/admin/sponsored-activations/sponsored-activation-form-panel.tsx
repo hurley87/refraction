@@ -46,7 +46,7 @@ export function SponsoredActivationFormPanel({
   let railHelpText: string;
   if (isSolana) {
     railHelpText =
-      'A dedicated Solana campaign wallet is provisioned for this activation (Privy). Fund it with USDC plus a small amount of SOL for network fees before going live.';
+      'Settles in CADD on Solana. A dedicated Solana campaign wallet is provisioned for this activation (Privy). Fund it with CADD plus a small amount of SOL for network fees before going live.';
   } else if (isStellar) {
     railHelpText =
       'Settlements pay from the shared Stellar campaign wallet configured on the server. Fund that wallet with USDC before going live.';
@@ -60,7 +60,7 @@ export function SponsoredActivationFormPanel({
 
   let budgetSymbol = 'USDC';
   if (isBase) budgetSymbol = form.payment_token;
-  if (isTempo) budgetSymbol = 'CADD';
+  if (isTempo || isSolana) budgetSymbol = 'CADD';
   const budgetTokenSymbol = describeSponsoredActivationPaymentTokenSymbol({
     settlement_rail: form.settlement_rail,
     usdc_asset_config: { symbol: budgetSymbol },
@@ -149,7 +149,7 @@ export function SponsoredActivationFormPanel({
                 <SelectItem value="base">Base</SelectItem>
                 <SelectItem value="stellar">Stellar</SelectItem>
                 <SelectItem value="tempo">Tempo</SelectItem>
-                <SelectItem value="solana">Solana</SelectItem>
+                <SelectItem value="solana">Solana (CADD)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-neutral-500">{railHelpText}</p>
@@ -203,7 +203,7 @@ export function SponsoredActivationFormPanel({
             )}
             {isSolana && (
               <p className="text-xs text-neutral-500">
-                A Solana wallet address. USDC settles here when guests redeem.
+                A Solana wallet address. CADD settles here when guests redeem.
               </p>
             )}
           </div>
