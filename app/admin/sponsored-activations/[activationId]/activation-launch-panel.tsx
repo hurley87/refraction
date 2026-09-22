@@ -26,6 +26,8 @@ import {
   describeSponsoredActivationPaymentTokenSymbol,
   resolveBaseTokenDecimals,
 } from '@/lib/schemas/sponsored-activation-tokens';
+import { SOLANA_RECOMMENDED_FEE_BALANCE_SOL } from '@/lib/activation/solana-config';
+import { SOLANA_WITHDRAW_UNSUPPORTED_ERROR } from '@/lib/activation/campaign-wallet-withdraw';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
@@ -54,6 +56,7 @@ type ActivationAdminRow = {
   max_redemptions: number | null;
   campaign_wallet_usdc_balance?: number | null;
   campaign_wallet_reserved_usdc?: number;
+  campaign_wallet_sol_balance?: number | null;
 };
 
 type RewardItemRow = {
@@ -118,7 +121,47 @@ function fmtUsdc(n: number | null | undefined, tokenSymbol: string): string {
 function railLabel(rail: SettlementRail): string {
   if (rail === 'base') return 'Base';
   if (rail === 'tempo') return 'Tempo';
+  if (rail === 'solana') return 'Solana';
   return 'Stellar';
+}
+
+function explorerLabel(rail: SettlementRail): string {
+  return rail === 'solana' ? 'Solscan' : railLabel(rail);
+}
+
+function fmtSol(n: number | null | undefined): string {
+  if (n == null || Number.isNaN(n)) return '—';
+  return `${n.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 9,
+  })} SOL`;
+}
+
+function fundStepBody(
+  activation: ActivationAdminRow,
+  tokenSymbol: string
+): string {
+  const budgetHint = fmtUsdcHint(activation.max_usdc_budget, tokenSymbol);
+  if (activation.settlement_rail === 'stellar') {
+    return `Fund the shared Stellar campaign wallet below with ${budgetHint} or more ${tokenSymbol}. All Stellar activations settle from this wallet.`;
+  }
+  if (activation.settlement_rail === 'solana') {
+    return `Send ${budgetHint} or more to this activation's dedicated Solana campaign wallet below, plus at least ${SOLANA_RECOMMENDED_FEE_BALANCE_SOL} SOL for network fees. Settlements pull from this wallet when guests redeem.`;
+  }
+  return `Send ${budgetHint} or more to the campaign wallet below. Settlements pull from this wallet when guests redeem.`;
+}
+
+function campaignWalletCaption(
+  rail: SettlementRail,
+  tokenSymbol: string
+): string {
+  if (rail === 'stellar') {
+    return `Shared Stellar campaign wallet (server-configured). Fund with ${tokenSymbol} before redemptions settle.`;
+  }
+  if (rail === 'solana') {
+    return `Dedicated Solana campaign wallet for this activation (provisioned via Privy). Fund with ${tokenSymbol} and SOL for network fees.`;
+  }
+  return 'Send funds here (campaign wallet, provisioned via Privy).';
 }
 
 function statusUpdateToastLabel(status: SponsoredActivationStatus): string {
@@ -465,6 +508,7 @@ export function ActivationLaunchPanel({
   const isLive = activation.status === 'active';
   const isPaused = activation.status === 'paused';
   const canGoLive = isDraft && hasActiveReward;
+  const isSolana = activation.settlement_rail === 'solana';
   const tokenSymbol = describeSponsoredActivationPaymentTokenSymbol(activation);
   const tokenDecimals =
     activation.settlement_rail === 'base'
@@ -498,10 +542,7 @@ export function ActivationLaunchPanel({
       id: 'fund',
       done: false,
       title: `Fund the campaign wallet (${tokenSymbol} on ${railLabel(activation.settlement_rail)})`,
-      body:
-        activation.settlement_rail === 'stellar'
-          ? `Fund the shared Stellar campaign wallet below with ${fmtUsdcHint(activation.max_usdc_budget, tokenSymbol)} or more ${tokenSymbol}. All Stellar activations settle from this wallet.`
-          : `Send ${fmtUsdcHint(activation.max_usdc_budget, tokenSymbol)} or more to the campaign wallet below. Settlements pull from this wallet when guests redeem.`,
+      body: fundStepBody(activation, tokenSymbol),
     },
     {
       id: 'live',
@@ -771,16 +812,17 @@ export function ActivationLaunchPanel({
                             target="_blank"
                             rel="noopener noreferrer"
                           >
-                            View on {railLabel(activation.settlement_rail)}
+                            View on {explorerLabel(activation.settlement_rail)}
                             <ExternalLink className="size-3.5" />
                           </a>
                         </Button>
                       )}
                     </div>
                     <p className="w-full text-xs text-neutral-500">
-                      {activation.settlement_rail === 'stellar'
-                        ? `Shared Stellar campaign wallet (server-configured). Fund with ${tokenSymbol} before redemptions settle.`
-                        : 'Send funds here (campaign wallet, provisioned via Privy).'}{' '}
+                      {campaignWalletCaption(
+                        activation.settlement_rail,
+                        tokenSymbol
+                      )}{' '}
                       Redemptions settle {tokenSymbol} to the venue wallet{' '}
                       <span className="font-mono text-[11px]">
                         {activation.venue_settlement_wallet_address}
@@ -828,73 +870,98 @@ export function ActivationLaunchPanel({
                           settlements may fail afterward.
                         </p>
                       )}
+                      {isSolana && (
+                        <>
+                          <div className="mt-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                            SOL balance (network fees)
+                          </div>
+                          <div className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
+                            {fmtSol(activation.campaign_wallet_sol_balance)}
+                          </div>
+                          {activation.campaign_wallet_sol_balance != null &&
+                            activation.campaign_wallet_sol_balance <
+                              SOLANA_RECOMMENDED_FEE_BALANCE_SOL && (
+                              <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                                Send at least{' '}
+                                {SOLANA_RECOMMENDED_FEE_BALANCE_SOL} SOL to this
+                                wallet so settlements can pay network fees.
+                              </p>
+                            )}
+                        </>
+                      )}
                     </div>
 
-                    <div className="mt-4 border-t border-neutral-100 pt-4 dark:border-neutral-800">
-                      <div className="flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-3 sm:gap-y-1.5">
-                        <Label
-                          htmlFor="campaign-withdraw-destination"
-                          className="order-1 text-neutral-500 sm:col-start-1 sm:row-start-1"
-                        >
-                          Refund to address
-                        </Label>
-                        <Input
-                          id="campaign-withdraw-destination"
-                          type="text"
-                          placeholder={
-                            activation.settlement_rail === 'stellar'
-                              ? 'G…'
-                              : '0x…'
-                          }
-                          autoComplete="off"
-                          spellCheck={false}
-                          value={withdrawDestination}
-                          onChange={(e) =>
-                            setWithdrawDestination(e.target.value)
-                          }
-                          disabled={withdrawMutation.isPending}
-                          className="order-2 w-full font-mono text-xs sm:col-start-1 sm:row-start-2"
-                        />
-                        <p className="order-3 text-xs text-neutral-500 sm:col-start-1 sm:row-start-3">
-                          Withdraws the full on-chain {tokenSymbol} balance to
-                          the address above, including funds earmarked for
-                          pending activity.
-                          {activation.settlement_rail === 'base'
-                            ? ' Gas is sponsored on Base.'
-                            : activation.settlement_rail === 'tempo'
-                              ? ' Fees are sponsored on Tempo.'
-                              : ' Stellar uses the shared campaign wallet; confirm the destination before sending.'}
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="order-4 w-full shrink-0 whitespace-nowrap sm:order-none sm:col-start-2 sm:row-start-2 sm:w-auto sm:self-end"
-                          disabled={
-                            withdrawMutation.isPending ||
-                            !withdrawDestination.trim() ||
-                            activation.campaign_wallet_usdc_balance == null ||
-                            (activation.settlement_rail === 'base'
-                              ? balanceToTokenMicro(
-                                  activation.campaign_wallet_usdc_balance,
-                                  tokenDecimals
-                                )
-                              : balanceUsdcToMicro(
-                                  activation.campaign_wallet_usdc_balance
-                                )) <= 0
-                          }
-                          onClick={() => withdrawMutation.mutate()}
-                        >
-                          {withdrawMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 size-4 animate-spin" />
-                              Withdrawing…
-                            </>
-                          ) : (
-                            `Withdraw ${tokenSymbol}`
-                          )}
-                        </Button>
+                    {isSolana ? (
+                      <p className="mt-4 border-t border-neutral-100 pt-4 text-xs text-neutral-500 dark:border-neutral-800">
+                        {SOLANA_WITHDRAW_UNSUPPORTED_ERROR}
+                      </p>
+                    ) : (
+                      <div className="mt-4 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+                        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-3 sm:gap-y-1.5">
+                          <Label
+                            htmlFor="campaign-withdraw-destination"
+                            className="order-1 text-neutral-500 sm:col-start-1 sm:row-start-1"
+                          >
+                            Refund to address
+                          </Label>
+                          <Input
+                            id="campaign-withdraw-destination"
+                            type="text"
+                            placeholder={
+                              activation.settlement_rail === 'stellar'
+                                ? 'G…'
+                                : '0x…'
+                            }
+                            autoComplete="off"
+                            spellCheck={false}
+                            value={withdrawDestination}
+                            onChange={(e) =>
+                              setWithdrawDestination(e.target.value)
+                            }
+                            disabled={withdrawMutation.isPending}
+                            className="order-2 w-full font-mono text-xs sm:col-start-1 sm:row-start-2"
+                          />
+                          <p className="order-3 text-xs text-neutral-500 sm:col-start-1 sm:row-start-3">
+                            Withdraws the full on-chain {tokenSymbol} balance to
+                            the address above, including funds earmarked for
+                            pending activity.
+                            {activation.settlement_rail === 'base'
+                              ? ' Gas is sponsored on Base.'
+                              : activation.settlement_rail === 'tempo'
+                                ? ' Fees are sponsored on Tempo.'
+                                : ' Stellar uses the shared campaign wallet; confirm the destination before sending.'}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="order-4 w-full shrink-0 whitespace-nowrap sm:order-none sm:col-start-2 sm:row-start-2 sm:w-auto sm:self-end"
+                            disabled={
+                              withdrawMutation.isPending ||
+                              !withdrawDestination.trim() ||
+                              activation.campaign_wallet_usdc_balance == null ||
+                              (activation.settlement_rail === 'base'
+                                ? balanceToTokenMicro(
+                                    activation.campaign_wallet_usdc_balance,
+                                    tokenDecimals
+                                  )
+                                : balanceUsdcToMicro(
+                                    activation.campaign_wallet_usdc_balance
+                                  )) <= 0
+                            }
+                            onClick={() => withdrawMutation.mutate()}
+                          >
+                            {withdrawMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 size-4 animate-spin" />
+                                Withdrawing…
+                              </>
+                            ) : (
+                              `Withdraw ${tokenSymbol}`
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}

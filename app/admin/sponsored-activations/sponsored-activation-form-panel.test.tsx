@@ -45,4 +45,24 @@ describe('SponsoredActivationFormPanel settlement rails', () => {
       screen.getByText('Campaign wallet is provisioned automatically (Privy).')
     ).toBeInTheDocument();
   });
+
+  it('offers Solana/CADD with a CADD budget, base58 venue input, and SOL fee guidance', async () => {
+    const user = userEvent.setup();
+    render(<FormHarness />);
+
+    const settlementRailSelect = screen.getAllByRole('combobox')[0]!;
+    await user.click(settlementRailSelect);
+    await user.click(screen.getByRole('option', { name: 'Solana (CADD)' }));
+
+    expect(settlementRailSelect).toHaveTextContent('Solana (CADD)');
+    expect(screen.getByText('Max budget (CADD)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Venue settlement wallet')).toHaveAttribute(
+      'placeholder',
+      'Solana address (base58)'
+    );
+    expect(
+      screen.getByText(/dedicated Solana campaign wallet is provisioned/i)
+    ).toHaveTextContent(/CADD plus a small amount of SOL for network fees/);
+    expect(screen.queryByText('Payment token')).not.toBeInTheDocument();
+  });
 });

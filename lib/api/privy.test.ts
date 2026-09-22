@@ -1,18 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetTransaction = vi.fn();
+const mockCreateWallet = vi.fn();
 
 vi.mock('@privy-io/server-auth', () => ({
   PrivyClient: vi.fn(function PrivyClient() {
     return {
       walletApi: {
         getTransaction: mockGetTransaction,
+        createWallet: mockCreateWallet,
       },
     };
   }),
 }));
 
 import {
+  createSponsoredActivationPrivyCampaignWallet,
   extractPrivyTransactionHash,
   extractPrivyTransactionId,
   resolvePrivyServerTransactionHash,
@@ -129,5 +132,88 @@ describe('resolvePrivyServerTransactionHash', () => {
         { timeoutMs: 100, pollIntervalMs: 1 }
       )
     ).rejects.toThrow('execution_reverted');
+  });
+});
+
+describe('createSponsoredActivationPrivyCampaignWallet', () => {
+  const createdAt = new Date('2026-04-28T00:00:00.000Z');
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'app-id';
+    process.env.PRIVY_APP_SECRET = 'app-secret';
+  });
+
+  it('creates a dedicated Solana wallet keyed by the activation idempotency key', async () => {
+    mockCreateWallet.mockResolvedValue({
+      id: 'pw-sol',
+      address: '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1',
+      createdAt,
+    });
+
+    await expect(
+      createSponsoredActivationPrivyCampaignWallet({
+        idempotencyKey: 'idem-sol',
+        settlementRail: 'solana',
+      })
+    ).resolves.toEqual({
+      privy_campaign_wallet_id: 'pw-sol',
+      campaign_wallet_address: '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1',
+      campaign_wallet_chain: 'solana-mainnet-beta',
+      campaign_wallet_created_at: createdAt.toISOString(),
+    });
+    expect(mockCreateWallet).toHaveBeenCalledWith({
+      chainType: 'solana',
+      idempotencyKey: 'idem-sol',
+    });
+  });
+
+  it('labels the Solana wallet chain with the configured cluster', async () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CLUSTER', 'devnet');
+    mockCreateWallet.mockResolvedValue({
+      id: 'pw-sol',
+      address: '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1',
+      createdAt,
+    });
+    const wallet = await createSponsoredActivationPrivyCampaignWallet({
+      idempotencyKey: 'idem-sol-devnet',
+      settlementRail: 'solana',
+    });
+    expect(wallet.campaign_wallet_chain).toBe('solana-devnet');
+  });
+
+  it('keeps Base and Tempo on Ethereum wallets', async () => {
+    mockCreateWallet.mockResolvedValue({
+      id: 'pw-evm',
+      address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+      createdAt,
+    });
+    await createSponsoredActivationPrivyCampaignWallet({
+      idempotencyKey: 'idem-base',
+      settlementRail: 'base',
+    });
+    await createSponsoredActivationPrivyCampaignWallet({
+      idempotencyKey: 'idem-tempo',
+      settlementRail: 'tempo',
+    });
+    expect(mockCreateWallet).toHaveBeenNthCalledWith(1, {
+      chainType: 'ethereum',
+      idempotencyKey: 'idem-base',
+    });
+    expect(mockCreateWallet).toHaveBeenNthCalledWith(2, {
+      chainType: 'ethereum',
+      idempotencyKey: 'idem-tempo',
+    });
+  });
+
+  it('wraps Privy failures in a Privy-labelled error', async () => {
+    mockCreateWallet.mockRejectedValue(new Error('network down'));
+    await expect(
+      createSponsoredActivationPrivyCampaignWallet({
+        idempotencyKey: 'idem-sol',
+        settlementRail: 'solana',
+      })
+    ).rejects.toThrow('Privy campaign wallet could not be created');
   });
 });

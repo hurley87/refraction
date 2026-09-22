@@ -4,6 +4,7 @@ import {
   formStateToCreatePayload,
 } from './form-state';
 import { DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG } from '@/lib/schemas/activation-eligibility-config';
+import { adminCreateSponsoredActivationRequestSchema } from '@/lib/schemas/sponsored-activation';
 
 const VENUE_WALLET = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as const;
 
@@ -55,6 +56,25 @@ describe('formStateToCreatePayload', () => {
     );
     expect(payload.settlement_rail).toBe('tempo');
     expect(payload).not.toHaveProperty('payment_token');
+  });
+
+  it('builds a Solana create body the admin API schema accepts', () => {
+    const venue = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+    const payload = formStateToCreatePayload(
+      minimalBaseCreateForm({
+        settlement_rail: 'solana',
+        venue_settlement_wallet_address: `  ${venue}  `,
+      })
+    );
+    expect(payload).toMatchObject({
+      settlement_rail: 'solana',
+      venue_settlement_wallet_address: venue,
+    });
+    expect(payload).not.toHaveProperty('payment_token');
+    expect(payload).not.toHaveProperty('usdc_asset_config');
+    expect(
+      adminCreateSponsoredActivationRequestSchema.safeParse(payload).success
+    ).toBe(true);
   });
 
   it('includes trimmed description when set', () => {

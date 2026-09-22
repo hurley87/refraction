@@ -13,12 +13,24 @@ import {
   type SponsoredActivationBaseTokenSymbol,
 } from '@/lib/schemas/sponsored-activation-tokens';
 import { TEMPO_CADD_CONTRACT_ADDRESS } from '@/lib/activation/tempo-config';
+import {
+  isSolanaAddress,
+  isValidSolanaTokenDecimals,
+  SOLANA_CADD_SYMBOL,
+  SOLANA_TOKEN_MAX_DECIMALS,
+  tryGetSolanaCaddMint,
+} from '@/lib/activation/solana-config';
 
 /**
  * `sponsored_activation.settlement_rail` — matches DB CHECK
  * (`database/irl-51-sponsored-activation-schema.sql`).
  */
-export const settlementRailSchema = z.enum(['base', 'stellar', 'tempo']);
+export const settlementRailSchema = z.enum([
+  'base',
+  'stellar',
+  'tempo',
+  'solana',
+]);
 
 /**
  * `sponsored_activation.status` — matches DB CHECK.
@@ -41,6 +53,14 @@ const stellarGAddressSchema = z
   .string()
   .transform((s) => s.trim().toUpperCase())
   .pipe(stellarWalletAddressSchema);
+
+/** Base58 Solana address (32 bytes decoded). Case-sensitive, so only trimmed. */
+export const solanaAddressSchema = z
+  .string()
+  .transform((s) => s.trim())
+  .refine((s) => isSolanaAddress(s), {
+    message: 'Invalid Solana wallet address',
+  });
 
 const stellarAssetCodeSchema = z
   .string()
@@ -83,6 +103,34 @@ export const tempoCaddAssetConfigSchema = z
   .strict();
 
 /**
+ * Persisted Solana CADD settlement asset — structural only. Once created, an
+ * activation's `{ mint, decimals, symbol }` is its source of truth, so this must
+ * not consult `SPONSORED_ACTIVATION_SOLANA_CADD_MINT` (which may change later).
+ */
+export const solanaCaddAssetConfigSchema = z
+  .object({
+    mint: solanaAddressSchema,
+    decimals: z.number().refine(isValidSolanaTokenDecimals, {
+      message: `decimals must be an integer between 0 and ${SOLANA_TOKEN_MAX_DECIMALS}`,
+    }),
+    symbol: z.literal(SOLANA_CADD_SYMBOL),
+  })
+  .strict();
+
+/**
+ * Solana CADD asset for a new activation (or a draft re-pointing its asset):
+ * the mint must be the deployment's currently configured issuer-approved mint.
+ */
+export const newSolanaCaddAssetConfigSchema =
+  solanaCaddAssetConfigSchema.refine(
+    (config) => config.mint === tryGetSolanaCaddMint(),
+    {
+      message: 'Solana settlement requires the configured CADD mint',
+      path: ['mint'],
+    }
+  );
+
+/**
  * Full settlement bundle — rail must match wallet formats and `usdc_asset_config`.
  * Used after admin PATCH merges existing row + patch so draft updates cannot save incoherent combinations.
  */
@@ -110,6 +158,14 @@ export const sponsoredActivationSettlementBundleSchema = z
         campaign_wallet_address: stellarGAddressSchema,
         venue_settlement_wallet_address: stellarGAddressSchema,
         usdc_asset_config: stellarUsdcAssetConfigSchema,
+      })
+      .strict(),
+    z
+      .object({
+        settlement_rail: z.literal('solana'),
+        campaign_wallet_address: solanaAddressSchema,
+        venue_settlement_wallet_address: solanaAddressSchema,
+        usdc_asset_config: solanaCaddAssetConfigSchema,
       })
       .strict(),
   ])
@@ -186,6 +242,16 @@ const createSponsoredActivationTempoObject = z
   })
   .strict();
 
+const createSponsoredActivationSolanaObject = z
+  .object({
+    ...sponsoredActivationCommonCreateFields,
+    settlement_rail: z.literal('solana'),
+    campaign_wallet_address: solanaAddressSchema,
+    venue_settlement_wallet_address: solanaAddressSchema,
+    usdc_asset_config: newSolanaCaddAssetConfigSchema,
+  })
+  .strict();
+
 /**
  * Rail-discriminated create payload (plain objects only — required for `discriminatedUnion`).
  * Prefer `createSponsoredActivationSchema` for full validation including caps and window.
@@ -195,6 +261,7 @@ export const sponsoredActivationCreateDiscriminatedSchema =
     createSponsoredActivationBaseObject,
     createSponsoredActivationStellarObject,
     createSponsoredActivationTempoObject,
+    createSponsoredActivationSolanaObject,
   ]);
 
 export const createSponsoredActivationSchema =
@@ -268,6 +335,18 @@ const adminCreateSponsoredActivationTempoObject =
         .optional()
         .default(DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG),
     });
+const adminCreateSponsoredActivationSolanaObject =
+  createSponsoredActivationSolanaObject
+    .omit({
+      campaign_wallet_address: true,
+      slug: true,
+      usdc_asset_config: true,
+    })
+    .extend({
+      eligibility_config: activationEligibilityRulesConfigSchema
+        .optional()
+        .default(DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG),
+    });
 
 /**
  * Resolves the admin's `payment_token` choice (default `USDC`) to the
@@ -286,13 +365,15 @@ export function resolveAdminBaseSponsoredActivationAssetConfig(
 }
 
 /**
- * Admin POST body: campaign wallet is provisioned server-side (Privy on Base; shared env wallet on Stellar).
+ * Admin POST body: campaign wallet is provisioned server-side (a dedicated
+ * Privy wallet per activation on Base, Tempo, and Solana; shared env wallet on Stellar).
  */
 export const adminCreateSponsoredActivationRequestSchema = z
   .discriminatedUnion('settlement_rail', [
     adminCreateSponsoredActivationBaseObject,
     adminCreateSponsoredActivationStellarObject,
     adminCreateSponsoredActivationTempoObject,
+    adminCreateSponsoredActivationSolanaObject,
   ])
   .superRefine((data, ctx) => {
     if (new Date(data.ends_at) <= new Date(data.starts_at)) {
@@ -401,6 +482,21 @@ function normalizeUpdatePayload(
           ? { asset_code: cfg.asset_code.trim() }
           : {}),
       };
+    }
+  }
+  if (next.settlement_rail === 'solana') {
+    if (next.campaign_wallet_address !== undefined) {
+      next.campaign_wallet_address = next.campaign_wallet_address.trim();
+    }
+    if (next.venue_settlement_wallet_address !== undefined) {
+      next.venue_settlement_wallet_address =
+        next.venue_settlement_wallet_address.trim();
+    }
+    if (next.usdc_asset_config && typeof next.usdc_asset_config === 'object') {
+      const cfg = next.usdc_asset_config as { mint?: string };
+      if (typeof cfg.mint === 'string') {
+        next.usdc_asset_config = { ...cfg, mint: cfg.mint.trim() };
+      }
     }
   }
   return next;
@@ -514,6 +610,29 @@ export const updateSponsoredActivationSchema =
         if (hasConfig) {
           mergeConfigParseIssues(
             stellarUsdcAssetConfigSchema.safeParse(data.usdc_asset_config),
+            ctx,
+            ['usdc_asset_config']
+          );
+        }
+      }
+
+      if (rail === 'solana' && (hasCampaign || hasVenue || hasConfig)) {
+        for (const [key, value] of [
+          ['campaign_wallet_address', data.campaign_wallet_address],
+          [
+            'venue_settlement_wallet_address',
+            data.venue_settlement_wallet_address,
+          ],
+        ] as const) {
+          if (value !== undefined) {
+            mergeConfigParseIssues(solanaAddressSchema.safeParse(value), ctx, [
+              key,
+            ]);
+          }
+        }
+        if (hasConfig) {
+          mergeConfigParseIssues(
+            newSolanaCaddAssetConfigSchema.safeParse(data.usdc_asset_config),
             ctx,
             ['usdc_asset_config']
           );

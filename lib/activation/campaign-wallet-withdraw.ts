@@ -39,11 +39,21 @@ import {
   getTempoCaddTransferStatus,
   submitTempoCaddTransfer,
 } from '@/lib/activation/tempo-cadd-transfer';
+import {
+  fetchSolanaCampaignWalletBalances,
+  fetchSolanaSplTokenBalance,
+} from '@/lib/activation/solana-token-rpc';
+import { solanaCaddAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
 
 export type SponsoredActivationCampaignWalletBalancePack = {
   campaign_wallet_usdc_balance: number | null;
   campaign_wallet_reserved_usdc: number;
+  /** Solana only: native SOL available for network fees. */
+  campaign_wallet_sol_balance?: number | null;
 };
+
+export const SOLANA_WITHDRAW_UNSUPPORTED_ERROR =
+  'Campaign wallet withdrawals are not yet supported on Solana.';
 
 export type SponsoredActivationCampaignWithdrawResult =
   | {
@@ -158,7 +168,59 @@ async function readCampaignWalletOnChainBalance(
   if (activation.settlement_rail === 'tempo') {
     return readTempoCampaignWalletBalance(activation);
   }
+  if (activation.settlement_rail === 'solana') {
+    return readSolanaCampaignWalletCaddBalance(activation);
+  }
   return readStellarCampaignWalletBalance(activation);
+}
+
+async function catchSolanaBalanceRead<T>(
+  label: string,
+  read: () => Promise<T>
+): Promise<T | null> {
+  try {
+    return await read();
+  } catch (error) {
+    console.error(`${label}:`, error);
+    return null;
+  }
+}
+
+async function readSolanaCampaignWalletCaddBalance(
+  activation: SponsoredActivationRow
+): Promise<number | null> {
+  const cfg = solanaCaddAssetConfigSchema.safeParse(
+    activation.usdc_asset_config
+  );
+  if (!cfg.success) return null;
+  return catchSolanaBalanceRead('readSolanaCampaignWalletCaddBalance', () =>
+    fetchSolanaSplTokenBalance({
+      ownerAddress: activation.campaign_wallet_address,
+      mint: cfg.data.mint,
+      decimals: cfg.data.decimals,
+    })
+  );
+}
+
+async function readSolanaCampaignWalletBalances(
+  activation: SponsoredActivationRow
+): Promise<{ cadd: number | null; sol: number | null }> {
+  const cfg = solanaCaddAssetConfigSchema.safeParse(
+    activation.usdc_asset_config
+  );
+  if (!cfg.success) return { cadd: null, sol: null };
+  const result = await catchSolanaBalanceRead(
+    'readSolanaCampaignWalletBalances',
+    async () => {
+      const balances = await fetchSolanaCampaignWalletBalances({
+        ownerAddress: activation.campaign_wallet_address,
+        mint: cfg.data.mint,
+        decimals: cfg.data.decimals,
+      });
+      return { cadd: balances.tokenBalance, sol: balances.solBalance };
+    }
+  );
+  return result ?? { cadd: null, sol: null };
 }
 
 async function readBaseCampaignWalletBalance(
@@ -232,6 +294,18 @@ async function readTempoCampaignWalletBalance(
 export async function loadSponsoredActivationCampaignWalletBalancePack(
   activation: SponsoredActivationRow
 ): Promise<SponsoredActivationCampaignWalletBalancePack> {
+  if (activation.settlement_rail === 'solana') {
+    const [reservedUsdc, balances] = await Promise.all([
+      loadActivationReservedUsdc(activation.id),
+      readSolanaCampaignWalletBalances(activation),
+    ]);
+    return {
+      campaign_wallet_usdc_balance: balances.cadd,
+      campaign_wallet_reserved_usdc: reservedUsdc,
+      campaign_wallet_sol_balance: balances.sol,
+    };
+  }
+
   const [reservedUsdc, balance] = await Promise.all([
     loadActivationReservedUsdc(activation.id),
     readCampaignWalletOnChainBalance(activation),
@@ -322,6 +396,14 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   destinationAddress: string;
   amountUsdc?: number | null;
 }): Promise<SponsoredActivationCampaignWithdrawResult> {
+  if (input.activation.settlement_rail === 'solana') {
+    return {
+      ok: false,
+      error: SOLANA_WITHDRAW_UNSUPPORTED_ERROR,
+      statusCode: 400,
+    };
+  }
+
   const destCheck = validateDestinationForRail(
     input.activation,
     input.destinationAddress

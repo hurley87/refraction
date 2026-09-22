@@ -9,6 +9,7 @@ import {
 import {
   adminCreateSponsoredActivationRequestSchema,
   resolveAdminBaseSponsoredActivationAssetConfig,
+  type AdminCreateSponsoredActivationRequest,
 } from '@/lib/schemas/sponsored-activation';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
@@ -21,6 +22,30 @@ import {
   getStellarSponsoredCampaignPublicKey,
 } from '@/lib/activation/stellar-campaign-wallet-config';
 import { getDefaultTempoSponsoredActivationAssetConfig } from '@/lib/activation/tempo-config';
+import {
+  SolanaCaddConfigError,
+  type SolanaCaddAssetConfig,
+} from '@/lib/activation/solana-config';
+import { resolveSolanaCaddSponsoredActivationAssetConfig } from '@/lib/activation/solana-cadd-asset-config';
+
+function resolveAdminSponsoredActivationAssetConfig(
+  data: AdminCreateSponsoredActivationRequest,
+  solanaCaddAssetConfig: SolanaCaddAssetConfig | null
+): Record<string, unknown> {
+  switch (data.settlement_rail) {
+    case 'base':
+      return resolveAdminBaseSponsoredActivationAssetConfig(data.payment_token);
+    case 'tempo':
+      return getDefaultTempoSponsoredActivationAssetConfig();
+    case 'solana':
+      if (!solanaCaddAssetConfig) {
+        throw new SolanaCaddConfigError('Solana CADD asset is not resolved');
+      }
+      return solanaCaddAssetConfig;
+    case 'stellar':
+      return getDefaultStellarSponsoredActivationUsdcAssetConfig();
+  }
+}
 
 /** GET /api/admin/sponsored-activations */
 export async function GET(request: NextRequest) {
@@ -72,6 +97,29 @@ export async function POST(request: NextRequest) {
     }
     const data = validation.data;
 
+    let solanaCaddAssetConfig: SolanaCaddAssetConfig | null = null;
+    if (data.settlement_rail === 'solana') {
+      try {
+        solanaCaddAssetConfig =
+          await resolveSolanaCaddSponsoredActivationAssetConfig();
+      } catch (e) {
+        if (e instanceof SolanaCaddConfigError) return apiError(e.message, 500);
+        throw e;
+      }
+      if (data.venue_settlement_wallet_address === solanaCaddAssetConfig.mint) {
+        return apiValidationError(
+          new z.ZodError([
+            {
+              code: z.ZodIssueCode.custom,
+              message:
+                'Venue settlement wallet must be a wallet, not the CADD mint',
+              path: ['venue_settlement_wallet_address'],
+            },
+          ])
+        );
+      }
+    }
+
     let campaign_wallet_address: string;
     let privy_campaign_wallet_id: string | null = null;
 
@@ -115,12 +163,10 @@ export async function POST(request: NextRequest) {
     }
 
     const activationId = randomUUID();
-    const usdc_asset_config =
-      data.settlement_rail === 'base'
-        ? resolveAdminBaseSponsoredActivationAssetConfig(data.payment_token)
-        : data.settlement_rail === 'tempo'
-          ? getDefaultTempoSponsoredActivationAssetConfig()
-          : getDefaultStellarSponsoredActivationUsdcAssetConfig();
+    const usdc_asset_config = resolveAdminSponsoredActivationAssetConfig(
+      data,
+      solanaCaddAssetConfig
+    );
 
     const description =
       data.description == null ? null : data.description.trim() || null;
