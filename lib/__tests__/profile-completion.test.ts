@@ -1,10 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import {
+  clearProfileCompleteRewardsTipSeen,
   getMissingProfileCompletionLabels,
+  getProfileCompleteRewardsTipStorageKey,
   getProfileCompletionCount,
+  hasSeenProfileCompleteRewardsTip,
   isProfileComplete,
   isProfileCompletionFieldFilled,
+  markProfileCompleteRewardsTipSeen,
   pointsAwardedFromProfileResponse,
+  PROFILE_COMPLETE_REWARDS_TIP_STORAGE_KEY,
   withProfilePointsToast,
 } from '@/lib/profile-completion';
 import { getActivityConfig } from '@/lib/points-activities';
@@ -100,5 +105,33 @@ describe('profile completion', () => {
         data: { pointsAwarded: [{ field: 'name', points: 100 }] },
       })
     ).toEqual([{ field: 'name', points: 100 }]);
+  });
+
+  it('scopes the completed-profile rewards tip by wallet', () => {
+    expect(getProfileCompleteRewardsTipStorageKey('0xABC')).toBe(
+      `${PROFILE_COMPLETE_REWARDS_TIP_STORAGE_KEY}:0xabc`
+    );
+  });
+});
+
+describe('profile complete rewards tip storage', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('records that the member has seen the completed-profile tip', () => {
+    expect(hasSeenProfileCompleteRewardsTip('0xabc')).toBe(false);
+    markProfileCompleteRewardsTipSeen('0xABC');
+    expect(hasSeenProfileCompleteRewardsTip('0xabc')).toBe(true);
+  });
+
+  it('can clear the completed-profile tip so it shows again after a reset', () => {
+    markProfileCompleteRewardsTipSeen('0xabc');
+    clearProfileCompleteRewardsTipSeen('0xABC');
+    expect(hasSeenProfileCompleteRewardsTip('0xabc')).toBe(false);
   });
 });

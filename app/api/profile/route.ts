@@ -6,7 +6,7 @@ import {
   getUserProfileByUsername,
   createOrUpdateUserProfile,
   awardProfileFieldPoints,
-  hasProfileCompletionAward,
+  ensureProfileCompletionAward,
   isUsernameTakenByOther,
   isPostgresUniqueUsernameViolation,
 } from '@/lib/db/profiles';
@@ -107,8 +107,10 @@ export async function GET(request: NextRequest) {
 
     return apiSuccess({
       ...profile,
-      profile_completion_awarded:
-        await hasProfileCompletionAward(walletAddress),
+      profile_completion_awarded: await ensureProfileCompletionAward(
+        walletAddress,
+        profile
+      ),
     });
   } catch (error) {
     console.error('Error fetching profile:', error);
@@ -284,11 +286,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const profileCompletionAwarded = await ensureProfileCompletionAward(
+      wallet_address,
+      updatedProfile
+    );
+
     return apiSuccess({
       profile: {
         ...updatedProfile,
-        profile_completion_awarded:
-          await hasProfileCompletionAward(wallet_address),
+        profile_completion_awarded: profileCompletionAwarded,
       },
       pointsAwarded,
     });

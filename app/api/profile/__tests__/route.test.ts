@@ -7,7 +7,7 @@ vi.mock('@/lib/db/profiles', () => ({
   getUserProfileByUsername: vi.fn(),
   createOrUpdateUserProfile: vi.fn(),
   awardProfileFieldPoints: vi.fn(),
-  hasProfileCompletionAward: vi.fn().mockResolvedValue(false),
+  ensureProfileCompletionAward: vi.fn().mockResolvedValue(false),
   isUsernameTakenByOther: vi.fn().mockResolvedValue(false),
   isPostgresUniqueUsernameViolation: vi.fn(() => false),
 }));
@@ -28,9 +28,9 @@ vi.mock('@/lib/analytics/server', () => ({
 import {
   awardProfileFieldPoints,
   createOrUpdateUserProfile,
+  ensureProfileCompletionAward,
   getUserProfile,
   getUserProfileByUsername,
-  hasProfileCompletionAward,
   isUsernameTakenByOther,
 } from '@/lib/db/profiles';
 import { trackProfileCompleted } from '@/lib/analytics/server';
@@ -83,7 +83,7 @@ describe('Profile API Route', () => {
         wallet_address: walletAddress,
         name: 'Alex',
       });
-      vi.mocked(hasProfileCompletionAward).mockResolvedValueOnce(true);
+      vi.mocked(ensureProfileCompletionAward).mockResolvedValueOnce(true);
 
       const response = await GET(
         new NextRequest(
@@ -92,6 +92,10 @@ describe('Profile API Route', () => {
       );
       const json = await response.json();
 
+      expect(ensureProfileCompletionAward).toHaveBeenCalledWith(
+        walletAddress,
+        expect.objectContaining({ wallet_address: walletAddress })
+      );
       expect(json.data.profile_completion_awarded).toBe(true);
     });
   });
