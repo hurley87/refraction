@@ -38,6 +38,27 @@ export function SponsoredActivationFormPanel({
 
   const isBase = form.settlement_rail === 'base';
   const isTempo = form.settlement_rail === 'tempo';
+  const isSolana = form.settlement_rail === 'solana';
+  const isStellar = form.settlement_rail === 'stellar';
+
+  let railHelpText: string;
+  if (isSolana) {
+    railHelpText =
+      'A dedicated Solana campaign wallet is provisioned for this activation (Privy). Fund it with USDC plus a small amount of SOL for network fees before going live.';
+  } else if (isStellar) {
+    railHelpText =
+      'Settlements pay from the shared Stellar campaign wallet configured on the server. Fund that wallet with USDC before going live.';
+  } else {
+    railHelpText = 'Campaign wallet is provisioned automatically (Privy).';
+  }
+
+  let venuePlaceholder = '0x…';
+  if (isStellar) venuePlaceholder = 'G…';
+  if (isSolana) venuePlaceholder = 'Solana address (base58)';
+
+  let budgetTokenSymbol = 'USDC';
+  if (isBase) budgetTokenSymbol = form.payment_token;
+  if (isTempo) budgetTokenSymbol = 'CADD';
 
   const setField =
     <K extends keyof SponsoredActivationFormState>(key: K) =>
@@ -109,7 +130,12 @@ export function SponsoredActivationFormPanel({
             <Select
               value={form.settlement_rail}
               onValueChange={(v) => {
-                if (v === 'base' || v === 'stellar' || v === 'tempo') {
+                if (
+                  v === 'base' ||
+                  v === 'stellar' ||
+                  v === 'tempo' ||
+                  v === 'solana'
+                ) {
                   setField('settlement_rail')(v);
                 }
               }}
@@ -121,13 +147,10 @@ export function SponsoredActivationFormPanel({
                 <SelectItem value="base">Base</SelectItem>
                 <SelectItem value="stellar">Stellar</SelectItem>
                 <SelectItem value="tempo">Tempo</SelectItem>
+                <SelectItem value="solana">Solana</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-neutral-500">
-              {isBase || isTempo
-                ? 'Campaign wallet is provisioned automatically (Privy).'
-                : 'Settlements pay from the shared Stellar campaign wallet configured on the server. Fund that wallet with USDC before going live.'}
-            </p>
+            <p className="text-xs text-neutral-500">{railHelpText}</p>
           </div>
           {isBase && (
             <div className="space-y-2">
@@ -167,13 +190,18 @@ export function SponsoredActivationFormPanel({
               onChange={(ev) =>
                 setField('venue_settlement_wallet_address')(ev.target.value)
               }
-              placeholder={isBase || isTempo ? '0x…' : 'G…'}
+              placeholder={venuePlaceholder}
               className="font-mono text-sm"
             />
-            {!isBase && !isTempo && (
+            {isStellar && (
               <p className="text-xs text-neutral-500">
                 Must differ from the shared campaign wallet. USDC settles here
                 when guests redeem.
+              </p>
+            )}
+            {isSolana && (
+              <p className="text-xs text-neutral-500">
+                A Solana wallet address. USDC settles here when guests redeem.
               </p>
             )}
           </div>
@@ -190,8 +218,7 @@ export function SponsoredActivationFormPanel({
             </div>
             <div className="space-y-2">
               <Label htmlFor="sa-max-budget">
-                Max budget (
-                {isBase ? form.payment_token : isTempo ? 'CADD' : 'USDC'})
+                Max budget ({budgetTokenSymbol})
               </Label>
               <Input
                 id="sa-max-budget"

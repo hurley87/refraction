@@ -9,6 +9,7 @@ import {
 import {
   adminCreateSponsoredActivationRequestSchema,
   resolveAdminBaseSponsoredActivationAssetConfig,
+  type AdminCreateSponsoredActivationRequest,
 } from '@/lib/schemas/sponsored-activation';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
@@ -21,6 +22,22 @@ import {
   getStellarSponsoredCampaignPublicKey,
 } from '@/lib/activation/stellar-campaign-wallet-config';
 import { getDefaultTempoSponsoredActivationAssetConfig } from '@/lib/activation/tempo-config';
+import { getDefaultSolanaSponsoredActivationAssetConfig } from '@/lib/activation/solana-config';
+
+function resolveAdminSponsoredActivationAssetConfig(
+  data: AdminCreateSponsoredActivationRequest
+): Record<string, unknown> {
+  switch (data.settlement_rail) {
+    case 'base':
+      return resolveAdminBaseSponsoredActivationAssetConfig(data.payment_token);
+    case 'tempo':
+      return getDefaultTempoSponsoredActivationAssetConfig();
+    case 'solana':
+      return getDefaultSolanaSponsoredActivationAssetConfig();
+    case 'stellar':
+      return getDefaultStellarSponsoredActivationUsdcAssetConfig();
+  }
+}
 
 /** GET /api/admin/sponsored-activations */
 export async function GET(request: NextRequest) {
@@ -115,12 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     const activationId = randomUUID();
-    const usdc_asset_config =
-      data.settlement_rail === 'base'
-        ? resolveAdminBaseSponsoredActivationAssetConfig(data.payment_token)
-        : data.settlement_rail === 'tempo'
-          ? getDefaultTempoSponsoredActivationAssetConfig()
-          : getDefaultStellarSponsoredActivationUsdcAssetConfig();
+    const usdc_asset_config = resolveAdminSponsoredActivationAssetConfig(data);
 
     const description =
       data.description == null ? null : data.description.trim() || null;

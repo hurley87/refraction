@@ -39,11 +39,21 @@ import {
   getTempoCaddTransferStatus,
   submitTempoCaddTransfer,
 } from '@/lib/activation/tempo-cadd-transfer';
+import {
+  fetchSolanaNativeBalance,
+  fetchSolanaSplTokenBalance,
+} from '@/lib/activation/solana-campaign-wallet-balance';
+import { solanaUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
 
 export type SponsoredActivationCampaignWalletBalancePack = {
   campaign_wallet_usdc_balance: number | null;
   campaign_wallet_reserved_usdc: number;
+  /** Solana only: native SOL available for network fees. */
+  campaign_wallet_sol_balance?: number | null;
 };
+
+const SOLANA_WITHDRAW_UNSUPPORTED_ERROR =
+  'Campaign wallet withdrawals are not yet supported on Solana.';
 
 export type SponsoredActivationCampaignWithdrawResult =
   | {
@@ -158,7 +168,42 @@ async function readCampaignWalletOnChainBalance(
   if (activation.settlement_rail === 'tempo') {
     return readTempoCampaignWalletBalance(activation);
   }
+  if (activation.settlement_rail === 'solana') {
+    return readSolanaCampaignWalletUsdcBalance(activation);
+  }
   return readStellarCampaignWalletBalance(activation);
+}
+
+async function readSolanaCampaignWalletUsdcBalance(
+  activation: SponsoredActivationRow
+): Promise<number | null> {
+  const cfg = solanaUsdcAssetConfigSchema.safeParse(
+    activation.usdc_asset_config
+  );
+  if (!cfg.success) return null;
+  try {
+    return await fetchSolanaSplTokenBalance({
+      ownerAddress: activation.campaign_wallet_address,
+      mint: cfg.data.mint,
+      decimals: cfg.data.decimals,
+    });
+  } catch (error) {
+    console.error('readSolanaCampaignWalletUsdcBalance:', error);
+    return null;
+  }
+}
+
+async function readSolanaCampaignWalletSolBalance(
+  activation: SponsoredActivationRow
+): Promise<number | null> {
+  try {
+    return await fetchSolanaNativeBalance({
+      ownerAddress: activation.campaign_wallet_address,
+    });
+  } catch (error) {
+    console.error('readSolanaCampaignWalletSolBalance:', error);
+    return null;
+  }
 }
 
 async function readBaseCampaignWalletBalance(
@@ -232,14 +277,17 @@ async function readTempoCampaignWalletBalance(
 export async function loadSponsoredActivationCampaignWalletBalancePack(
   activation: SponsoredActivationRow
 ): Promise<SponsoredActivationCampaignWalletBalancePack> {
-  const [reservedUsdc, balance] = await Promise.all([
+  const isSolana = activation.settlement_rail === 'solana';
+  const [reservedUsdc, balance, solBalance] = await Promise.all([
     loadActivationReservedUsdc(activation.id),
     readCampaignWalletOnChainBalance(activation),
+    isSolana ? readSolanaCampaignWalletSolBalance(activation) : null,
   ]);
 
   return {
     campaign_wallet_usdc_balance: balance,
     campaign_wallet_reserved_usdc: reservedUsdc,
+    ...(isSolana ? { campaign_wallet_sol_balance: solBalance } : {}),
   };
 }
 
@@ -322,6 +370,14 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   destinationAddress: string;
   amountUsdc?: number | null;
 }): Promise<SponsoredActivationCampaignWithdrawResult> {
+  if (input.activation.settlement_rail === 'solana') {
+    return {
+      ok: false,
+      error: SOLANA_WITHDRAW_UNSUPPORTED_ERROR,
+      statusCode: 400,
+    };
+  }
+
   const destCheck = validateDestinationForRail(
     input.activation,
     input.destinationAddress

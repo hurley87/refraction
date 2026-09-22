@@ -15,6 +15,11 @@ import type {
   SpendRailPublicMetadata,
 } from '@/lib/spend-rail-config/types';
 import { getTempoExplorerTxUrlTemplate } from '@/lib/activation/tempo-config';
+import {
+  formatSolscanAccountUrl,
+  formatSolscanTxUrl,
+  getSolscanTxUrlTemplate,
+} from '@/lib/activation/solana-config';
 
 export type {
   SpendRailPublicMetadata,
@@ -435,13 +440,14 @@ export function formatExplorerTxUrlForSpendLedger(
   return null;
 }
 
-/** DB `settlement_rail` on `sponsored_activation` (Base vs Stellar USDC settlement). */
-export type SettlementExplorerRail = 'base' | 'stellar' | 'tempo';
+/** DB `settlement_rail` on `sponsored_activation`. */
+export type SettlementExplorerRail = 'base' | 'stellar' | 'tempo' | 'solana';
 
 export function getSettlementExplorerTxUrlTemplate(
   rail: SettlementExplorerRail
 ): string {
   if (rail === 'tempo') return getTempoExplorerTxUrlTemplate();
+  if (rail === 'solana') return getSolscanTxUrlTemplate();
   const parsed = parseRailsConfig();
   return rail === 'base'
     ? parsed.base.explorerTxUrlTemplate
@@ -463,6 +469,7 @@ export function formatSettlementExplorerTxUrl(
       raw.toLowerCase()
     );
   }
+  if (rail === 'solana') return formatSolscanTxUrl(txHash);
   const spendRail = rail === 'base' ? 'base_usdc' : 'stellar_usdc';
   return formatExplorerTxUrlForSpendLedger(spendRail, txHash);
 }
@@ -471,6 +478,7 @@ export function formatSettlementExplorerTxUrl(
  * Explorer link for a wallet/account on the activation settlement rail.
  * Base: `{basescan-origin}/address/{checksummed}` derived from the Base tx template origin.
  * Stellar: `{stellar expert explorer prefix}/account/{G-address}` from the Stellar tx template path.
+ * Solana: `https://solscan.io/account/{address}` (with `?cluster=devnet` on devnet).
  */
 export function formatSettlementWalletExplorerUrl(
   rail: SettlementExplorerRail,
@@ -478,6 +486,7 @@ export function formatSettlementWalletExplorerUrl(
 ): string | null {
   const trimmed = walletAddress?.trim();
   if (!trimmed) return null;
+  if (rail === 'solana') return formatSolscanAccountUrl(trimmed);
   if (rail === 'tempo') {
     if (!isEvmAddress(trimmed)) return null;
     const origin =

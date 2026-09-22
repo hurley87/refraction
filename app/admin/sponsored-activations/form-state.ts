@@ -9,7 +9,7 @@ export type SponsoredActivationFormState = {
   sponsor_name: string;
   event_id: string;
   settlement_rail: SettlementRail;
-  /** Base rail only; ignored for Stellar and Tempo. */
+  /** Base rail only; ignored for Stellar, Tempo, and Solana. */
   payment_token: SponsoredActivationBaseTokenSymbol;
   venue_settlement_wallet_address: string;
   max_redemptions: string;

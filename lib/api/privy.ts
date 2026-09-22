@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { PrivyClient } from '@privy-io/server-auth';
 import type { SpendServerWalletMetadata } from '@/lib/spend-server-wallet';
+import { getSolanaCluster } from '@/lib/activation/solana-config';
 
 // Lazy-initialized singleton shared across all API routes
 let privyClient: PrivyClient | null = null;
@@ -406,14 +407,27 @@ export type SponsoredActivationCampaignWalletMetadata = {
 
 /**
  * Provisions a Privy server wallet for a sponsored activation campaign.
- * Base and Tempo use Ethereum-format addresses; Stellar uses a Stellar account.
+ * Base and Tempo use Ethereum-format addresses; Stellar uses a Stellar account;
+ * Solana uses a base58 Solana account.
  */
 export async function createSponsoredActivationPrivyCampaignWallet(params: {
   idempotencyKey: string;
-  settlementRail: 'base' | 'stellar' | 'tempo';
+  settlementRail: 'base' | 'stellar' | 'tempo' | 'solana';
 }): Promise<SponsoredActivationCampaignWalletMetadata> {
   try {
     const client = getPrivyClient();
+    if (params.settlementRail === 'solana') {
+      const wallet = await client.walletApi.createWallet({
+        chainType: 'solana',
+        idempotencyKey: params.idempotencyKey,
+      });
+      return {
+        privy_campaign_wallet_id: wallet.id,
+        campaign_wallet_address: wallet.address,
+        campaign_wallet_chain: `solana-${getSolanaCluster()}`,
+        campaign_wallet_created_at: wallet.createdAt.toISOString(),
+      };
+    }
     if (params.settlementRail === 'base' || params.settlementRail === 'tempo') {
       const wallet = await client.walletApi.createWallet({
         chainType: 'ethereum',
