@@ -9,6 +9,7 @@ vi.mock('@/lib/activation/solana-token-rpc', () => ({
 
 import { resolveSolanaCaddSponsoredActivationAssetConfig } from '@/lib/activation/solana-cadd-asset-config';
 import { SolanaCaddConfigError } from '@/lib/activation/solana-config';
+import { newSolanaCaddAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
 
 const TEST_CADD_MINT = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 
@@ -32,6 +33,20 @@ describe('resolveSolanaCaddSponsoredActivationAssetConfig', () => {
     expect(mockFetchSolanaMintDecimals).toHaveBeenCalledWith({
       mint: TEST_CADD_MINT,
     });
+  });
+
+  it('uses the currently configured mint for new activations after a mint change', async () => {
+    const rotatedMint = 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH';
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', rotatedMint);
+    mockFetchSolanaMintDecimals.mockResolvedValue(8);
+
+    const config = await resolveSolanaCaddSponsoredActivationAssetConfig();
+
+    expect(config).toEqual({ mint: rotatedMint, decimals: 8, symbol: 'CADD' });
+    expect(mockFetchSolanaMintDecimals).toHaveBeenCalledWith({
+      mint: rotatedMint,
+    });
+    expect(newSolanaCaddAssetConfigSchema.safeParse(config).success).toBe(true);
   });
 
   it('accepts pinned decimals that match the chain', async () => {

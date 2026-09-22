@@ -4,6 +4,7 @@ import {
   createSponsoredActivationSchema,
   settlementRailSchema,
   solanaAddressSchema,
+  newSolanaCaddAssetConfigSchema,
   solanaCaddAssetConfigSchema,
   sponsoredActivationSettlementBundleSchema,
   updateSponsoredActivationSchema,
@@ -13,6 +14,8 @@ const SOLANA_CAMPAIGN = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
 const SOLANA_VENUE = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
 /** Test-only stand-in for the deployment-supplied CADD mint. */
 const TEST_CADD_MINT = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+/** A later issuer-approved mint the deployment switches to. */
+const ROTATED_CADD_MINT = 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH';
 
 const validTime = {
   starts_at: '2026-06-01T12:00:00.000Z',
@@ -78,8 +81,22 @@ describe('solanaAddressSchema', () => {
   });
 });
 
-describe('solanaCaddAssetConfigSchema', () => {
-  it('accepts the configured CADD mint', () => {
+describe('solanaCaddAssetConfigSchema (persisted)', () => {
+  it('accepts a persisted config for the configured CADD mint', () => {
+    expect(
+      solanaCaddAssetConfigSchema.safeParse(solanaAssetConfig).success
+    ).toBe(true);
+  });
+
+  it('still accepts a previously persisted CADD mint after the env mint changes', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', ROTATED_CADD_MINT);
+    const r = solanaCaddAssetConfigSchema.safeParse(solanaAssetConfig);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.mint).toBe(TEST_CADD_MINT);
+  });
+
+  it('does not require the env mint to be configured at all', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', '');
     expect(
       solanaCaddAssetConfigSchema.safeParse(solanaAssetConfig).success
     ).toBe(true);
@@ -97,40 +114,91 @@ describe('solanaCaddAssetConfigSchema', () => {
     }
   );
 
-  it.each([-1, 19, 6.5])('rejects invalid decimals %s', (decimals) => {
+  it.each([-1, 19, 6.5, '9'])('rejects invalid decimals %s', (decimals) => {
     expect(
       solanaCaddAssetConfigSchema.safeParse({ ...solanaAssetConfig, decimals })
         .success
     ).toBe(false);
   });
 
-  it('rejects a mint other than the configured one', () => {
+  it.each([
+    ['EVM address', '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'],
+    ['non-base58 characters', '0OIl0OIl0OIl0OIl0OIl0OIl0OIl0OIl'],
+    ['too short (31 bytes)', '1111111111111111111111111111111'],
+    ['empty', ''],
+  ])('rejects a malformed mint (%s)', (_label, mint) => {
     expect(
-      solanaCaddAssetConfigSchema.safeParse({
-        ...solanaAssetConfig,
-        mint: SOLANA_VENUE,
-      }).success
+      solanaCaddAssetConfigSchema.safeParse({ ...solanaAssetConfig, mint })
+        .success
     ).toBe(false);
   });
 
-  it('rejects any mint when no CADD mint is configured', () => {
-    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', '');
-    const r = solanaCaddAssetConfigSchema.safeParse(solanaAssetConfig);
+  it.each(['USDC', 'cadd', ''])('rejects non-CADD symbol %j', (symbol) => {
+    expect(
+      solanaCaddAssetConfigSchema.safeParse({ ...solanaAssetConfig, symbol })
+        .success
+    ).toBe(false);
+  });
+
+  it('rejects unknown keys', () => {
+    expect(
+      solanaCaddAssetConfigSchema.safeParse({
+        ...solanaAssetConfig,
+        contract_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe('newSolanaCaddAssetConfigSchema (new activations)', () => {
+  it('accepts the currently configured CADD mint', () => {
+    expect(
+      newSolanaCaddAssetConfigSchema.safeParse(solanaAssetConfig).success
+    ).toBe(true);
+  });
+
+  it('rejects a mint other than the currently configured one', () => {
+    const r = newSolanaCaddAssetConfigSchema.safeParse({
+      ...solanaAssetConfig,
+      mint: SOLANA_VENUE,
+    });
     expect(r.success).toBe(false);
     if (!r.success) {
+      expect(r.error.issues[0]?.path).toEqual(['mint']);
       expect(r.error.issues[0]?.message).toBe(
         'Solana settlement requires the configured CADD mint'
       );
     }
   });
 
-  it('rejects a non-CADD symbol', () => {
+  it('rejects the previous mint once the env mint changes', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', ROTATED_CADD_MINT);
     expect(
-      solanaCaddAssetConfigSchema.safeParse({
-        ...solanaAssetConfig,
-        symbol: 'USDC',
-      }).success
+      newSolanaCaddAssetConfigSchema.safeParse(solanaAssetConfig).success
     ).toBe(false);
+    expect(
+      newSolanaCaddAssetConfigSchema.safeParse({
+        ...solanaAssetConfig,
+        mint: ROTATED_CADD_MINT,
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects any mint when no CADD mint is configured', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', '');
+    expect(
+      newSolanaCaddAssetConfigSchema.safeParse(solanaAssetConfig).success
+    ).toBe(false);
+  });
+
+  it('keeps the structural checks', () => {
+    for (const bad of [
+      { ...solanaAssetConfig, decimals: 19 },
+      { ...solanaAssetConfig, symbol: 'USDC' },
+      { ...solanaAssetConfig, mint: '0xabc' },
+    ]) {
+      expect(newSolanaCaddAssetConfigSchema.safeParse(bad).success).toBe(false);
+    }
   });
 });
 
@@ -142,6 +210,20 @@ describe('createSponsoredActivationSchema (solana)', () => {
       expect(r.data.settlement_rail).toBe('solana');
       expect(r.data.campaign_wallet_address).toBe(SOLANA_CAMPAIGN);
     }
+  });
+
+  it('requires the currently configured CADD mint for a new activation', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', ROTATED_CADD_MINT);
+    expect(
+      createSponsoredActivationSchema.safeParse(solanaCreatePayload()).success
+    ).toBe(false);
+    expect(
+      createSponsoredActivationSchema.safeParse(
+        solanaCreatePayload({
+          usdc_asset_config: { ...solanaAssetConfig, mint: ROTATED_CADD_MINT },
+        })
+      ).success
+    ).toBe(true);
   });
 
   it('rejects an EVM venue wallet on the Solana rail', () => {
@@ -266,7 +348,7 @@ describe('updateSponsoredActivationSchema (solana)', () => {
     }
   });
 
-  it('rejects a non-configured mint', () => {
+  it('rejects re-pointing a draft at a non-configured mint', () => {
     expect(
       updateSponsoredActivationSchema.safeParse({
         settlement_rail: 'solana',
@@ -286,6 +368,35 @@ describe('sponsoredActivationSettlementBundleSchema (solana)', () => {
         usdc_asset_config: solanaAssetConfig,
       }).success
     ).toBe(true);
+  });
+
+  it('accepts a persisted bundle whose mint predates an env mint change', () => {
+    vi.stubEnv('SPONSORED_ACTIVATION_SOLANA_CADD_MINT', ROTATED_CADD_MINT);
+    expect(
+      sponsoredActivationSettlementBundleSchema.safeParse({
+        settlement_rail: 'solana',
+        campaign_wallet_address: SOLANA_CAMPAIGN,
+        venue_settlement_wallet_address: SOLANA_VENUE,
+        usdc_asset_config: solanaAssetConfig,
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects a structurally invalid persisted asset config', () => {
+    for (const usdc_asset_config of [
+      { ...solanaAssetConfig, mint: 'not-a-mint' },
+      { ...solanaAssetConfig, decimals: -1 },
+      { ...solanaAssetConfig, symbol: 'USDC' },
+    ]) {
+      expect(
+        sponsoredActivationSettlementBundleSchema.safeParse({
+          settlement_rail: 'solana',
+          campaign_wallet_address: SOLANA_CAMPAIGN,
+          venue_settlement_wallet_address: SOLANA_VENUE,
+          usdc_asset_config,
+        }).success
+      ).toBe(false);
+    }
   });
 
   it('rejects switching a Solana activation to an EVM venue wallet', () => {

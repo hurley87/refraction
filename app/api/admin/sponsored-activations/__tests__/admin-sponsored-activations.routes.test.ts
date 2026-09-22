@@ -699,6 +699,55 @@ describe('PATCH /api/admin/sponsored-activations/[activationId]', () => {
     });
   });
 
+  it('keeps an existing Solana activation valid after the env CADD mint changes', async () => {
+    const nextVenue = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+    vi.stubEnv(
+      'SPONSORED_ACTIVATION_SOLANA_CADD_MINT',
+      'So11111111111111111111111111111111111111112'
+    );
+    mockGetById.mockResolvedValue(solanaFixture);
+    mockUpdate.mockResolvedValue({
+      ...solanaFixture,
+      venue_settlement_wallet_address: nextVenue,
+    });
+    const res = await onePATCH(
+      jsonReq(
+        'PATCH',
+        'http://localhost/api/admin/sponsored-activations/act-sol',
+        {
+          settlement_rail: 'solana',
+          venue_settlement_wallet_address: nextVenue,
+        }
+      ),
+      { params: { activationId: 'act-sol' } }
+    );
+    expect(res.status).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith('act-sol', {
+      settlement_rail: 'solana',
+      venue_settlement_wallet_address: nextVenue,
+    });
+  });
+
+  it('rejects re-pointing a draft Solana activation at a non-configured mint', async () => {
+    mockGetById.mockResolvedValue(solanaFixture);
+    const res = await onePATCH(
+      jsonReq(
+        'PATCH',
+        'http://localhost/api/admin/sponsored-activations/act-sol',
+        {
+          settlement_rail: 'solana',
+          usdc_asset_config: {
+            ...SOLANA_CADD_ASSET_CONFIG,
+            mint: 'So11111111111111111111111111111111111111112',
+          },
+        }
+      ),
+      { params: { activationId: 'act-sol' } }
+    );
+    expect(res.status).toBe(400);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
   it('allows activating when reward items exist', async () => {
     mockGetById.mockResolvedValue({ ...baseFixture, status: 'draft' });
     mockCountActiveItems.mockResolvedValue(1);

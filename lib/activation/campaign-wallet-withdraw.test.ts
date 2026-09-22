@@ -227,19 +227,52 @@ describe('campaign-wallet-withdraw (Solana CADD)', () => {
     expect(pack.campaign_wallet_sol_balance).toBeNull();
   });
 
-  it('does not read a token balance for a mint other than the configured CADD mint', async () => {
+  it('reads the persisted mint and decimals after the env CADD mint changes', async () => {
+    vi.stubEnv(
+      'SPONSORED_ACTIVATION_SOLANA_CADD_MINT',
+      'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH'
+    );
+    mockFetchSolanaCampaignWalletBalances.mockResolvedValue({
+      tokenBalance: 40,
+      solBalance: 0.2,
+    });
+
     const pack = await loadSponsoredActivationCampaignWalletBalancePack(
       solanaActivation({
         usdc_asset_config: {
-          mint: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
-          decimals: 9,
+          mint: TEST_CADD_MINT,
+          decimals: 8,
           symbol: 'CADD',
         },
       })
     );
-    expect(pack.campaign_wallet_usdc_balance).toBeNull();
-    expect(mockFetchSolanaCampaignWalletBalances).not.toHaveBeenCalled();
+
+    expect(mockFetchSolanaCampaignWalletBalances).toHaveBeenCalledWith({
+      ownerAddress: SOLANA_CAMPAIGN,
+      mint: TEST_CADD_MINT,
+      decimals: 8,
+    });
+    expect(pack.campaign_wallet_usdc_balance).toBe(40);
+    expect(pack.campaign_wallet_sol_balance).toBe(0.2);
   });
+
+  it.each([
+    ['malformed mint', { mint: 'not-a-mint', decimals: 9, symbol: 'CADD' }],
+    [
+      'invalid decimals',
+      { mint: TEST_CADD_MINT, decimals: 19, symbol: 'CADD' },
+    ],
+    ['non-CADD symbol', { mint: TEST_CADD_MINT, decimals: 9, symbol: 'USDC' }],
+  ])(
+    'does not read a token balance for a persisted config with a %s',
+    async (_label, usdc_asset_config) => {
+      const pack = await loadSponsoredActivationCampaignWalletBalancePack(
+        solanaActivation({ usdc_asset_config })
+      );
+      expect(pack.campaign_wallet_usdc_balance).toBeNull();
+      expect(mockFetchSolanaCampaignWalletBalances).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects withdrawals explicitly instead of routing to another rail', async () => {
     const result = await withdrawSponsoredActivationCampaignWallet({
