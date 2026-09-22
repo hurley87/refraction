@@ -23,6 +23,8 @@ import {
 import { LocationSearchDialog } from '@/components/dashboard/location-search-dialog';
 import MapCard from '@/components/map/map-card';
 import {
+  clearProfileCompleteRewardsTipSeen,
+  didAwardProfileCompletionBonus,
   pointsAwardedFromProfileResponse,
   withProfilePointsToast,
 } from '@/lib/profile-completion';
@@ -260,11 +262,12 @@ export default function EditSocialsModal({
       }
 
       setProfilePictureUrl(imageUrl);
+      const pictureAwards = pointsAwardedFromProfileResponse(profilePutBody);
+      if (didAwardProfileCompletionBonus(pictureAwards)) {
+        clearProfileCompleteRewardsTipSeen(profile.wallet_address);
+      }
       toast.success(
-        withProfilePointsToast(
-          'Profile picture updated',
-          pointsAwardedFromProfileResponse(profilePutBody)
-        )
+        withProfilePointsToast('Profile picture updated', pictureAwards)
       );
       invalidateProfileRelatedQueries(queryClient, profile.wallet_address);
     } catch (error) {
@@ -369,9 +372,11 @@ export default function EditSocialsModal({
       }
 
       const result = raw.data ?? raw;
-      toast.success(
-        withProfilePointsToast('Profile updated', result?.pointsAwarded ?? [])
-      );
+      const awards = result?.pointsAwarded ?? [];
+      if (didAwardProfileCompletionBonus(awards)) {
+        clearProfileCompleteRewardsTipSeen(profile.wallet_address);
+      }
+      toast.success(withProfilePointsToast('Profile updated', awards));
       invalidateProfileRelatedQueries(queryClient, profile.wallet_address);
       onOpenChange(false);
     } catch (e) {

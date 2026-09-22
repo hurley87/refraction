@@ -2,6 +2,7 @@ import { supabase } from './client';
 import type { ProfileFavoritePlace, UserProfile } from '../types';
 import { sameWalletAddress } from '../utils/wallets';
 import { resolveLocationForSearchPick } from './locations';
+import { isProfileComplete } from '../profile-completion';
 
 // Select specific columns for profile queries (from players table)
 const PROFILE_COLUMNS = `
@@ -296,15 +297,47 @@ export const updatePlayerGeoLocation = async (
 export const hasProfileCompletionAward = async (
   walletAddress: string
 ): Promise<boolean> => {
+  const wallet = walletAddress.trim();
+  if (!wallet) return false;
+
+  // Case-insensitive match: EVM addresses may be stored checksummed or lowercased.
   const { data, error } = await supabase
     .from('points_activities')
     .select('id')
-    .eq('user_wallet_address', walletAddress)
     .eq('activity_type', 'profile_complete')
+    .ilike('user_wallet_address', wallet.replace(/%/g, ''))
     .limit(1);
 
   if (error) throw error;
-  return (data?.length ?? 0) > 0;
+  // `ilike` without wildcards is a case-insensitive equality match.
+  return (data ?? []).length > 0;
+};
+
+/**
+ * If the profile has all seven completion fields but the bonus was never
+ * granted (e.g. older saves / failed award), grant it once.
+ */
+export const ensureProfileCompletionAward = async (
+  walletAddress: string,
+  profile: Partial<UserProfile> | null | undefined
+): Promise<boolean> => {
+  if (!isProfileComplete(profile)) {
+    return hasProfileCompletionAward(walletAddress);
+  }
+  if (await hasProfileCompletionAward(walletAddress)) {
+    return true;
+  }
+
+  const result = await awardProfileFieldPoints(
+    walletAddress,
+    'profile_complete',
+    '7/7',
+    300,
+    'Completed profile'
+  );
+  if (result.success) return true;
+  // Concurrent grant or already awarded under another casing.
+  return hasProfileCompletionAward(walletAddress);
 };
 
 /**
@@ -357,6 +390,19 @@ export const awardProfileFieldPoints = async (
 
     if (error) {
       throw error;
+    }
+
+    // The activity row alone does not move players.total_points, which is what
+    // the dashboard and leaderboard read. Credit the score, and drop the
+    // activity again on failure so the award can be retried.
+    const { error: creditError } = await supabase.rpc(
+      'increment_player_points',
+      { p_wallet_address: walletAddress, p_points: points }
+    );
+
+    if (creditError) {
+      await supabase.from('points_activities').delete().eq('id', data.id);
+      throw creditError;
     }
 
     return { success: true, activity: data };

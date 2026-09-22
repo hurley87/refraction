@@ -1,4 +1,8 @@
 import type { UserProfile } from '@/lib/types';
+import {
+  readLocalStorageItem,
+  writeLocalStorageItem,
+} from '@/lib/map/map-storage';
 
 export const PROFILE_COMPLETION_FIELDS = [
   'profile_picture_url',
@@ -88,7 +92,7 @@ export function withProfilePointsToast(
 
 export function pointsAwardedFromProfileResponse(
   body: unknown
-): Array<{ points: number }> {
+): Array<{ field?: string; points: number }> {
   if (!body || typeof body !== 'object') return [];
   const payload =
     'data' in body && (body as { data?: unknown }).data != null
@@ -97,10 +101,67 @@ export function pointsAwardedFromProfileResponse(
   if (!payload || typeof payload !== 'object') return [];
   const awards = (payload as { pointsAwarded?: unknown }).pointsAwarded;
   if (!Array.isArray(awards)) return [];
-  return awards.filter(
-    (award): award is { points: number } =>
-      typeof award === 'object' &&
-      award !== null &&
-      typeof (award as { points?: unknown }).points === 'number'
+  return awards.flatMap((award) => {
+    if (
+      typeof award !== 'object' ||
+      award === null ||
+      typeof (award as { points?: unknown }).points !== 'number'
+    ) {
+      return [];
+    }
+    const field = (award as { field?: unknown }).field;
+    return [
+      {
+        points: (award as { points: number }).points,
+        ...(typeof field === 'string' ? { field } : {}),
+      },
+    ];
+  });
+}
+
+/** Shown once after the 1,000-point profile completion bonus is granted. */
+export const PROFILE_COMPLETE_REWARDS_TIP_STORAGE_KEY =
+  'irl-profile-complete-rewards-tip-seen-v2';
+
+export function getProfileCompleteRewardsTipStorageKey(
+  wallet?: string | null
+): string {
+  const normalized = wallet?.trim().toLowerCase();
+  return normalized
+    ? `${PROFILE_COMPLETE_REWARDS_TIP_STORAGE_KEY}:${normalized}`
+    : PROFILE_COMPLETE_REWARDS_TIP_STORAGE_KEY;
+}
+
+export function hasSeenProfileCompleteRewardsTip(
+  wallet?: string | null
+): boolean {
+  return (
+    readLocalStorageItem(getProfileCompleteRewardsTipStorageKey(wallet)) === '1'
   );
+}
+
+export function markProfileCompleteRewardsTipSeen(
+  wallet?: string | null
+): void {
+  writeLocalStorageItem(getProfileCompleteRewardsTipStorageKey(wallet), '1');
+}
+
+export function clearProfileCompleteRewardsTipSeen(
+  wallet?: string | null
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(
+      getProfileCompleteRewardsTipStorageKey(wallet)
+    );
+  } catch {
+    // Storage may be blocked.
+  }
+}
+
+/** True when a profile PUT response just granted the completion bonus. */
+export function didAwardProfileCompletionBonus(
+  awards?: Array<{ field?: string; points?: number }> | null
+): boolean {
+  return (awards ?? []).some((award) => award.field === 'profile_complete');
 }

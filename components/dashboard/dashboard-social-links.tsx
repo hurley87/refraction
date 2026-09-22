@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { getSocialUrl } from '@/lib/utils/social-links';
 import EditSocialsModal from '@/components/dashboard/edit-socials-modal';
@@ -9,6 +10,10 @@ import { MapYellowTip } from '@/components/map/map-yellow-tip';
 import {
   getMissingProfileCompletionLabels,
   getProfileCompletionCount,
+  clearProfileCompleteRewardsTipSeen,
+  hasSeenProfileCompleteRewardsTip,
+  isProfileComplete,
+  markProfileCompleteRewardsTipSeen,
   PROFILE_COMPLETION_FIELDS,
 } from '@/lib/profile-completion';
 
@@ -65,6 +70,25 @@ export default function DashboardSocialLinks({
   profile,
 }: DashboardSocialLinksProps) {
   const [editSocialsOpen, setEditSocialsOpen] = useState(false);
+  const [showCompleteRewardsTip, setShowCompleteRewardsTip] = useState(false);
+
+  useEffect(() => {
+    if (!profile?.wallet_address) {
+      setShowCompleteRewardsTip(false);
+      return;
+    }
+    const complete =
+      Boolean(profile.profile_completion_awarded) || isProfileComplete(profile);
+    if (!complete) {
+      // Allow the tip to show again after an admin/dev reset of completion fields.
+      clearProfileCompleteRewardsTipSeen(profile.wallet_address);
+      setShowCompleteRewardsTip(false);
+      return;
+    }
+    setShowCompleteRewardsTip(
+      !hasSeenProfileCompleteRewardsTip(profile.wallet_address)
+    );
+  }, [profile, profile?.profile_completion_awarded, profile?.wallet_address]);
 
   if (!profile) return null;
 
@@ -81,10 +105,15 @@ export default function DashboardSocialLinks({
 
   const completedFields = getProfileCompletionCount(profile);
   const missingFields = getMissingProfileCompletionLabels(profile);
-  // Once the 1,000 points are earned the tip stays gone, even if a field is later cleared.
-  const showCompletionTip =
-    !profile.profile_completion_awarded &&
-    completedFields < PROFILE_COMPLETION_FIELDS.length;
+  const profileComplete =
+    Boolean(profile.profile_completion_awarded) || isProfileComplete(profile);
+  const showIncompleteTip =
+    !profile.profile_completion_awarded && !profileComplete;
+
+  const dismissCompleteRewardsTip = () => {
+    markProfileCompleteRewardsTipSeen(profile.wallet_address);
+    setShowCompleteRewardsTip(false);
+  };
 
   return (
     <div className="flex w-full flex-col items-start gap-3 self-stretch">
@@ -113,7 +142,7 @@ export default function DashboardSocialLinks({
         </div>
       )}
 
-      {showCompletionTip && (
+      {showIncompleteTip && (
         <MapYellowTip
           pointer="bottom"
           pointerAlign="end"
@@ -128,6 +157,28 @@ export default function DashboardSocialLinks({
               <li key={label}>{label}</li>
             ))}
           </ul>
+        </MapYellowTip>
+      )}
+
+      {showCompleteRewardsTip && (
+        <MapYellowTip
+          pointer="bottom"
+          pointerAlign="end"
+          className="w-full max-w-[280px] self-end"
+          onDismiss={dismissCompleteRewardsTip}
+        >
+          <p>Profile complete! You earned 1000 points.</p>
+          <p className="mt-2">
+            Free drinks, secret guest list and hotel discounts are waiting for
+            you…
+          </p>
+          <Link
+            href="/rewards"
+            className="mt-3 inline-block uppercase underline underline-offset-2"
+            onClick={dismissCompleteRewardsTip}
+          >
+            GO TO REWARDS
+          </Link>
         </MapYellowTip>
       )}
 

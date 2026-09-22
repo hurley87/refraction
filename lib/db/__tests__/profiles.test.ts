@@ -4,9 +4,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockFrom = vi.fn((): any => ({}));
 
+const mockRpc = vi.fn().mockResolvedValue({ data: 100, error: null });
+
 vi.mock('@/lib/db/client', () => ({
   supabase: {
     from: (table: string) => mockFrom(table),
+    rpc: (fn: string, args: unknown) => mockRpc(fn, args),
   },
 }));
 
@@ -15,6 +18,8 @@ import {
   getUserProfile,
   updateUserProfile,
   awardProfileFieldPoints,
+  ensureProfileCompletionAward,
+  hasProfileCompletionAward,
 } from '../profiles';
 
 describe('Profiles Database Module', () => {
@@ -48,6 +53,7 @@ describe('Profiles Database Module', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRpc.mockResolvedValue({ data: 100, error: null });
   });
 
   describe('getUserProfile', () => {
@@ -339,10 +345,61 @@ describe('Profiles Database Module', () => {
       const result = await awardProfileFieldPoints(
         '0x1234',
         'profile_field_twitter',
-        '@testuser'
+        '@testuser',
+        100
       );
 
       expect(result).toEqual({ success: true, activity: mockActivity });
+      expect(mockRpc).toHaveBeenCalledWith('increment_player_points', {
+        p_wallet_address: '0x1234',
+        p_points: 100,
+      });
+    });
+
+    it('should remove the activity when the player score cannot be credited', async () => {
+      const mockActivity = { id: 'activity-1' };
+      const creditError = { code: '42883', message: 'function missing' };
+      const deleteEq = vi.fn().mockResolvedValue({ error: null });
+
+      let callCount = 0;
+      mockFrom.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+                })),
+              })),
+            })),
+          };
+        }
+        if (callCount === 2) {
+          return {
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: mockActivity, error: null }),
+              })),
+            })),
+          };
+        }
+        return { delete: vi.fn(() => ({ eq: deleteEq })) };
+      });
+      mockRpc.mockResolvedValue({ data: null, error: creditError });
+
+      const result = await awardProfileFieldPoints(
+        '0x1234',
+        'profile_field_bio',
+        'A bio',
+        100
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toEqual(creditError);
+      expect(deleteEq).toHaveBeenCalledWith('id', 'activity-1');
     });
 
     it('should not award points when field was already rewarded', async () => {
@@ -408,6 +465,128 @@ describe('Profiles Database Module', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toEqual(insertError);
+    });
+  });
+
+  describe('hasProfileCompletionAward', () => {
+    it('matches profile_complete rows case-insensitively', async () => {
+      const limit = vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: '1',
+            user_wallet_address: '0xABCDEF1234567890ABCDEF1234567890ABCDEF12',
+          },
+        ],
+        error: null,
+      });
+      const ilike = vi.fn(() => ({ limit }));
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({ ilike })),
+        })),
+      });
+
+      await expect(
+        hasProfileCompletionAward('0xabcdef1234567890abcdef1234567890abcdef12')
+      ).resolves.toBe(true);
+      expect(ilike).toHaveBeenCalledWith(
+        'user_wallet_address',
+        '0xabcdef1234567890abcdef1234567890abcdef12'
+      );
+    });
+  });
+
+  describe('ensureProfileCompletionAward', () => {
+    const completeProfile = {
+      profile_picture_url: 'https://example.com/a.jpg',
+      name: 'Alex',
+      bio: 'Bio',
+      instagram_handle: 'alex',
+      favorite_music_venue: {
+        place_id: 'p1',
+        name: 'Club',
+        address: '1 St',
+        latitude: 1,
+        longitude: 2,
+      },
+      favorite_gallery: {
+        place_id: 'p2',
+        name: 'Bar',
+        address: '2 St',
+        latitude: 1,
+        longitude: 2,
+      },
+      favorite_restaurant: {
+        place_id: 'p3',
+        name: 'Food',
+        address: '3 St',
+        latitude: 1,
+        longitude: 2,
+      },
+    };
+
+    it('returns false when the profile is incomplete and no award exists', async () => {
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            ilike: vi.fn(() => ({
+              limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+            })),
+          })),
+        })),
+      });
+
+      await expect(
+        ensureProfileCompletionAward('0x1234', { name: 'Alex' })
+      ).resolves.toBe(false);
+      expect(mockRpc).not.toHaveBeenCalled();
+    });
+
+    it('grants the completion bonus when the profile is complete but unawarded', async () => {
+      let callCount = 0;
+      mockFrom.mockImplementation(() => {
+        callCount++;
+        // hasProfileCompletionAward (first check) — empty
+        if (callCount === 1) {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                ilike: vi.fn(() => ({
+                  limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+                })),
+              })),
+            })),
+          };
+        }
+        // awardProfileFieldPoints existing-check — empty
+        if (callCount === 2) {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+                })),
+              })),
+            })),
+          };
+        }
+        // insert activity
+        return {
+          insert: vi.fn(() => ({
+            select: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'new', activity_type: 'profile_complete' },
+                error: null,
+              }),
+            })),
+          })),
+        };
+      });
+
+      await expect(
+        ensureProfileCompletionAward('0x1234', completeProfile)
+      ).resolves.toBe(true);
+      expect(mockRpc).toHaveBeenCalled();
     });
   });
 });
