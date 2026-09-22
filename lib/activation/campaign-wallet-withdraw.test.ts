@@ -4,8 +4,7 @@ const mockLoadActivationReservedUsdc = vi.fn();
 const mockFetchUsdcBalanceOnBase = vi.fn();
 const mockSubmitTreasuryUsdcTransfer = vi.fn();
 const mockWaitForTreasuryTxReceipt = vi.fn();
-const mockFetchSolanaSplTokenBalance = vi.fn();
-const mockFetchSolanaNativeBalance = vi.fn();
+const mockFetchSolanaCampaignWalletBalances = vi.fn();
 
 vi.mock('@/lib/db/sponsored-activation-admin', () => ({
   loadActivationReservedUsdc: (...a: unknown[]) =>
@@ -25,10 +24,9 @@ vi.mock('@/lib/walletconnect-poster-direct-usdc', async (importOriginal) => {
 });
 
 vi.mock('@/lib/activation/solana-campaign-wallet-balance', () => ({
-  fetchSolanaSplTokenBalance: (...a: unknown[]) =>
-    mockFetchSolanaSplTokenBalance(...a),
-  fetchSolanaNativeBalance: (...a: unknown[]) =>
-    mockFetchSolanaNativeBalance(...a),
+  fetchSolanaCampaignWalletBalances: (...a: unknown[]) =>
+    mockFetchSolanaCampaignWalletBalances(...a),
+  fetchSolanaSplTokenBalance: vi.fn(),
 }));
 
 vi.mock('@/lib/spend-treasury-usdc-transfer', () => ({
@@ -163,7 +161,7 @@ describe('campaign-wallet-withdraw (CADD / 18-decimal Base tokens)', () => {
     const pack =
       await loadSponsoredActivationCampaignWalletBalancePack(baseActivation());
     expect(pack).not.toHaveProperty('campaign_wallet_sol_balance');
-    expect(mockFetchSolanaNativeBalance).not.toHaveBeenCalled();
+    expect(mockFetchSolanaCampaignWalletBalances).not.toHaveBeenCalled();
   });
 });
 
@@ -189,21 +187,20 @@ describe('campaign-wallet-withdraw (Solana)', () => {
   });
 
   it('reads USDC (configured mint) and SOL balances of the campaign wallet', async () => {
-    mockFetchSolanaSplTokenBalance.mockResolvedValue(250.5);
-    mockFetchSolanaNativeBalance.mockResolvedValue(0.12);
+    mockFetchSolanaCampaignWalletBalances.mockResolvedValue({
+      usdcBalance: 250.5,
+      solBalance: 0.12,
+    });
 
     const pack =
       await loadSponsoredActivationCampaignWalletBalancePack(
         solanaActivation()
       );
 
-    expect(mockFetchSolanaSplTokenBalance).toHaveBeenCalledWith({
+    expect(mockFetchSolanaCampaignWalletBalances).toHaveBeenCalledWith({
       ownerAddress: SOLANA_CAMPAIGN,
       mint: SOLANA_USDC_MINT_BY_CLUSTER['mainnet-beta'],
       decimals: 6,
-    });
-    expect(mockFetchSolanaNativeBalance).toHaveBeenCalledWith({
-      ownerAddress: SOLANA_CAMPAIGN,
     });
     expect(mockFetchUsdcBalanceOnBase).not.toHaveBeenCalled();
     expect(pack).toEqual({
@@ -214,8 +211,9 @@ describe('campaign-wallet-withdraw (Solana)', () => {
   });
 
   it('returns null balances when the Solana RPC fails', async () => {
-    mockFetchSolanaSplTokenBalance.mockRejectedValue(new Error('rpc down'));
-    mockFetchSolanaNativeBalance.mockRejectedValue(new Error('rpc down'));
+    mockFetchSolanaCampaignWalletBalances.mockRejectedValue(
+      new Error('rpc down')
+    );
     const pack =
       await loadSponsoredActivationCampaignWalletBalancePack(
         solanaActivation()
@@ -225,7 +223,6 @@ describe('campaign-wallet-withdraw (Solana)', () => {
   });
 
   it('does not read a USDC balance for an unconfigured mint', async () => {
-    mockFetchSolanaNativeBalance.mockResolvedValue(1);
     const pack = await loadSponsoredActivationCampaignWalletBalancePack(
       baseActivation({
         ...solanaActivation(),
@@ -237,7 +234,7 @@ describe('campaign-wallet-withdraw (Solana)', () => {
       })
     );
     expect(pack.campaign_wallet_usdc_balance).toBeNull();
-    expect(mockFetchSolanaSplTokenBalance).not.toHaveBeenCalled();
+    expect(mockFetchSolanaCampaignWalletBalances).not.toHaveBeenCalled();
   });
 
   it('rejects withdrawals explicitly instead of routing to another rail', async () => {
@@ -250,7 +247,7 @@ describe('campaign-wallet-withdraw (Solana)', () => {
       error: 'Campaign wallet withdrawals are not yet supported on Solana.',
       statusCode: 400,
     });
-    expect(mockFetchSolanaSplTokenBalance).not.toHaveBeenCalled();
+    expect(mockFetchSolanaCampaignWalletBalances).not.toHaveBeenCalled();
     expect(mockSubmitTreasuryUsdcTransfer).not.toHaveBeenCalled();
   });
 });

@@ -12,9 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  describeSponsoredActivationPaymentTokenSymbol,
   isSponsoredActivationBaseTokenSymbol,
   SPONSORED_ACTIVATION_BASE_TOKENS,
 } from '@/lib/schemas/sponsored-activation-tokens';
+import { settlementRailSchema } from '@/lib/schemas/sponsored-activation';
 import type { SponsoredActivationFormState } from './form-state';
 
 export type SponsoredActivationFormPanelProps = {
@@ -56,9 +58,13 @@ export function SponsoredActivationFormPanel({
   if (isStellar) venuePlaceholder = 'G…';
   if (isSolana) venuePlaceholder = 'Solana address (base58)';
 
-  let budgetTokenSymbol = 'USDC';
-  if (isBase) budgetTokenSymbol = form.payment_token;
-  if (isTempo) budgetTokenSymbol = 'CADD';
+  let budgetSymbol = 'USDC';
+  if (isBase) budgetSymbol = form.payment_token;
+  if (isTempo) budgetSymbol = 'CADD';
+  const budgetTokenSymbol = describeSponsoredActivationPaymentTokenSymbol({
+    settlement_rail: form.settlement_rail,
+    usdc_asset_config: { symbol: budgetSymbol },
+  });
 
   const setField =
     <K extends keyof SponsoredActivationFormState>(key: K) =>
@@ -130,13 +136,9 @@ export function SponsoredActivationFormPanel({
             <Select
               value={form.settlement_rail}
               onValueChange={(v) => {
-                if (
-                  v === 'base' ||
-                  v === 'stellar' ||
-                  v === 'tempo' ||
-                  v === 'solana'
-                ) {
-                  setField('settlement_rail')(v);
+                const parsed = settlementRailSchema.safeParse(v);
+                if (parsed.success) {
+                  setField('settlement_rail')(parsed.data);
                 }
               }}
             >

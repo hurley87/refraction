@@ -26,6 +26,8 @@ import {
   describeSponsoredActivationPaymentTokenSymbol,
   resolveBaseTokenDecimals,
 } from '@/lib/schemas/sponsored-activation-tokens';
+import { SOLANA_RECOMMENDED_FEE_BALANCE_SOL } from '@/lib/activation/solana-config';
+import { SOLANA_WITHDRAW_UNSUPPORTED_ERROR } from '@/lib/activation/campaign-wallet-withdraw';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
@@ -56,9 +58,6 @@ type ActivationAdminRow = {
   campaign_wallet_reserved_usdc?: number;
   campaign_wallet_sol_balance?: number | null;
 };
-
-/** Covers many settlement fees plus rent for the venue's USDC token account. */
-const SOLANA_RECOMMENDED_FEE_BALANCE_SOL = 0.05;
 
 type RewardItemRow = {
   id: string;
@@ -894,8 +893,7 @@ export function ActivationLaunchPanel({
 
                     {isSolana ? (
                       <p className="mt-4 border-t border-neutral-100 pt-4 text-xs text-neutral-500 dark:border-neutral-800">
-                        Campaign wallet withdrawals are not yet available on
-                        Solana.
+                        {SOLANA_WITHDRAW_UNSUPPORTED_ERROR}
                       </p>
                     ) : (
                       <div className="mt-4 border-t border-neutral-100 pt-4 dark:border-neutral-800">

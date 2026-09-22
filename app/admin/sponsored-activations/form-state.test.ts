@@ -63,7 +63,6 @@ describe('formStateToCreatePayload', () => {
     const payload = formStateToCreatePayload(
       minimalBaseCreateForm({
         settlement_rail: 'solana',
-        payment_token: 'CADD',
         venue_settlement_wallet_address: `  ${venue}  `,
       })
     );

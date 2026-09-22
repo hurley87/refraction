@@ -79,9 +79,10 @@ export function resolveBaseTokenDecimals(contractAddress: string): number {
 }
 
 /**
- * Display symbol for a sponsored activation's settlement token (Base or
- * Stellar). Structural typing keeps this safe to import from client
- * components without pulling in `lib/db/sponsored-activations`.
+ * Display symbol for a sponsored activation's settlement token. Uses
+ * `usdc_asset_config` (symbol, contract, or Stellar asset code) per rail.
+ * Structural typing keeps this safe to import from client components without
+ * pulling in `lib/db/sponsored-activations`.
  */
 export function describeSponsoredActivationPaymentTokenSymbol(row: {
   settlement_rail: string;

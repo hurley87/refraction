@@ -1,4 +1,4 @@
-import { address, createSolanaRpc } from '@solana/kit';
+import { address, createSolanaRpc, type Rpc } from '@solana/kit';
 import {
   getSolanaRpcUrl,
   isSolanaAddress,
@@ -17,16 +17,21 @@ type ParsedTokenAccountData = {
  * Sums the owner's SPL token balance for `mint` across all its token accounts
  * (normally just the associated token account). Returns 0 when none exist.
  */
+function solanaRpc(rpcUrl?: string): Rpc {
+  return createSolanaRpc(rpcUrl ?? getSolanaRpcUrl());
+}
+
 export async function fetchSolanaSplTokenBalance(params: {
   ownerAddress: string;
   mint: string;
   decimals: number;
   rpcUrl?: string;
+  rpc?: Rpc;
 }): Promise<number> {
   if (!isSolanaAddress(params.ownerAddress) || !isSolanaAddress(params.mint)) {
     throw new Error('Invalid Solana owner or mint address');
   }
-  const rpc = createSolanaRpc(params.rpcUrl ?? getSolanaRpcUrl());
+  const rpc = params.rpc ?? solanaRpc(params.rpcUrl);
   const { value } = await rpc
     .getTokenAccountsByOwner(
       address(params.ownerAddress.trim()),
@@ -47,13 +52,29 @@ export async function fetchSolanaSplTokenBalance(params: {
 export async function fetchSolanaNativeBalance(params: {
   ownerAddress: string;
   rpcUrl?: string;
+  rpc?: Rpc;
 }): Promise<number> {
   if (!isSolanaAddress(params.ownerAddress)) {
     throw new Error('Invalid Solana owner address');
   }
-  const rpc = createSolanaRpc(params.rpcUrl ?? getSolanaRpcUrl());
+  const rpc = params.rpc ?? solanaRpc(params.rpcUrl);
   const { value } = await rpc
     .getBalance(address(params.ownerAddress.trim()))
     .send();
   return Number(value) / SOLANA_LAMPORTS_PER_SOL;
+}
+
+/** USDC + native SOL in one RPC session (one client, parallel reads). */
+export async function fetchSolanaCampaignWalletBalances(params: {
+  ownerAddress: string;
+  mint: string;
+  decimals: number;
+  rpcUrl?: string;
+}): Promise<{ usdcBalance: number; solBalance: number }> {
+  const rpc = solanaRpc(params.rpcUrl);
+  const [usdcBalance, solBalance] = await Promise.all([
+    fetchSolanaSplTokenBalance({ ...params, rpc }),
+    fetchSolanaNativeBalance({ ownerAddress: params.ownerAddress, rpc }),
+  ]);
+  return { usdcBalance, solBalance };
 }
