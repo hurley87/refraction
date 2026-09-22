@@ -8,8 +8,8 @@ import { getActivationRedemptionById } from '@/lib/db/activation-redemptions';
 import {
   confirmActivationSettlementAtomic,
   getActivationSettlementTransactionById,
-  markActivationSettlementSubmitted,
   recordActivationSettlementFailureAtomic,
+  updateActivationSettlementIfStatus,
   type ActivationSettlementTransactionRow,
 } from '@/lib/db/activation-settlement-transactions';
 import {
@@ -21,6 +21,7 @@ import {
   broadcastSolanaTransaction,
   buildSolanaCaddTransferTransaction,
   createSolanaSettlementConnection,
+  isSolanaTransactionExpired,
   pollSolanaSignatureOutcome,
   signSolanaCaddTransferWithPrivy,
   type SolanaSettlementConnection,
@@ -47,11 +48,28 @@ export const SOLANA_ACTIVATION_SETTLEMENT_ERROR_CODES = {
 const CODES = SOLANA_ACTIVATION_SETTLEMENT_ERROR_CODES;
 
 /**
- * A signature the cluster has never seen after this long can no longer land:
- * its blockhash is only valid for ~150 blocks (~1–2 minutes). Only then is it
- * safe to fail the attempt and let the retry path sign a new transfer.
+ * Solana rows have no Privy transaction id, so `privy_transaction_id` carries
+ * the submitted transaction's `lastValidBlockHeight`, written atomically with
+ * `queued → submitted` and cleared by the existing retry/reset RPCs.
  */
-export const SOLANA_SUBMITTED_SIGNATURE_EXPIRY_MS = 10 * 60_000;
+const SOLANA_SUBMISSION_METADATA_PREFIX = 'solana:last_valid_block_height:';
+
+export function encodeSolanaSubmissionMetadata(
+  lastValidBlockHeight: number
+): string {
+  return `${SOLANA_SUBMISSION_METADATA_PREFIX}${lastValidBlockHeight}`;
+}
+
+export function parseSolanaSubmissionLastValidBlockHeight(
+  value: string | null
+): number | null {
+  const raw = value?.trim();
+  if (!raw?.startsWith(SOLANA_SUBMISSION_METADATA_PREFIX)) return null;
+  const digits = raw.slice(SOLANA_SUBMISSION_METADATA_PREFIX.length);
+  if (!/^\d+$/.test(digits)) return null;
+  const height = Number(digits);
+  return Number.isSafeInteger(height) ? height : null;
+}
 
 const QUEUED_CONFIRM_POLL_ATTEMPTS = 5;
 const QUEUED_CONFIRM_POLL_INTERVAL_MS = 2_000;
@@ -76,7 +94,6 @@ export type SolanaSettlementWorkerOptions = {
   connection?: SolanaSettlementConnection;
   confirmPollAttempts?: number;
   confirmPollIntervalMs?: number;
-  now?: () => number;
 };
 
 function validateSettlementBundle(
@@ -154,11 +171,10 @@ async function recordSettlementFailure(
 async function confirmWithSignature(input: {
   settlementId: string;
   signature: string;
-  submittedAt: string | null;
+  lastValidBlockHeight: number | null;
   connection: SolanaSettlementConnection;
   pollAttempts: number;
   pollIntervalMs: number;
-  now: () => number;
 }): Promise<SolanaSettlementWorkerItemResult> {
   const outcome = await pollSolanaSignatureOutcome({
     connection: input.connection,
@@ -174,19 +190,23 @@ async function confirmWithSignature(input: {
     );
   }
   if (outcome === 'not_found') {
-    const submittedAtMs = input.submittedAt
-      ? Date.parse(input.submittedAt)
-      : NaN;
-    if (
-      Number.isFinite(submittedAtMs) &&
-      input.now() - submittedAtMs >= SOLANA_SUBMITTED_SIGNATURE_EXPIRY_MS
-    ) {
-      return recordSettlementFailure(
-        input.settlementId,
-        CODES.solana_tx_expired
+    if (input.lastValidBlockHeight === null) {
+      // Without the blockhash expiry height we cannot prove the transaction can
+      // never land, so it stays `submitted` rather than risk a second transfer.
+      console.warn(
+        'processSolanaActivationSettlement: missing lastValidBlockHeight; not retrying',
+        input.settlementId
       );
+      return 'skipped';
     }
-    return 'skipped';
+    const expired = await isSolanaTransactionExpired({
+      connection: input.connection,
+      signature: input.signature,
+      lastValidBlockHeight: input.lastValidBlockHeight,
+    });
+    return expired
+      ? recordSettlementFailure(input.settlementId, CODES.solana_tx_expired)
+      : 'skipped';
   }
   if (outcome === 'pending') {
     // Stay `submitted` with this signature; never re-sign or re-send here.
@@ -237,7 +257,6 @@ export async function processSolanaActivationSettlement(
     pollAttempts: options.confirmPollAttempts ?? QUEUED_CONFIRM_POLL_ATTEMPTS,
     pollIntervalMs:
       options.confirmPollIntervalMs ?? QUEUED_CONFIRM_POLL_INTERVAL_MS,
-    now: options.now ?? Date.now,
   };
 
   if (settlement.status === 'submitted') {
@@ -251,7 +270,9 @@ export async function processSolanaActivationSettlement(
     return confirmWithSignature({
       ...confirmInput,
       signature,
-      submittedAt: settlement.submitted_at,
+      lastValidBlockHeight: parseSolanaSubmissionLastValidBlockHeight(
+        settlement.privy_transaction_id
+      ),
       pollAttempts: 1,
     });
   }
@@ -295,11 +316,21 @@ export async function processSolanaActivationSettlement(
   });
   if (!signed.ok) return recordSettlementFailure(settlement.id, signed.reason);
 
-  // Persist the signature before broadcasting so a crash or ambiguous send can
-  // only ever be resolved by tracking this signature, never by a second transfer.
-  const markedSubmitted = await markActivationSettlementSubmitted({
+  // Persist the signature and its expiry height before broadcasting so a crash
+  // or ambiguous send can only be resolved by tracking this signature, never by
+  // a second transfer while the first could still land.
+  const markedSubmitted = await updateActivationSettlementIfStatus({
     settlementId: settlement.id,
-    txHash: signed.signature,
+    ifStatusIn: ['queued'],
+    patch: {
+      status: 'submitted',
+      tx_hash: signed.signature,
+      privy_transaction_id: encodeSolanaSubmissionMetadata(
+        built.lastValidBlockHeight
+      ),
+      submitted_at: new Date().toISOString(),
+      submission_attempt: settlement.submission_attempt + 1,
+    },
   });
   if (!markedSubmitted) {
     console.warn(
@@ -336,7 +367,7 @@ export async function processSolanaActivationSettlement(
   return confirmWithSignature({
     ...confirmInput,
     signature: signed.signature,
-    submittedAt: null,
+    lastValidBlockHeight: built.lastValidBlockHeight,
   });
 }
 

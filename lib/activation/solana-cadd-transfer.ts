@@ -43,6 +43,7 @@ export type SolanaSettlementConnection = Pick<
   | 'getLatestBlockhash'
   | 'sendRawTransaction'
   | 'getSignatureStatuses'
+  | 'getBlockHeight'
 >;
 
 export function createSolanaSettlementConnection(): SolanaSettlementConnection {
@@ -106,6 +107,8 @@ export type BuildSolanaCaddTransferResult =
   | {
       ok: true;
       transaction: Transaction;
+      /** Last block height at which the transaction's blockhash is still valid. */
+      lastValidBlockHeight: number;
       amountBaseUnits: bigint;
       tokenProgramId: PublicKey;
       sourceTokenAccount: PublicKey;
@@ -226,6 +229,7 @@ export async function buildSolanaCaddTransferTransaction(params: {
   return {
     ok: true,
     transaction,
+    lastValidBlockHeight,
     amountBaseUnits,
     tokenProgramId,
     sourceTokenAccount,
@@ -335,6 +339,27 @@ export async function getSolanaSignatureOutcome(params: {
   if (!status) return 'not_found';
   if (status.confirmationStatus !== 'finalized') return 'pending';
   return status.err ? 'failed' : 'success';
+}
+
+/**
+ * True only when the transaction can never land: the finalized block height is
+ * past its `lastValidBlockHeight` and the signature is still unknown. Height is
+ * read before the status re-check so every block that could contain the
+ * transaction is already finalized when the status is read. RPC errors → false.
+ */
+export async function isSolanaTransactionExpired(params: {
+  connection: SolanaSettlementConnection;
+  signature: string;
+  lastValidBlockHeight: number;
+}): Promise<boolean> {
+  try {
+    const finalizedHeight = await params.connection.getBlockHeight('finalized');
+    if (finalizedHeight <= params.lastValidBlockHeight) return false;
+    return (await getSolanaSignatureOutcome(params)) === 'not_found';
+  } catch (error) {
+    console.warn('isSolanaTransactionExpired:', params.signature, error);
+    return false;
+  }
 }
 
 /** Polls until finalized or attempts run out; RPC errors count as `pending`. */

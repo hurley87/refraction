@@ -29,6 +29,7 @@ import {
   buildSolanaCaddTransferTransaction,
   caddAmountToBaseUnits,
   getSolanaSignatureOutcome,
+  isSolanaTransactionExpired,
   signSolanaCaddTransferWithPrivy,
   type SolanaSettlementConnection,
 } from './solana-cadd-transfer';
@@ -122,6 +123,7 @@ function fakeConnection(input: {
     })),
     sendRawTransaction: vi.fn(),
     getSignatureStatuses: vi.fn(),
+    getBlockHeight: vi.fn(),
   } as unknown as SolanaSettlementConnection;
 }
 
@@ -175,6 +177,7 @@ describe('buildSolanaCaddTransferTransaction', () => {
     const { transaction } = built;
     expect(transaction.feePayer?.equals(CAMPAIGN)).toBe(true);
     expect(transaction.recentBlockhash).toBe(BLOCKHASH);
+    expect(built.lastValidBlockHeight).toBe(1_000);
     expect(transaction.instructions).toHaveLength(2);
 
     const venueAta = getAssociatedTokenAddressSync(
@@ -437,6 +440,63 @@ describe('broadcastSolanaTransaction', () => {
         serializedTransaction: new Uint8Array(),
       })
     ).resolves.toMatchObject({ status: 'unknown' });
+  });
+});
+
+describe('isSolanaTransactionExpired', () => {
+  function connectionWith(height: number, status: unknown) {
+    const connection = fakeConnection({ decimals: 9 });
+    vi.mocked(connection.getBlockHeight).mockResolvedValue(height);
+    vi.mocked(connection.getSignatureStatuses).mockResolvedValue({
+      context: { slot: 1 },
+      value: [status as never],
+    });
+    return connection;
+  }
+
+  it('is false until the finalized block height exceeds lastValidBlockHeight', async () => {
+    const connection = connectionWith(1_000, null);
+    await expect(
+      isSolanaTransactionExpired({
+        connection,
+        signature: 'sig',
+        lastValidBlockHeight: 1_000,
+      })
+    ).resolves.toBe(false);
+    expect(connection.getBlockHeight).toHaveBeenCalledWith('finalized');
+    expect(connection.getSignatureStatuses).not.toHaveBeenCalled();
+  });
+
+  it('is true past lastValidBlockHeight only if the signature is still unknown', async () => {
+    await expect(
+      isSolanaTransactionExpired({
+        connection: connectionWith(1_001, null),
+        signature: 'sig',
+        lastValidBlockHeight: 1_000,
+      })
+    ).resolves.toBe(true);
+    await expect(
+      isSolanaTransactionExpired({
+        connection: connectionWith(1_001, {
+          confirmationStatus: 'processed',
+          err: null,
+        }),
+        signature: 'sig',
+        lastValidBlockHeight: 1_000,
+      })
+    ).resolves.toBe(false);
+  });
+
+  it('is false when the RPC fails', async () => {
+    const connection = fakeConnection({ decimals: 9 });
+    vi.mocked(connection.getBlockHeight).mockRejectedValue(new Error('down'));
+    await expect(
+      isSolanaTransactionExpired({
+        connection,
+        signature: 'sig',
+        lastValidBlockHeight: 1,
+      })
+    ).resolves.toBe(false);
   });
 });
 

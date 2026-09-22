@@ -29,7 +29,7 @@ const CADD_DECIMALS = 4;
 const mockGetActivation = vi.fn();
 const mockGetRedemptionById = vi.fn();
 const mockGetSettlementById = vi.fn();
-const mockMarkSubmitted = vi.fn();
+const mockUpdateIfStatus = vi.fn();
 const mockConfirm = vi.fn();
 const mockRecord = vi.fn();
 const mockGetWallet = vi.fn();
@@ -59,8 +59,8 @@ vi.mock('@/lib/db/activation-settlement-transactions', () => ({
   confirmActivationSettlementAtomic: (...a: unknown[]) => mockConfirm(...a),
   recordActivationSettlementFailureAtomic: (...a: unknown[]) =>
     mockRecord(...a),
-  markActivationSettlementSubmitted: (...a: unknown[]) =>
-    mockMarkSubmitted(...a),
+  updateActivationSettlementIfStatus: (...a: unknown[]) =>
+    mockUpdateIfStatus(...a),
   getActivationSettlementTransactionById: (...a: unknown[]) =>
     mockGetSettlementById(...a),
 }));
@@ -77,7 +77,8 @@ vi.mock('@/lib/api/privy', () => ({
 import {
   processSolanaActivationSettlement,
   runSolanaSettlementWorkerBatch,
-  SOLANA_SUBMITTED_SIGNATURE_EXPIRY_MS,
+  encodeSolanaSubmissionMetadata,
+  parseSolanaSubmissionLastValidBlockHeight,
 } from './solana-settlement-worker';
 
 const activationFixture: SponsoredActivationRow = {
@@ -218,6 +219,7 @@ function fakeConnection(
       statusIndex += 1;
       return { context: { slot: 1 }, value: [status] };
     }),
+    getBlockHeight: vi.fn(async () => 900),
   };
   return connection as typeof connection & SolanaSettlementConnection;
 }
@@ -241,7 +243,10 @@ describe('processSolanaActivationSettlement', () => {
     mockGetSettlementById.mockImplementation(async (id: string) =>
       settlementRow({ id, status: 'submitted' })
     );
-    mockMarkSubmitted.mockResolvedValue(true);
+    mockUpdateIfStatus.mockImplementation(
+      async (input: { patch: Partial<ActivationSettlementTransactionRow> }) =>
+        settlementRow(input.patch)
+    );
     mockConfirm.mockResolvedValue('confirmed');
     mockRecord.mockResolvedValue('retry_scheduled');
     mockGetWallet.mockResolvedValue({ address: CAMPAIGN });
@@ -280,12 +285,21 @@ describe('processSolanaActivationSettlement', () => {
     const sent = Transaction.from(
       connection.sendRawTransaction.mock.calls[0][0]
     );
-    const signature = mockMarkSubmitted.mock.calls[0][0].txHash as string;
-    expect(mockMarkSubmitted).toHaveBeenCalledWith({
+    const signature = mockUpdateIfStatus.mock.calls[0][0].patch
+      .tx_hash as string;
+    expect(signature).toMatch(/^[1-9A-HJ-NP-Za-km-z]{64,88}$/);
+    expect(mockUpdateIfStatus).toHaveBeenCalledWith({
       settlementId: 'set-1',
-      txHash: signature,
+      ifStatusIn: ['queued'],
+      patch: {
+        status: 'submitted',
+        tx_hash: signature,
+        privy_transaction_id: 'solana:last_valid_block_height:1000',
+        submitted_at: expect.any(String),
+        submission_attempt: 1,
+      },
     });
-    expect(mockMarkSubmitted.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(mockUpdateIfStatus.mock.invocationCallOrder[0]).toBeLessThan(
       connection.sendRawTransaction.mock.invocationCallOrder[0]
     );
     expect(mockConfirm).toHaveBeenCalledWith({
@@ -330,7 +344,7 @@ describe('processSolanaActivationSettlement', () => {
     });
 
     expect(result).toBe('skipped');
-    expect(mockMarkSubmitted).toHaveBeenCalledTimes(1);
+    expect(mockUpdateIfStatus).toHaveBeenCalledTimes(1);
     expect(connection.sendRawTransaction).toHaveBeenCalledTimes(1);
     expect(mockConfirm).not.toHaveBeenCalled();
     expect(mockRecord).not.toHaveBeenCalled();
@@ -357,7 +371,7 @@ describe('processSolanaActivationSettlement', () => {
     );
     expect(mockSignTransaction).not.toHaveBeenCalled();
     expect(connection.sendRawTransaction).not.toHaveBeenCalled();
-    expect(mockMarkSubmitted).not.toHaveBeenCalled();
+    expect(mockUpdateIfStatus).not.toHaveBeenCalled();
     expect(mockConfirm).not.toHaveBeenCalled();
     expect(mockRecord).not.toHaveBeenCalled();
   });
@@ -399,31 +413,99 @@ describe('processSolanaActivationSettlement', () => {
     expect(mockConfirm).not.toHaveBeenCalled();
   });
 
-  it('submitted + unseen signature: waits until the blockhash window has passed before failing', async () => {
-    const submittedAt = '2026-01-01T00:00:00.000Z';
-    const row = settlementRow({
+  describe('submitted + unseen signature', () => {
+    const unseenRow = settlementRow({
       status: 'submitted',
       tx_hash: 'sig-on-record',
-      submitted_at: submittedAt,
+      // Wall-clock age must not matter; only block height does.
+      submitted_at: '2020-01-01T00:00:00.000Z',
+      privy_transaction_id: encodeSolanaSubmissionMetadata(1_000),
     });
-    const recent = await processSolanaActivationSettlement(row, {
-      ...fastOptions,
-      connection: fakeConnection([null]),
-      now: () => Date.parse(submittedAt) + 60_000,
-    });
-    expect(recent).toBe('skipped');
-    expect(mockRecord).not.toHaveBeenCalled();
 
-    const expired = await processSolanaActivationSettlement(row, {
-      ...fastOptions,
-      connection: fakeConnection([null]),
-      now: () => Date.parse(submittedAt) + SOLANA_SUBMITTED_SIGNATURE_EXPIRY_MS,
+    it('stays submitted while finalized block height has not passed lastValidBlockHeight', async () => {
+      const connection = fakeConnection([null]);
+      connection.getBlockHeight.mockResolvedValue(1_000);
+      const result = await processSolanaActivationSettlement(unseenRow, {
+        ...fastOptions,
+        connection,
+      });
+      expect(result).toBe('skipped');
+      expect(connection.getBlockHeight).toHaveBeenCalledWith('finalized');
+      expect(mockRecord).not.toHaveBeenCalled();
     });
-    expect(expired).toBe('retry_scheduled');
-    expect(mockRecord).toHaveBeenCalledWith({
-      settlementId: 'set-1',
-      lastErrorCode: 'solana_tx_expired',
+
+    it('fails as expired only after finalized height passes lastValidBlockHeight and a re-check still misses it', async () => {
+      const connection = fakeConnection([null]);
+      connection.getBlockHeight.mockResolvedValue(1_001);
+      const result = await processSolanaActivationSettlement(unseenRow, {
+        ...fastOptions,
+        connection,
+      });
+      expect(result).toBe('retry_scheduled');
+      expect(mockRecord).toHaveBeenCalledWith({
+        settlementId: 'set-1',
+        lastErrorCode: 'solana_tx_expired',
+      });
+      expect(connection.getSignatureStatuses).toHaveBeenCalledTimes(2);
+      expect(
+        connection.getBlockHeight.mock.invocationCallOrder[0]
+      ).toBeLessThan(
+        connection.getSignatureStatuses.mock.invocationCallOrder[1]
+      );
+      expect(connection.sendRawTransaction).not.toHaveBeenCalled();
     });
+
+    it('does not fail when the re-check after the height read finds the signature', async () => {
+      const connection = fakeConnection([
+        null,
+        { confirmationStatus: 'confirmed', err: null },
+      ]);
+      connection.getBlockHeight.mockResolvedValue(5_000);
+      const result = await processSolanaActivationSettlement(unseenRow, {
+        ...fastOptions,
+        connection,
+      });
+      expect(result).toBe('skipped');
+      expect(mockRecord).not.toHaveBeenCalled();
+    });
+
+    it('never retries without a persisted lastValidBlockHeight', async () => {
+      const connection = fakeConnection([null]);
+      connection.getBlockHeight.mockResolvedValue(10 ** 9);
+      const result = await processSolanaActivationSettlement(
+        { ...unseenRow, privy_transaction_id: null },
+        { ...fastOptions, connection }
+      );
+      expect(result).toBe('skipped');
+      expect(connection.getBlockHeight).not.toHaveBeenCalled();
+      expect(mockRecord).not.toHaveBeenCalled();
+    });
+
+    it('stays submitted when the block height read fails', async () => {
+      const connection = fakeConnection([null]);
+      connection.getBlockHeight.mockRejectedValue(new Error('rpc down'));
+      const result = await processSolanaActivationSettlement(unseenRow, {
+        ...fastOptions,
+        connection,
+      });
+      expect(result).toBe('skipped');
+      expect(mockRecord).not.toHaveBeenCalled();
+    });
+  });
+
+  it('parses only well-formed Solana submission metadata', () => {
+    expect(
+      parseSolanaSubmissionLastValidBlockHeight(
+        encodeSolanaSubmissionMetadata(123_456)
+      )
+    ).toBe(123_456);
+    expect(parseSolanaSubmissionLastValidBlockHeight(null)).toBeNull();
+    expect(parseSolanaSubmissionLastValidBlockHeight('privy-tx-1')).toBeNull();
+    expect(
+      parseSolanaSubmissionLastValidBlockHeight(
+        'solana:last_valid_block_height:-1'
+      )
+    ).toBeNull();
   });
 
   it('submitted + RPC error: stays submitted', async () => {
@@ -454,7 +536,7 @@ describe('processSolanaActivationSettlement', () => {
       settlementId: 'set-1',
       lastErrorCode: 'privy_sign_failed',
     });
-    expect(mockMarkSubmitted).not.toHaveBeenCalled();
+    expect(mockUpdateIfStatus).not.toHaveBeenCalled();
     expect(connection.sendRawTransaction).not.toHaveBeenCalled();
   });
 
@@ -484,7 +566,7 @@ describe('processSolanaActivationSettlement', () => {
     });
 
     expect(result).toBe('retry_scheduled');
-    expect(mockMarkSubmitted).toHaveBeenCalledTimes(1);
+    expect(mockUpdateIfStatus).toHaveBeenCalledTimes(1);
     expect(mockRecord).toHaveBeenCalledWith({
       settlementId: 'set-1',
       lastErrorCode: 'solana_broadcast_rejected',
@@ -507,7 +589,7 @@ describe('processSolanaActivationSettlement', () => {
   });
 
   it('does not broadcast when another worker already moved the row out of queued', async () => {
-    mockMarkSubmitted.mockResolvedValue(false);
+    mockUpdateIfStatus.mockResolvedValue(null);
     const connection = fakeConnection();
     const result = await processSolanaActivationSettlement(settlementRow(), {
       ...fastOptions,
