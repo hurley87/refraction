@@ -224,8 +224,6 @@ function fakeConnection(
   return connection as typeof connection & SolanaSettlementConnection;
 }
 
-const fastOptions = { confirmPollAttempts: 3, confirmPollIntervalMs: 0 };
-
 describe('processSolanaActivationSettlement', () => {
   const envMint = process.env.SPONSORED_ACTIVATION_SOLANA_CADD_MINT;
 
@@ -271,7 +269,6 @@ describe('processSolanaActivationSettlement', () => {
   it('queued: transfers CADD with the persisted mint/decimals and confirms atomically', async () => {
     const connection = fakeConnection();
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection,
     });
 
@@ -333,22 +330,35 @@ describe('processSolanaActivationSettlement', () => {
     expect(transfer.keys[2].pubkey.equals(venueAta)).toBe(true);
   });
 
-  it('queued: leaves the row submitted when the signature is not yet finalized', async () => {
-    const connection = fakeConnection([
-      null,
+  it.each([
+    ['not yet visible', null],
+    [
+      'confirmed but not finalized',
       { confirmationStatus: 'confirmed', err: null },
-    ]);
-    const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
-      connection,
-    });
+    ],
+  ] as const)(
+    'queued: makes one status check and leaves the row submitted when %s',
+    async (_label, status) => {
+      vi.useFakeTimers();
+      try {
+        const connection = fakeConnection([status]);
+        const result = await processSolanaActivationSettlement(
+          settlementRow(),
+          { connection }
+        );
 
-    expect(result).toBe('skipped');
-    expect(mockUpdateIfStatus).toHaveBeenCalledTimes(1);
-    expect(connection.sendRawTransaction).toHaveBeenCalledTimes(1);
-    expect(mockConfirm).not.toHaveBeenCalled();
-    expect(mockRecord).not.toHaveBeenCalled();
-  });
+        expect(result).toBe('skipped');
+        expect(vi.getTimerCount()).toBe(0);
+        expect(connection.getSignatureStatuses).toHaveBeenCalledTimes(1);
+        expect(mockUpdateIfStatus).toHaveBeenCalledTimes(1);
+        expect(connection.sendRawTransaction).toHaveBeenCalledTimes(1);
+        expect(mockConfirm).not.toHaveBeenCalled();
+        expect(mockRecord).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    }
+  );
 
   it('submitted + pending: only checks the signature and never sends again', async () => {
     const connection = fakeConnection([
@@ -360,7 +370,7 @@ describe('processSolanaActivationSettlement', () => {
         tx_hash: 'sig-on-record',
         submitted_at: new Date().toISOString(),
       }),
-      { ...fastOptions, connection }
+      { connection }
     );
 
     expect(result).toBe('skipped');
@@ -384,7 +394,7 @@ describe('processSolanaActivationSettlement', () => {
         tx_hash: 'sig-on-record',
         submitted_at: new Date().toISOString(),
       }),
-      { ...fastOptions, connection }
+      { connection }
     );
 
     expect(result).toBe('confirmed');
@@ -402,7 +412,7 @@ describe('processSolanaActivationSettlement', () => {
     ]);
     const result = await processSolanaActivationSettlement(
       settlementRow({ status: 'submitted', tx_hash: 'sig-on-record' }),
-      { ...fastOptions, connection }
+      { connection }
     );
 
     expect(result).toBe('retry_scheduled');
@@ -426,7 +436,6 @@ describe('processSolanaActivationSettlement', () => {
       const connection = fakeConnection([null]);
       connection.getBlockHeight.mockResolvedValue(1_000);
       const result = await processSolanaActivationSettlement(unseenRow, {
-        ...fastOptions,
         connection,
       });
       expect(result).toBe('skipped');
@@ -438,7 +447,6 @@ describe('processSolanaActivationSettlement', () => {
       const connection = fakeConnection([null]);
       connection.getBlockHeight.mockResolvedValue(1_001);
       const result = await processSolanaActivationSettlement(unseenRow, {
-        ...fastOptions,
         connection,
       });
       expect(result).toBe('retry_scheduled');
@@ -462,7 +470,6 @@ describe('processSolanaActivationSettlement', () => {
       ]);
       connection.getBlockHeight.mockResolvedValue(5_000);
       const result = await processSolanaActivationSettlement(unseenRow, {
-        ...fastOptions,
         connection,
       });
       expect(result).toBe('skipped');
@@ -474,7 +481,7 @@ describe('processSolanaActivationSettlement', () => {
       connection.getBlockHeight.mockResolvedValue(10 ** 9);
       const result = await processSolanaActivationSettlement(
         { ...unseenRow, privy_transaction_id: null },
-        { ...fastOptions, connection }
+        { connection }
       );
       expect(result).toBe('skipped');
       expect(connection.getBlockHeight).not.toHaveBeenCalled();
@@ -485,7 +492,6 @@ describe('processSolanaActivationSettlement', () => {
       const connection = fakeConnection([null]);
       connection.getBlockHeight.mockRejectedValue(new Error('rpc down'));
       const result = await processSolanaActivationSettlement(unseenRow, {
-        ...fastOptions,
         connection,
       });
       expect(result).toBe('skipped');
@@ -517,7 +523,7 @@ describe('processSolanaActivationSettlement', () => {
         tx_hash: 'sig-on-record',
         submitted_at: '2020-01-01T00:00:00.000Z',
       }),
-      { ...fastOptions, connection }
+      { connection }
     );
     expect(result).toBe('skipped');
     expect(mockRecord).not.toHaveBeenCalled();
@@ -527,7 +533,6 @@ describe('processSolanaActivationSettlement', () => {
     mockSignTransaction.mockRejectedValue(new Error('privy 500'));
     const connection = fakeConnection();
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection,
     });
 
@@ -544,7 +549,6 @@ describe('processSolanaActivationSettlement', () => {
     mockSignTransaction.mockRejectedValue(new Error('privy 500'));
     mockRecord.mockResolvedValue('exhausted');
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection: fakeConnection(),
     });
     expect(result).toBe('failed');
@@ -561,7 +565,6 @@ describe('processSolanaActivationSettlement', () => {
       })
     );
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection,
     });
 
@@ -579,7 +582,6 @@ describe('processSolanaActivationSettlement', () => {
       new TypeError('fetch failed')
     );
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection,
     });
 
@@ -592,7 +594,6 @@ describe('processSolanaActivationSettlement', () => {
     mockUpdateIfStatus.mockResolvedValue(null);
     const connection = fakeConnection();
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection,
     });
 
@@ -614,7 +615,7 @@ describe('processSolanaActivationSettlement', () => {
       const connection = fakeConnection();
       const result = await processSolanaActivationSettlement(
         settlementRow(overrides),
-        { ...fastOptions, connection }
+        { connection }
       );
       expect(result).toBe('retry_scheduled');
       expect(mockRecord).toHaveBeenCalledWith({
@@ -632,7 +633,6 @@ describe('processSolanaActivationSettlement', () => {
       settlement_rail: 'stellar',
     });
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection: fakeConnection(),
     });
     expect(result).toBe('retry_scheduled');
@@ -648,7 +648,6 @@ describe('processSolanaActivationSettlement', () => {
       usdc_asset_config: { mint: CADD_MINT, decimals: 6, symbol: 'USDC' },
     });
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection: fakeConnection(),
     });
     expect(mockRecord).toHaveBeenCalledWith({
@@ -665,7 +664,6 @@ describe('processSolanaActivationSettlement', () => {
     });
     const connection = fakeConnection();
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection,
     });
     expect(result).toBe('retry_scheduled');
@@ -685,7 +683,6 @@ describe('processSolanaActivationSettlement', () => {
       status: 'settlement_failed',
     });
     const result = await processSolanaActivationSettlement(settlementRow(), {
-      ...fastOptions,
       connection: fakeConnection(),
     });
     expect(result).toBe('retry_scheduled');
@@ -699,7 +696,7 @@ describe('processSolanaActivationSettlement', () => {
   it('fails a submitted row with no signature on record', async () => {
     const result = await processSolanaActivationSettlement(
       settlementRow({ status: 'submitted', tx_hash: null }),
-      { ...fastOptions, connection: fakeConnection() }
+      { connection: fakeConnection() }
     );
     expect(result).toBe('retry_scheduled');
     expect(mockRecord).toHaveBeenCalledWith({
@@ -725,7 +722,7 @@ describe('runSolanaSettlementWorkerBatch', () => {
         settlementRow({ id: 'b', settlement_rail: 'stellar' }),
         settlementRow({ id: 'c', status: 'submitted', tx_hash: null }),
       ],
-      { ...fastOptions, connection }
+      { connection }
     );
     expect(summary).toEqual({
       processed: 2,
@@ -743,7 +740,7 @@ describe('runSolanaSettlementWorkerBatch', () => {
     );
     const summary = await runSolanaSettlementWorkerBatch(
       [settlementRow({ status: 'submitted', tx_hash: 'sig-a' })],
-      { ...fastOptions, connection: fakeConnection() }
+      { connection: fakeConnection() }
     );
     expect(summary.skipped).toBe(1);
     expect(mockRecord).not.toHaveBeenCalled();
@@ -753,7 +750,6 @@ describe('runSolanaSettlementWorkerBatch', () => {
     mockGetActivation.mockRejectedValue(new Error('db down'));
     mockGetSettlementById.mockResolvedValue(settlementRow());
     const summary = await runSolanaSettlementWorkerBatch([settlementRow()], {
-      ...fastOptions,
       connection: fakeConnection(),
     });
     expect(summary.scheduledRetry).toBe(1);

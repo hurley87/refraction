@@ -362,26 +362,15 @@ export async function isSolanaTransactionExpired(params: {
   }
 }
 
-/** Polls until finalized or attempts run out; RPC errors count as `pending`. */
-export async function pollSolanaSignatureOutcome(params: {
+/** One status check with no waiting; RPC errors count as `pending`. */
+export async function checkSolanaSignatureOutcome(params: {
   connection: SolanaSettlementConnection;
   signature: string;
-  attempts?: number;
-  intervalMs?: number;
 }): Promise<SolanaSignatureOutcome> {
-  const attempts = Math.max(1, params.attempts ?? 1);
-  let outcome: SolanaSignatureOutcome = 'pending';
-  for (let i = 0; i < attempts; i += 1) {
-    if (i > 0 && params.intervalMs) {
-      await new Promise((resolve) => setTimeout(resolve, params.intervalMs));
-    }
-    try {
-      outcome = await getSolanaSignatureOutcome(params);
-    } catch (error) {
-      console.warn('getSolanaSignatureOutcome:', params.signature, error);
-      outcome = 'pending';
-    }
-    if (outcome === 'success' || outcome === 'failed') return outcome;
+  try {
+    return await getSolanaSignatureOutcome(params);
+  } catch (error) {
+    console.warn('getSolanaSignatureOutcome:', params.signature, error);
+    return 'pending';
   }
-  return outcome;
 }

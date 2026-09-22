@@ -22,7 +22,7 @@ import {
   buildSolanaCaddTransferTransaction,
   createSolanaSettlementConnection,
   isSolanaTransactionExpired,
-  pollSolanaSignatureOutcome,
+  checkSolanaSignatureOutcome,
   signSolanaCaddTransferWithPrivy,
   type SolanaSettlementConnection,
 } from '@/lib/activation/solana-cadd-transfer';
@@ -71,9 +71,6 @@ export function parseSolanaSubmissionLastValidBlockHeight(
   return Number.isSafeInteger(height) ? height : null;
 }
 
-const QUEUED_CONFIRM_POLL_ATTEMPTS = 5;
-const QUEUED_CONFIRM_POLL_INTERVAL_MS = 2_000;
-
 export type SolanaSettlementWorkerItemResult =
   | 'skipped'
   | 'confirmed'
@@ -92,8 +89,6 @@ export type SolanaSettlementWorkerRunSummary = {
 
 export type SolanaSettlementWorkerOptions = {
   connection?: SolanaSettlementConnection;
-  confirmPollAttempts?: number;
-  confirmPollIntervalMs?: number;
 };
 
 function validateSettlementBundle(
@@ -173,14 +168,10 @@ async function confirmWithSignature(input: {
   signature: string;
   lastValidBlockHeight: number | null;
   connection: SolanaSettlementConnection;
-  pollAttempts: number;
-  pollIntervalMs: number;
 }): Promise<SolanaSettlementWorkerItemResult> {
-  const outcome = await pollSolanaSignatureOutcome({
+  const outcome = await checkSolanaSignatureOutcome({
     connection: input.connection,
     signature: input.signature,
-    attempts: input.pollAttempts,
-    intervalMs: input.pollIntervalMs,
   });
 
   if (outcome === 'failed') {
@@ -228,7 +219,8 @@ async function confirmWithSignature(input: {
 
 /**
  * `queued`: build → Privy sign → persist signature as `submitted` → broadcast →
- * poll. `submitted`: poll the persisted signature only; never sends again.
+ * one status check. `submitted`: check the persisted signature only; never
+ * sends again.
  */
 export async function processSolanaActivationSettlement(
   settlement: ActivationSettlementTransactionRow,
@@ -251,13 +243,6 @@ export async function processSolanaActivationSettlement(
   }
 
   const connection = options.connection ?? createSolanaSettlementConnection();
-  const confirmInput = {
-    settlementId: settlement.id,
-    connection,
-    pollAttempts: options.confirmPollAttempts ?? QUEUED_CONFIRM_POLL_ATTEMPTS,
-    pollIntervalMs:
-      options.confirmPollIntervalMs ?? QUEUED_CONFIRM_POLL_INTERVAL_MS,
-  };
 
   if (settlement.status === 'submitted') {
     const signature = settlement.tx_hash?.trim();
@@ -268,12 +253,12 @@ export async function processSolanaActivationSettlement(
       );
     }
     return confirmWithSignature({
-      ...confirmInput,
+      settlementId: settlement.id,
+      connection,
       signature,
       lastValidBlockHeight: parseSolanaSubmissionLastValidBlockHeight(
         settlement.privy_transaction_id
       ),
-      pollAttempts: 1,
     });
   }
 
@@ -364,8 +349,11 @@ export async function processSolanaActivationSettlement(
     );
   }
 
+  // One immediate check only; if not yet finalized the row stays `submitted`
+  // and the next cron tick confirms it.
   return confirmWithSignature({
-    ...confirmInput,
+    settlementId: settlement.id,
+    connection,
     signature: signed.signature,
     lastValidBlockHeight: built.lastValidBlockHeight,
   });
