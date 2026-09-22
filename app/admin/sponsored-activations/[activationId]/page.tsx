@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
-import { Loader2, ArrowLeft, ExternalLink, X } from 'lucide-react';
+import { Loader2, ArrowLeft, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { initMixpanel, trackEvent } from '@/lib/analytics';
@@ -24,6 +24,13 @@ import type {
 } from '@/lib/db/sponsored-activations';
 import { describeSponsoredActivationPaymentTokenSymbol } from '@/lib/schemas/sponsored-activation-tokens';
 import { ActivationLaunchPanel } from './activation-launch-panel';
+import {
+  ConfirmedSettlementsTable,
+  fmtLocalDateTime,
+  fmtUsdc,
+  OnchainSettlementReport,
+  SettlementExplorerTxLink,
+} from './settlement-report';
 
 type ActivationEnvelope = {
   id: string;
@@ -31,6 +38,8 @@ type ActivationEnvelope = {
   status: SponsoredActivationStatus;
   settlement_rail: SettlementRail;
   usdc_asset_config: Record<string, unknown>;
+  campaign_wallet_address: string;
+  campaign_wallet_explorer_url: string | null;
   max_usdc_budget: number | null;
   max_redemptions: number | null;
 };
@@ -43,31 +52,9 @@ type DashboardApiResponse = {
   redemptions: SponsoredActivationAdminRedemptionRow[];
 };
 
-function formatIfNumber(
-  n: number | null | undefined,
-  format: (v: number) => string
-): string {
-  if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  return format(n);
-}
-
-function fmtUsdc(n: number | null | undefined, tokenSymbol: string): string {
-  return formatIfNumber(n, (v) => {
-    const rounded = Math.round(v * 1e6) / 1e6;
-    return `${rounded.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 6,
-    })} ${tokenSymbol}`;
-  });
-}
-
 function fmtInt(n: number | null | undefined): string {
-  return formatIfNumber(n, (v) => v.toLocaleString());
-}
-
-function fmtLocalDateTime(value: string | null | undefined): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleString();
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  return n.toLocaleString();
 }
 
 function statusBadgeClass(status: ActivationEnvelope['status']): string {
@@ -81,47 +68,6 @@ function statusBadgeClass(status: ActivationEnvelope['status']): string {
     default:
       return 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200';
   }
-}
-
-function SettlementExplorerTxLink({
-  explorerTxUrl,
-  txHash,
-  variant,
-}: {
-  explorerTxUrl: string | null;
-  txHash: string | null;
-  variant: 'compact' | 'full';
-}) {
-  if (!txHash?.trim()) {
-    return <span className="text-neutral-400">—</span>;
-  }
-  if (!explorerTxUrl?.trim()) {
-    return (
-      <span className="break-all font-mono text-[11px] text-neutral-700 dark:text-neutral-300">
-        {txHash}
-      </span>
-    );
-  }
-  const label = variant === 'compact' ? `${txHash.slice(0, 10)}…` : txHash;
-  return (
-    <a
-      href={explorerTxUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={
-        variant === 'compact'
-          ? 'inline-flex items-center gap-0.5 text-blue-700 hover:underline dark:text-blue-400'
-          : 'inline-flex flex-wrap items-center gap-0.5 break-all text-blue-700 hover:underline dark:text-blue-400'
-      }
-    >
-      {variant === 'compact' ? (
-        <span className="font-mono text-[11px]">{label}</span>
-      ) : (
-        <span>{label}</span>
-      )}
-      <ExternalLink className="size-3 shrink-0" />
-    </a>
-  );
 }
 
 export default function AdminSponsoredActivationDetailPage() {
@@ -325,6 +271,10 @@ export default function AdminSponsoredActivationDetailPage() {
 
         {dashboard && activationId && (
           <>
+            <OnchainSettlementReport
+              activation={dashboard.activation}
+              tokenSymbol={tokenSymbol}
+            />
             <ActivationLaunchPanel
               activationId={activationId}
               getAccessToken={getAccessToken}
@@ -384,62 +334,10 @@ export default function AdminSponsoredActivationDetailPage() {
               />
             </div>
 
-            <section className="mb-8">
-              <h2 className="mb-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                Confirmed settlements
-              </h2>
-              <p className="mb-2 text-xs text-neutral-500">
-                Newest rows first (up to 150, no pagination).
-              </p>
-              <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-                <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead className="border-b border-neutral-200 bg-neutral-50 text-xs dark:border-neutral-800 dark:bg-neutral-950">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Confirmed</th>
-                      <th className="px-3 py-2 font-medium">Amount</th>
-                      <th className="px-3 py-2 font-medium">Tx</th>
-                      <th className="px-3 py-2 font-medium">Redemption</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dashboard.confirmedSettlements.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="px-3 py-6 text-center text-neutral-500"
-                        >
-                          No confirmed settlements yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      dashboard.confirmedSettlements.map((row) => (
-                        <tr
-                          key={row.id}
-                          className="border-b border-neutral-100 last:border-0 dark:border-neutral-800"
-                        >
-                          <td className="px-3 py-2 text-xs text-neutral-700 dark:text-neutral-300">
-                            {fmtLocalDateTime(row.confirmedAt)}
-                          </td>
-                          <td className="px-3 py-2 font-mono text-xs">
-                            {fmtUsdc(row.amount, tokenSymbol)}
-                          </td>
-                          <td className="px-3 py-2">
-                            <SettlementExplorerTxLink
-                              explorerTxUrl={row.explorerTxUrl}
-                              txHash={row.txHash}
-                              variant="compact"
-                            />
-                          </td>
-                          <td className="px-3 py-2 font-mono text-[11px] text-neutral-600 dark:text-neutral-400">
-                            {row.redemptionId}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            <ConfirmedSettlementsTable
+              rows={dashboard.confirmedSettlements}
+              tokenSymbol={tokenSymbol}
+            />
 
             <section className="mb-8">
               <h2 className="mb-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
