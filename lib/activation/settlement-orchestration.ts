@@ -1,12 +1,14 @@
 import {
   getSponsoredSettlementBatchSize,
   listBaseActivationSettlementsForWorker,
+  listSolanaActivationSettlementsForWorker,
   listStellarActivationSettlementsForWorker,
   listTempoActivationSettlementsForWorker,
   promoteActivationSettlementRetryingToQueued,
 } from '@/lib/db/activation-settlement-transactions';
 import { runBaseSettlementWorkerBatch } from '@/lib/activation/base-settlement-worker';
 import { runStellarSettlementWorkerBatch } from '@/lib/activation/settlement-worker-stellar';
+import { runSolanaSettlementWorkerBatch } from '@/lib/activation/solana-settlement-worker';
 import { runTempoSettlementWorkerBatch } from '@/lib/activation/tempo-settlement-worker';
 
 /**
@@ -24,31 +26,27 @@ export function computeSettlementRetryBackoffSeconds(
   return Math.min(30 * 2 ** a, 7200);
 }
 
+type SettlementRailRunSummary = {
+  processed: number;
+  confirmed: number;
+  failed: number;
+  skipped: number;
+  scheduledRetry: number;
+};
+
 export type SponsoredSettlementCronResult = {
   batchSize: number;
   promotedRetryingToQueued: number;
-  candidateSettlements: { base: number; stellar: number; tempo: number };
-  stellar: {
-    processed: number;
-    confirmed: number;
-    failed: number;
-    skipped: number;
-    scheduledRetry: number;
+  candidateSettlements: {
+    base: number;
+    stellar: number;
+    tempo: number;
+    solana: number;
   };
-  base: {
-    processed: number;
-    confirmed: number;
-    failed: number;
-    skipped: number;
-    scheduledRetry: number;
-  };
-  tempo: {
-    processed: number;
-    confirmed: number;
-    failed: number;
-    skipped: number;
-    scheduledRetry: number;
-  };
+  stellar: SettlementRailRunSummary;
+  base: SettlementRailRunSummary;
+  tempo: SettlementRailRunSummary;
+  solana: SettlementRailRunSummary;
 };
 
 /**
@@ -60,18 +58,21 @@ export async function runSponsoredSettlementCronOrchestrated(): Promise<Sponsore
   const promotedRetryingToQueued =
     await promoteActivationSettlementRetryingToQueued();
 
-  const [baseCandidates, stellarCandidates, tempoCandidates] =
+  const [baseCandidates, stellarCandidates, tempoCandidates, solanaCandidates] =
     await Promise.all([
       listBaseActivationSettlementsForWorker(batchSize),
       listStellarActivationSettlementsForWorker(batchSize),
       listTempoActivationSettlementsForWorker(batchSize),
+      listSolanaActivationSettlementsForWorker(batchSize),
     ]);
 
-  const [baseSummary, stellarSummary, tempoSummary] = await Promise.all([
-    runBaseSettlementWorkerBatch(baseCandidates),
-    runStellarSettlementWorkerBatch(stellarCandidates),
-    runTempoSettlementWorkerBatch(tempoCandidates),
-  ]);
+  const [baseSummary, stellarSummary, tempoSummary, solanaSummary] =
+    await Promise.all([
+      runBaseSettlementWorkerBatch(baseCandidates),
+      runStellarSettlementWorkerBatch(stellarCandidates),
+      runTempoSettlementWorkerBatch(tempoCandidates),
+      runSolanaSettlementWorkerBatch(solanaCandidates),
+    ]);
 
   return {
     batchSize,
@@ -80,9 +81,11 @@ export async function runSponsoredSettlementCronOrchestrated(): Promise<Sponsore
       base: baseCandidates.length,
       stellar: stellarCandidates.length,
       tempo: tempoCandidates.length,
+      solana: solanaCandidates.length,
     },
     stellar: stellarSummary,
     base: baseSummary,
     tempo: tempoSummary,
+    solana: solanaSummary,
   };
 }

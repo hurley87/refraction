@@ -4,7 +4,7 @@ import type { SponsoredSettlementCronResult } from '@/lib/activation/settlement-
 export type { SponsoredSettlementCronResult };
 
 /**
- * Shared sponsored-settlement cron (IRL-60): promote `retrying` → `queued`, then Base + Stellar workers.
+ * Shared sponsored-settlement cron (IRL-60): promote `retrying` → `queued`, then Base, Stellar, Tempo, and Solana workers.
  */
 export async function runSponsoredSettlementCron(): Promise<SponsoredSettlementCronResult> {
   return runSponsoredSettlementCronOrchestrated();

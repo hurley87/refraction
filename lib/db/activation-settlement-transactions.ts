@@ -238,6 +238,13 @@ export async function listTempoActivationSettlementsForWorker(
   return listActivationSettlementsForWorker('tempo', limit);
 }
 
+/** Solana rail; see {@link listActivationSettlementsForWorker}. */
+export async function listSolanaActivationSettlementsForWorker(
+  limit: number
+): Promise<ActivationSettlementTransactionRow[]> {
+  return listActivationSettlementsForWorker('solana', limit);
+}
+
 export async function markActivationSettlementSubmitted(input: {
   settlementId: string;
   txHash: string;
