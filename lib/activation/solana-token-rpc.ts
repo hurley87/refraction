@@ -1,4 +1,4 @@
-import { address, createSolanaRpc, type Rpc } from '@solana/kit';
+import { address, createSolanaRpc } from '@solana/kit';
 import {
   getSolanaRpcUrl,
   isSolanaAddress,
@@ -12,7 +12,9 @@ export const SOLANA_TOKEN_PROGRAM_IDS = new Set([
   'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb',
 ]);
 
-function solanaRpc(rpcUrl?: string): Rpc {
+type SolanaRpc = ReturnType<typeof createSolanaRpc>;
+
+function solanaRpc(rpcUrl?: string): SolanaRpc {
   return createSolanaRpc(rpcUrl ?? getSolanaRpcUrl());
 }
 
@@ -66,7 +68,7 @@ export async function fetchSolanaSplTokenBalance(params: {
   mint: string;
   decimals: number;
   rpcUrl?: string;
-  rpc?: Rpc;
+  rpc?: SolanaRpc;
 }): Promise<number> {
   if (!isSolanaAddress(params.ownerAddress) || !isSolanaAddress(params.mint)) {
     throw new Error('Invalid Solana owner or mint address');
@@ -99,7 +101,7 @@ export async function fetchSolanaSplTokenBalance(params: {
 export async function fetchSolanaNativeBalance(params: {
   ownerAddress: string;
   rpcUrl?: string;
-  rpc?: Rpc;
+  rpc?: SolanaRpc;
 }): Promise<number> {
   if (!isSolanaAddress(params.ownerAddress)) {
     throw new Error('Invalid Solana owner address');
