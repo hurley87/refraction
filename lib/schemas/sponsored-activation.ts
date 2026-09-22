@@ -103,21 +103,32 @@ export const tempoCaddAssetConfigSchema = z
   .strict();
 
 /**
- * Solana CADD settlement asset. `mint` must be the deployment's issuer-approved
- * CADD mint; `decimals` is the precision verified against that mint at create time.
+ * Persisted Solana CADD settlement asset — structural only. Once created, an
+ * activation's `{ mint, decimals, symbol }` is its source of truth, so this must
+ * not consult `SPONSORED_ACTIVATION_SOLANA_CADD_MINT` (which may change later).
  */
 export const solanaCaddAssetConfigSchema = z
   .object({
-    mint: solanaAddressSchema.refine(
-      (mint) => mint === tryGetSolanaCaddMint(),
-      { message: 'Solana settlement requires the configured CADD mint' }
-    ),
+    mint: solanaAddressSchema,
     decimals: z.number().refine(isValidSolanaTokenDecimals, {
       message: `decimals must be an integer between 0 and ${SOLANA_TOKEN_MAX_DECIMALS}`,
     }),
     symbol: z.literal(SOLANA_CADD_SYMBOL),
   })
   .strict();
+
+/**
+ * Solana CADD asset for a new activation (or a draft re-pointing its asset):
+ * the mint must be the deployment's currently configured issuer-approved mint.
+ */
+export const newSolanaCaddAssetConfigSchema =
+  solanaCaddAssetConfigSchema.refine(
+    (config) => config.mint === tryGetSolanaCaddMint(),
+    {
+      message: 'Solana settlement requires the configured CADD mint',
+      path: ['mint'],
+    }
+  );
 
 /**
  * Full settlement bundle — rail must match wallet formats and `usdc_asset_config`.
@@ -237,7 +248,7 @@ const createSponsoredActivationSolanaObject = z
     settlement_rail: z.literal('solana'),
     campaign_wallet_address: solanaAddressSchema,
     venue_settlement_wallet_address: solanaAddressSchema,
-    usdc_asset_config: solanaCaddAssetConfigSchema,
+    usdc_asset_config: newSolanaCaddAssetConfigSchema,
   })
   .strict();
 
@@ -621,7 +632,7 @@ export const updateSponsoredActivationSchema =
         }
         if (hasConfig) {
           mergeConfigParseIssues(
-            solanaCaddAssetConfigSchema.safeParse(data.usdc_asset_config),
+            newSolanaCaddAssetConfigSchema.safeParse(data.usdc_asset_config),
             ctx,
             ['usdc_asset_config']
           );
