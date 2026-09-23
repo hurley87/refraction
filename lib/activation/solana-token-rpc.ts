@@ -51,7 +51,7 @@ export async function fetchSolanaMintDecimals(params: {
   const decimals = parsed?.info?.decimals;
   if (
     parsed?.type !== 'mint' ||
-    parsed.info?.isInitialized !== true ||
+    parsed?.info?.isInitialized !== true ||
     !isValidSolanaTokenDecimals(decimals)
   ) {
     throw new Error('Solana account is not an initialized token mint');

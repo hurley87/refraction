@@ -447,6 +447,19 @@ export function isPrivyWalletProviderOnNoise(message: string): boolean {
 }
 
 /**
+ * Privy wallet UI loads SPL balances via `getParsedTokenAccountsByOwner` and reads
+ * `account.data.parsed.info` without guarding when `parsed` is null (closed ATA, RPC
+ * jsonParsed gaps). Throws inside `@privy-io/react-auth` — environmental SDK noise.
+ */
+export function isPrivySolanaParsedTokenAccountNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('cannot read properties of null') &&
+    (lower.includes("reading 'info'") || lower.includes('reading "info"'))
+  );
+}
+
+/**
  * Privy throws during `PrivyProvider` init when embedded wallets are enabled on
  * plain HTTP (non-localhost). Users with stale `http://` bookmarks or LAN IPs
  * hit this before our client redirect runs — environmental, not an app bug.
@@ -559,6 +572,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     isWalletExtensionEthereumConflict(message) ||
     isWalletExtensionOnboardingNoise(message) ||
     isPrivyWalletProviderOnNoise(message) ||
+    isPrivySolanaParsedTokenAccountNoise(message) ||
     isPrivyEmbeddedWalletHttpsNoise(message) ||
     isWebkitMessageHandlersNoise(message) ||
     isAndroidJavascriptBridgeNoise(message) ||
