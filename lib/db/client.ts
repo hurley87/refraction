@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 function readSupabaseEnv(): { url: string; key: string } {
   return {
@@ -26,8 +26,31 @@ if (
   );
 }
 
+let cachedSupabaseClient: SupabaseClient | undefined;
+
+function getOrCreateSupabaseClient(): SupabaseClient {
+  if (!isSupabaseEnvConfigured()) {
+    throw new Error(
+      'Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.'
+    );
+  }
+  if (!cachedSupabaseClient) {
+    cachedSupabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+  }
+  return cachedSupabaseClient;
+}
+
 /**
  * Supabase client instance with service role permissions.
  * Use this for server-side operations that require elevated privileges.
+ * Lazily initialized so importing this module does not throw when env is unset.
  */
-export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop, receiver) {
+    const client = getOrCreateSupabaseClient();
+    const value = Reflect.get(client, prop, receiver);
+    return typeof value === 'function'
+      ? (value as (...args: unknown[]) => unknown).bind(client)
+      : value;
+  },
+});
