@@ -118,6 +118,30 @@ describe('fetchSolanaMintDecimals', () => {
       fetchSolanaMintDecimals({ mint: TEST_CADD_MINT })
     ).rejects.toThrow('Solana account is not an initialized token mint');
   });
+
+  it('rejects jsonParsed mint accounts with null parsed payload (JAVASCRIPT-NEXTJS-21)', async () => {
+    mockGetAccountInfo.mockResolvedValue({
+      value: {
+        owner: TOKEN_PROGRAM,
+        data: { parsed: null },
+      },
+    });
+    await expect(
+      fetchSolanaMintDecimals({ mint: TEST_CADD_MINT })
+    ).rejects.toThrow('Solana account is not an initialized token mint');
+  });
+
+  it('rejects jsonParsed mint accounts with missing data', async () => {
+    mockGetAccountInfo.mockResolvedValue({
+      value: {
+        owner: TOKEN_PROGRAM,
+        data: null,
+      },
+    });
+    await expect(
+      fetchSolanaMintDecimals({ mint: TEST_CADD_MINT })
+    ).rejects.toThrow('Solana account is not an initialized token mint');
+  });
 });
 
 describe('fetchSolanaSplTokenBalance', () => {
