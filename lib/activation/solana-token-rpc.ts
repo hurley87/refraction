@@ -47,11 +47,15 @@ export async function fetchSolanaMintDecimals(params: {
   if (!SOLANA_TOKEN_PROGRAM_IDS.has(String(value.owner))) {
     throw new Error('Solana mint is not owned by an SPL token program');
   }
-  const parsed = (value.data as ParsedAccountData).parsed;
+  const data = value.data as ParsedAccountData | null;
+  if (!data || typeof data !== 'object') {
+    throw new Error('Solana mint account data is missing or invalid');
+  }
+  const parsed = data.parsed;
   const decimals = parsed?.info?.decimals;
   if (
     parsed?.type !== 'mint' ||
-    parsed.info?.isInitialized !== true ||
+    parsed?.info?.isInitialized !== true ||
     !isValidSolanaTokenDecimals(decimals)
   ) {
     throw new Error('Solana account is not an initialized token mint');
@@ -83,8 +87,8 @@ export async function fetchSolanaSplTokenBalance(params: {
     .send();
   let baseUnits = BigInt(0);
   for (const account of value) {
-    const tokenAmount = (account.account.data as ParsedAccountData).parsed?.info
-      ?.tokenAmount;
+    const accountData = account.account?.data as ParsedAccountData | null;
+    const tokenAmount = accountData?.parsed?.info?.tokenAmount;
     if (
       tokenAmount?.decimals !== undefined &&
       tokenAmount.decimals !== params.decimals
