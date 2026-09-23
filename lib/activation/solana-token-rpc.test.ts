@@ -118,6 +118,18 @@ describe('fetchSolanaMintDecimals', () => {
       fetchSolanaMintDecimals({ mint: TEST_CADD_MINT })
     ).rejects.toThrow('Solana account is not an initialized token mint');
   });
+
+  it('rejects jsonParsed mint payload with null parsed (no TypeError on .info)', async () => {
+    mockGetAccountInfo.mockResolvedValue({
+      value: {
+        owner: TOKEN_PROGRAM,
+        data: { parsed: null },
+      },
+    });
+    await expect(
+      fetchSolanaMintDecimals({ mint: TEST_CADD_MINT })
+    ).rejects.toThrow('Solana account is not an initialized token mint');
+  });
 });
 
 describe('fetchSolanaSplTokenBalance', () => {
@@ -164,6 +176,26 @@ describe('fetchSolanaSplTokenBalance', () => {
         decimals: 9,
       })
     ).resolves.toBe(0);
+  });
+
+  it('skips token accounts with null parsed info instead of throwing TypeError', async () => {
+    mockGetTokenAccountsByOwner.mockResolvedValue({
+      value: [
+        {
+          account: {
+            data: { parsed: null },
+          },
+        },
+        tokenAccount('500000000'),
+      ],
+    });
+    await expect(
+      fetchSolanaSplTokenBalance({
+        ownerAddress: OWNER,
+        mint: TEST_CADD_MINT,
+        decimals: 9,
+      })
+    ).resolves.toBe(0.5);
   });
 
   it('rejects invalid addresses without calling the RPC', async () => {
