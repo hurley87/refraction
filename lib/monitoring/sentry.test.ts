@@ -8,6 +8,7 @@ import {
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
   isPrivyEmbeddedWalletHttpsNoise,
+  isPrivySolanaParsedTokenAccountNoise,
   isPrivyWalletProviderOnNoise,
   isStorageSecurityError,
   isWalletConnectSessionNoise,
@@ -169,6 +170,24 @@ describe('isPrivyEmbeddedWalletHttpsNoise', () => {
     expect(isPrivyEmbeddedWalletHttpsNoise('TypeError: fetch failed')).toBe(
       false
     );
+  });
+});
+
+describe('isPrivySolanaParsedTokenAccountNoise', () => {
+  it('detects Privy SPL balance jsonParsed null parsed.info (JAVASCRIPT-NEXTJS-1Z)', () => {
+    expect(
+      isPrivySolanaParsedTokenAccountNoise(
+        "TypeError: Cannot read properties of null (reading 'info')"
+      )
+    ).toBe(true);
+    expect(
+      isPrivySolanaParsedTokenAccountNoise(
+        "TypeError: Cannot read properties of undefined (reading 'info')"
+      )
+    ).toBe(false);
+    expect(
+      isPrivySolanaParsedTokenAccountNoise('TypeError: fetch failed')
+    ).toBe(false);
   });
 });
 
@@ -762,6 +781,30 @@ describe('sentryBeforeSend', () => {
                 {
                   filename:
                     'app:///chunks/node_modules_@privy-io_react-auth_dist_esm_privy-provider-BG8GtKO6_mjs.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Privy Solana parsed.info null noise (JAVASCRIPT-NEXTJS-1Z)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: "TypeError: Cannot read properties of null (reading 'info')",
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'app:///chunks/node_modules_@privy-io_react-auth_dist_esm_ui_mjs.js',
                 },
               ],
             },
