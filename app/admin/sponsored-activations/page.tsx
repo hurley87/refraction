@@ -10,7 +10,7 @@ import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
 import { Loader2, ArrowLeft, CircleDollarSign, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import type { AdminCreateSponsoredActivationRequest } from '@/lib/schemas/sponsored-activation';
 import { describeSponsoredActivationPaymentTokenSymbol } from '@/lib/schemas/sponsored-activation-tokens';
 import {

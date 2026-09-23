@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import type { ProfileFavoritePlace, UserProfile } from '@/lib/types';
 import { invalidateProfileRelatedQueries } from '@/lib/invalidate-profile-queries';
 import { sanitizeUsernameInput, usernameSchema } from '@/lib/username';

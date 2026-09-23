@@ -8,7 +8,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { Loader2, ArrowLeft, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { Button } from '@/components/ui/button';
 import { initMixpanel, trackEvent } from '@/lib/analytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics/events';

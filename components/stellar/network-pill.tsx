@@ -5,7 +5,7 @@ import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import { stellarNetwork } from '@/lib/stellar/utils/network';
 import { detectWalletNetwork, switchNetwork } from '@/lib/stellar/utils/wallet';
 import storage from '@/lib/stellar/utils/storage';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 
 // Format network name with first letter capitalized
 const formatNetworkName = (name: string) => {

@@ -4,14 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useLocationGame } from '../useLocationGame';
 
 // Mock sonner toast
-vi.mock('sonner', () => ({
+vi.mock('@/lib/ui/toast', () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
   },
 }));
 
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 
 // Create wrapper with QueryClient
 function createWrapper() {

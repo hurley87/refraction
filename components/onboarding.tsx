@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { publicClient, irlChain } from '@/lib/publicClient';
 import {
   userManagerABI,

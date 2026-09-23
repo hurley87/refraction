@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Loader2, MessageCircle, Share2, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import {
   Dialog,
   DialogContent,

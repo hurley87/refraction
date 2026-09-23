@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 
 function explorerIsMainnet(
   network?: string | null,

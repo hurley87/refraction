@@ -12,7 +12,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import Image from 'next/image';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 
 import { Button } from '@/components/ui/button';
 import {

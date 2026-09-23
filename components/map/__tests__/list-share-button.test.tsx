@@ -5,7 +5,7 @@ import { ListShareButton, ListSharePanel } from '../list-share-button';
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
 
-vi.mock('sonner', () => ({
+vi.mock('@/lib/ui/toast', () => ({
   toast: {
     success: (message: string) => toastSuccess(message),
     error: (message: string) => toastError(message),

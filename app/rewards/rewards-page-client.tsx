@@ -28,7 +28,7 @@ import {
   type PointerEvent,
 } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { useQuery } from '@tanstack/react-query';
 import MapNav, { MAP_NAV_SAFE_AREA_X } from '@/components/map/mapnav';
 import PerkShareButton from '@/components/rewards/perk-share-button';

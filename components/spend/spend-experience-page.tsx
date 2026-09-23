@@ -6,7 +6,7 @@ import { usePrivy, useSendTransaction } from '@privy-io/react-auth';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { useConnectedEvmWallet } from '@/hooks/use-connected-evm-wallet';
 import { ExternalLink, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { SpendPageShell } from '@/components/spend/spend-page-shell';
 import { SpendPrimaryButton } from '@/components/spend/spend-primary-button';
 import { Button } from '@/components/ui/button';

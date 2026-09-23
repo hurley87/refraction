@@ -15,7 +15,7 @@ import { useModalStatus, usePrivy } from '@privy-io/react-auth';
 import { useMapGateAnalytics } from '@/hooks/use-map-gate-analytics';
 import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { usePlayerCustomLists } from '@/hooks/usePlayerCustomLists';
 import AddToListDrawer from '@/components/map/add-to-list-drawer';

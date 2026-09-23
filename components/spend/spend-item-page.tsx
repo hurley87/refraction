@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { SpendPageShell } from '@/components/spend/spend-page-shell';
 import { SpendPrimaryButton } from '@/components/spend/spend-primary-button';
 import {

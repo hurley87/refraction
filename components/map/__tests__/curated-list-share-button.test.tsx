@@ -5,7 +5,7 @@ import { shareCuratedListLink } from '@/lib/location-lists/share-curated-list';
 
 const toastSuccess = vi.fn();
 
-vi.mock('sonner', () => ({
+vi.mock('@/lib/ui/toast', () => ({
   toast: {
     success: (message: string) => toastSuccess(message),
   },

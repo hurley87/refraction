@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
 import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';

@@ -9,7 +9,7 @@ import TransferTokens from '@/components/claim/transfer-tokens';
 import MembersSection from '@/components/members-section';
 import { usePrivy } from '@privy-io/react-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 export default function ClaimNFTPage() {

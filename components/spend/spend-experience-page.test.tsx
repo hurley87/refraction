@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { SpendExperiencePage } from '@/components/spend/spend-experience-page';
 import type { SpendExperience, SpendSession } from '@/lib/types';
 import type { SpendRailClientSummary } from '@/lib/spend-rail-config/types';
@@ -26,7 +26,7 @@ vi.mock('@privy-io/react-auth', () => ({
   useWallets: () => ({ wallets: [] }),
 }));
 
-vi.mock('sonner', () => ({
+vi.mock('@/lib/ui/toast', () => ({
   toast: {
     error: vi.fn(),
     success: vi.fn(),

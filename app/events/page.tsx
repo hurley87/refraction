@@ -1790,7 +1790,7 @@ export default function EventsPage() {
           </div>
         )}
 
-        {eventsData?.pageInfo.hasNextPage && !isLoading && (
+        {eventsData?.pageInfo?.hasNextPage && !isLoading && (
           <p className="px-2 text-[11px] uppercase tracking-wide text-black/55">
             Showing latest events. More are available on DICE.
           </p>

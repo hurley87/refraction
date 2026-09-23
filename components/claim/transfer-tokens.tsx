@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { createPublicClient, createWalletClient, custom, parseAbi } from 'viem';
 import { base } from 'viem/chains';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';

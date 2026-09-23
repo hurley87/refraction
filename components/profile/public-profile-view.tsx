@@ -6,7 +6,7 @@ import MapNav, { MAP_NAV_SAFE_AREA_X } from '@/components/map/mapnav';
 import ProfileAvatar from '@/components/profile-avatar';
 import ProfileFavoritePlacesCarousel from '@/components/dashboard/profile-favorite-places-carousel';
 import PublicProfileListsCarousel from '@/components/profile/public-profile-lists-carousel';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { cn } from '@/lib/utils';
 import { getSocialUrl } from '@/lib/utils/social-links';
 import { profilePathForPlayer } from '@/lib/username';

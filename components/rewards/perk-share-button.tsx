@@ -1,7 +1,7 @@
 'use client';
 
 import { Share2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import {
   sharePerkLink,
   type PerkShareMethod,

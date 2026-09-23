@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import { disconnectWallet, fetchBalances } from '@/lib/stellar/utils/wallet';

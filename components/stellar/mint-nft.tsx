@@ -11,7 +11,7 @@ import {
 } from '@/lib/stellar/utils/network';
 import { fetchBalances } from '@/lib/stellar/utils/wallet';
 import { connectWallet } from '@/lib/stellar/utils/wallet';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import FundAccountButton from './fund-account-button';
 
 interface MintNFTProps {

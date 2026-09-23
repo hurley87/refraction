@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { UserProfile } from '@/lib/types';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { invalidateProfileRelatedQueries } from '@/lib/invalidate-profile-queries';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import {

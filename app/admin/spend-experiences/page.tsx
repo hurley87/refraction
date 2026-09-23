@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SpendExperience } from '@/lib/types';

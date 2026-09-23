@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { ArrowRight, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { SponsoredActivationPageShell } from '@/components/sponsored-activation/sponsored-activation-page-shell';
 import { SponsoredActivationConfirm } from '@/components/sponsored-activation/sponsored-activation-confirm';
 import { SponsoredActivationLandingHero } from '@/components/sponsored-activation/sponsored-activation-landing-hero';

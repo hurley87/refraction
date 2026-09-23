@@ -9,7 +9,7 @@ import {
   isValidContractAddress,
 } from '@/lib/stellar/utils/soroban';
 import { getSimplePaymentContractAddress } from '@/lib/stellar/utils/network';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import Image from 'next/image';
 
 interface ClaimPointsProps {

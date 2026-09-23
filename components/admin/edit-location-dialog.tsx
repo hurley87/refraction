@@ -6,7 +6,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 
 import LocationSearch from '@/components/shared/location-search';
 import { Button } from '@/components/ui/button';

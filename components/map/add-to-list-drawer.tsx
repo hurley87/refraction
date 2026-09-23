@@ -3,7 +3,7 @@
 import { FormEvent, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Check, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
 import type { LocationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';

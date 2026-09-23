@@ -12,7 +12,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Loader2, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import type { LocationListWithCount, Location } from '@/lib/types';
 import MapCard from '@/components/map/map-card';
 import ProfileAvatar from '@/components/profile-avatar';
@@ -884,7 +884,7 @@ export default function LocationListsDrawer({
   // Private lists stay unshareable until the owner flips them public.
   const listShareTarget = isPublicProfileListDetailView
     ? publicListShareTarget(
-        selectedPublicProfileList?.owner.username,
+        selectedPublicProfileList?.owner?.username,
         selectedPublicProfileList?.slug,
         selectedPublicProfileList?.title
       )

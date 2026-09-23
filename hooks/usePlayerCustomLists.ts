@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/toast';
 import type { Location, PlayerCustomListWithCount } from '@/lib/types';
 
 /** Custom list with its full location rows (drawer "Your lists" section). */
