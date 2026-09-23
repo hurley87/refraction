@@ -43,6 +43,7 @@ import {
   fetchSolanaCampaignWalletBalances,
   fetchSolanaSplTokenBalance,
 } from '@/lib/activation/solana-token-rpc';
+import { SOLANA_WITHDRAW_UNSUPPORTED_ERROR } from '@/lib/activation/solana-config';
 import { solanaCaddAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
 
 export type SponsoredActivationCampaignWalletBalancePack = {
@@ -51,9 +52,6 @@ export type SponsoredActivationCampaignWalletBalancePack = {
   /** Solana only: native SOL available for network fees. */
   campaign_wallet_sol_balance?: number | null;
 };
-
-export const SOLANA_WITHDRAW_UNSUPPORTED_ERROR =
-  'Campaign wallet withdrawals are not yet supported on Solana.';
 
 export type SponsoredActivationCampaignWithdrawResult =
   | {
