@@ -5,13 +5,13 @@ vi.mock('@/lib/db/client', () => {
 });
 
 describe('sponsored activation detail client modules', () => {
-  it('does not import the server Supabase client from the launch panel', async () => {
-    await expect(import('./activation-launch-panel')).resolves.toHaveProperty(
-      'ActivationLaunchPanel'
-    );
-  });
-
-  it('does not import the server Supabase client from the detail page', async () => {
-    await expect(import('./page')).resolves.toHaveProperty('default');
-  });
+  it.each([
+    ['./activation-launch-panel', 'ActivationLaunchPanel'],
+    ['./page', 'default'],
+  ] as const)(
+    'does not import the server Supabase client from %s',
+    async (modulePath, exportKey) => {
+      await expect(import(modulePath)).resolves.toHaveProperty(exportKey);
+    }
+  );
 });
