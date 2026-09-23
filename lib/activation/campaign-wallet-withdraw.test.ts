@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { SOLANA_WITHDRAW_UNSUPPORTED_ERROR } from '@/lib/activation/solana-config';
+
 const mockLoadActivationReservedUsdc = vi.fn();
 const mockFetchUsdcBalanceOnBase = vi.fn();
 const mockSubmitTreasuryUsdcTransfer = vi.fn();
@@ -281,7 +283,7 @@ describe('campaign-wallet-withdraw (Solana CADD)', () => {
     });
     expect(result).toEqual({
       ok: false,
-      error: 'Campaign wallet withdrawals are not yet supported on Solana.',
+      error: SOLANA_WITHDRAW_UNSUPPORTED_ERROR,
       statusCode: 400,
     });
     expect(mockFetchSolanaCampaignWalletBalances).not.toHaveBeenCalled();

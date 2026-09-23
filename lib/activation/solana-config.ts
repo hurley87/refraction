@@ -10,6 +10,9 @@ export const SOLANA_TOKEN_MAX_DECIMALS = 18;
 /** Minimum SOL admins should keep on the campaign wallet for fees and ATA rent. */
 export const SOLANA_RECOMMENDED_FEE_BALANCE_SOL = 0.05;
 
+export const SOLANA_WITHDRAW_UNSUPPORTED_ERROR =
+  'Campaign wallet withdrawals are not yet supported on Solana.';
+
 const DEFAULT_RPC_URL_BY_CLUSTER: Record<SolanaCluster, string> = {
   'mainnet-beta': 'https://api.mainnet-beta.solana.com',
   devnet: 'https://api.devnet.solana.com',

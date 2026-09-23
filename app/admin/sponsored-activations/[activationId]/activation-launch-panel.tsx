@@ -26,8 +26,10 @@ import {
   describeSponsoredActivationPaymentTokenSymbol,
   resolveBaseTokenDecimals,
 } from '@/lib/schemas/sponsored-activation-tokens';
-import { SOLANA_RECOMMENDED_FEE_BALANCE_SOL } from '@/lib/activation/solana-config';
-import { SOLANA_WITHDRAW_UNSUPPORTED_ERROR } from '@/lib/activation/campaign-wallet-withdraw';
+import {
+  SOLANA_RECOMMENDED_FEE_BALANCE_SOL,
+  SOLANA_WITHDRAW_UNSUPPORTED_ERROR,
+} from '@/lib/activation/solana-config';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
