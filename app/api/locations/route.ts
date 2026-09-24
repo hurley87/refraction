@@ -25,6 +25,7 @@ import {
   getLocationByPlaceId,
   resolveLocationForSearchPick,
 } from '@/lib/db/locations';
+import { resolveLocationWebsiteImage } from '@/lib/map/resolve-location-website-image';
 import { resolveCityFromCoordinates } from '@/lib/utils/city-resolver';
 
 export async function GET(request: NextRequest) {
@@ -85,13 +86,12 @@ export async function GET(request: NextRequest) {
       return apiSuccess({ location });
     }
 
-    // Base query - only return locations with images
+    // Base query — public map locations (image optional)
     let query = supabase
       .from('locations')
       .select(
         'id, name, address, description, latitude, longitude, place_id, points_value, category_id, category:categories(id, name, slug), event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username, is_visible'
-      )
-      .not('coin_image_url', 'is', null);
+      );
 
     // Filter by visibility unless admin requested all
     if (!includeHidden) {
@@ -122,8 +122,7 @@ export async function GET(request: NextRequest) {
           )
         `
         )
-        .eq('player_id', player.id)
-        .not('locations.coin_image_url', 'is', null);
+        .eq('player_id', player.id);
 
       // Filter by visibility unless admin requested all
       if (!includeHidden) {
@@ -194,15 +193,6 @@ export async function POST(request: NextRequest) {
       return apiError('Missing required fields', 400);
     }
 
-    // Validate that locationImage is provided (required since GET endpoint filters by it)
-    if (
-      !locationImage ||
-      typeof locationImage !== 'string' ||
-      locationImage.trim() === ''
-    ) {
-      return apiError('Location image is required', 400);
-    }
-
     const sanitizedPlaceId = sanitizeVarchar(place_id);
     const sanitizedName = sanitizeVarchar(name);
     const sanitizedAddress = address
@@ -240,8 +230,11 @@ export async function POST(request: NextRequest) {
 
     const sanitizedWalletAddress = walletAddress.trim();
     const sanitizedUsername = sanitizeOptionalVarchar(username);
-    const normalizedLocationImage = locationImage.trim();
-    const normalizedLocationImageThumb =
+    let normalizedLocationImage =
+      typeof locationImage === 'string' && locationImage.trim()
+        ? locationImage.trim()
+        : null;
+    let normalizedLocationImageThumb =
       typeof locationImageThumb === 'string' && locationImageThumb.trim()
         ? locationImageThumb.trim()
         : null;
@@ -303,6 +296,23 @@ export async function POST(request: NextRequest) {
         `You can only add ${MAX_LOCATIONS_PER_WEEK} locations per week. Come back next week!`,
         429
       );
+    }
+
+    if (!normalizedLocationImage) {
+      try {
+        const scraped = await resolveLocationWebsiteImage(sanitizedPlaceId);
+        if (scraped) {
+          normalizedLocationImage = scraped.imageUrl;
+          normalizedLocationImageThumb = scraped.thumbnailUrl;
+        } else {
+          console.warn(
+            '[location-image] no website image found; creating without a photo',
+            { placeId: sanitizedPlaceId, name: sanitizedName }
+          );
+        }
+      } catch (error) {
+        console.error('[location-image] autofill failed:', error);
+      }
     }
 
     const creatorEmail = await getPrivyUserEmailFromRequest(request);

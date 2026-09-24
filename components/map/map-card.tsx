@@ -143,7 +143,7 @@ export default function MapCard({
   imageUrl,
   eventUrl,
   variant = 'default',
-  createPreviewActionLabel = 'Create and check in',
+  createPreviewActionLabel = 'SAVE',
   primaryActionLabel,
   category,
   recentCheckins = [],

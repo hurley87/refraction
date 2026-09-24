@@ -19,9 +19,8 @@ export type DeepLinkMarkerMeta = {
 };
 
 /**
- * GET /api/locations omits rows without `coin_image_url`, so a saved place can exist in DB
- * but not appear in map markers. City-guide links pass `lat`/`lng`; use them so fly-to and
- * MapCard still work when the place is missing from the marker list.
+ * City-guide links pass `lat`/`lng`; use them so fly-to and MapCard still work
+ * when the place is missing from the marker list (e.g. not yet loaded).
  */
 export function buildDeepLinkMarkerFromQueryCoords(
   placeId: string,
