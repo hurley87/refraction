@@ -36,6 +36,7 @@ import {
   PERK_THUMBNAIL_IMAGE_RECOMMENDED_HEIGHT,
   PERK_THUMBNAIL_IMAGE_RECOMMENDED_WIDTH,
 } from '@/lib/constants';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 
 /** Default City value for perks that apply everywhere (software, online, etc.). */
 const GLOBAL_CITY = 'Global';
@@ -1265,8 +1266,9 @@ export default function AdminPerksPage() {
                     size="sm"
                     onClick={() => {
                       const url = `${window.location.origin}/perks/${perk.id}`;
-                      navigator.clipboard.writeText(url).then(() => {
-                        toast.success('Link copied to clipboard');
+                      void copyTextToClipboard(url).then((copied) => {
+                        if (copied) toast.success('Link copied to clipboard');
+                        else toast.error('Could not copy link');
                       });
                     }}
                   >

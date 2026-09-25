@@ -1,4 +1,5 @@
 import { getBrowserOrigin } from '@/lib/utils/client-origin';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 import { buildCuratedListMapUrl } from './curated-list-url';
 
 export type CuratedListShareMethod = 'web_share' | 'clipboard';
@@ -37,10 +38,8 @@ export async function shareCuratedListLink(input: {
     }
   }
 
-  try {
-    await navigator.clipboard.writeText(url);
+  if (await copyTextToClipboard(url)) {
     return 'clipboard';
-  } catch {
-    return null;
   }
+  return null;
 }

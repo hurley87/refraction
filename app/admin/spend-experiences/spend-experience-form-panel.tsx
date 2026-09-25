@@ -15,6 +15,7 @@ import {
 import type { SpendExperience, SpendExperienceStatus } from '@/lib/types';
 import type { SpendRailCatalogEntry } from '@/lib/spend-rail-config/types';
 import type { SpendExperienceFormState } from './form-state';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 
 export type SpendExperienceFormPanelProps = {
   open: boolean;
@@ -233,8 +234,12 @@ export function SpendExperienceFormPanel({
                   className="shrink-0 gap-1 sm:self-start"
                   disabled={!receivingTrimmed}
                   onClick={() => {
-                    void navigator.clipboard.writeText(receivingTrimmed);
-                    toast.success('Address copied');
+                    void copyTextToClipboard(receivingTrimmed).then(
+                      (copied) => {
+                        if (copied) toast.success('Address copied');
+                        else toast.error('Could not copy address');
+                      }
+                    );
                   }}
                 >
                   <Copy className="size-3.5" />

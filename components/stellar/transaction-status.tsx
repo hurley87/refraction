@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { toast } from 'sonner';
 
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
+
 function explorerIsMainnet(
   network?: string | null,
   networkPassphrase?: string | null
@@ -105,8 +107,10 @@ export function TransactionStatus({
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(txHash);
-                    toast.success('Transaction hash copied!');
+                    void copyTextToClipboard(txHash).then((copied) => {
+                      if (copied) toast.success('Transaction hash copied!');
+                      else toast.error('Could not copy transaction hash');
+                    });
                   }}
                   className="flex-shrink-0 cursor-pointer rounded p-1 transition-colors hover:bg-black/5"
                   title="Copy transaction hash"
