@@ -7,6 +7,7 @@ import {
   isEip1193ProviderNoise,
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
+  isInvalidAccessEnvironmentalNoise,
   isPrivyEmbeddedWalletHttpsNoise,
   isPrivyWalletProviderOnNoise,
   isStorageSecurityError,
@@ -258,6 +259,85 @@ describe('isIndexedDbNoiseError', () => {
       'UnknownError'
     );
     expect(isIndexedDbNoiseError(error)).toBe(true);
+  });
+
+  it('detects idb-keyval transaction-lifecycle messages (JAVASCRIPT-NEXTJS-1R)', () => {
+    const error = new Error(
+      'UnknownError: Attempt to get a record from database without an in-progress transaction'
+    );
+    expect(isIndexedDbNoiseError(error)).toBe(true);
+  });
+});
+
+describe('isInvalidAccessEnvironmentalNoise', () => {
+  it('detects frameless generic InvalidAccessError (JAVASCRIPT-NEXTJS-22)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/rewards' },
+      exception: {
+        values: [
+          {
+            type: 'InvalidAccessError',
+            value:
+              'InvalidAccessError: The object does not support the operation or argument.',
+          },
+        ],
+      },
+    };
+
+    expect(isInvalidAccessEnvironmentalNoise(event)).toBe(true);
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('detects InvalidAccessError from wallet SDK / IndexedDB stacks', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/' },
+      exception: {
+        values: [
+          {
+            type: 'InvalidAccessError',
+            value:
+              'InvalidAccessError: The object does not support the operation or argument.',
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///node_modules/idb-keyval/dist/index.js',
+                  abs_path: 'app:///node_modules/idb-keyval/dist/index.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(isInvalidAccessEnvironmentalNoise(event)).toBe(true);
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('still forwards InvalidAccessError with app bundle frames', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'InvalidAccessError',
+            value:
+              'InvalidAccessError: The object does not support the operation or argument.',
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///_next/static/chunks/app/dashboard/page.js',
+                  abs_path: 'app:///_next/static/chunks/app/dashboard/page.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(isInvalidAccessEnvironmentalNoise(event)).toBe(false);
+    expect(sentryBeforeSend(event)).toEqual(event);
   });
 });
 

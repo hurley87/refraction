@@ -240,7 +240,8 @@ export function isIndexedDbNoiseError(reason: unknown): boolean {
     normalized.includes('database deleted by request of the user') ||
     normalized.includes('internal error opening backing store') ||
     normalized.includes('unable to open database file') ||
-    normalized.includes('connection is closing')
+    normalized.includes('connection is closing') ||
+    normalized.includes('without an in-progress transaction')
   ) {
     return true;
   }
@@ -265,6 +266,105 @@ function shouldDropIndexedDbNoiseError(
   }
 
   return isIndexedDbNoiseError(eventMessage(event, hint));
+}
+
+function exceptionTypeFromEvent(event: SentryEventLike): string {
+  return (event.exception?.values?.[0]?.type ?? '').toLowerCase();
+}
+
+function isInvalidAccessDomException(reason: unknown): boolean {
+  return indexedDbErrorName(reason).toLowerCase() === 'invalidaccesserror';
+}
+
+function frameLooksLikeWalletSdkOrIndexedDb(
+  filename?: string,
+  absPath?: string
+): boolean {
+  const combined = `${filename ?? ''} ${absPath ?? ''}`.toLowerCase();
+  return (
+    combined.includes('idb-keyval') ||
+    combined.includes('indexeddb') ||
+    combined.includes('keyval-store') ||
+    combined.includes('@walletconnect') ||
+    combined.includes('@privy-io') ||
+    combined.includes('@privy-io/')
+  );
+}
+
+function messageLooksLikeIndexedDbInvalidAccess(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('indexeddb') ||
+    lower.includes('idbdatabase') ||
+    lower.includes('idbobjectstore') ||
+    lower.includes('without an in-progress transaction')
+  );
+}
+
+function genericInvalidAccessMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    !lower ||
+    lower.includes('the object does not support the operation or argument')
+  );
+}
+
+/**
+ * Wallet SDKs and browser storage APIs can throw `InvalidAccessError` with the
+ * generic DOMException message when IndexedDB transactions close mid-flight or
+ * when Web APIs are invoked in a disallowed context. Same environmental cluster
+ * as NEXTJS-1R (idb-keyval lifecycle) — not actionable app bugs when stacks are
+ * SDK-only or missing (WebKit often omits frames on DOMException).
+ */
+export function isInvalidAccessEnvironmentalNoise(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  const typeIsInvalidAccess =
+    exceptionTypeFromEvent(event) === 'invalidaccesserror' ||
+    isInvalidAccessDomException(hint?.originalException);
+
+  if (!typeIsInvalidAccess) {
+    return false;
+  }
+
+  const message = eventMessage(event, hint);
+  if (messageLooksLikeIndexedDbInvalidAccess(message)) {
+    return true;
+  }
+
+  const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+  if (
+    frames.some((frame) =>
+      frameLooksLikeWalletSdkOrIndexedDb(frame.filename, frame.abs_path)
+    )
+  ) {
+    return true;
+  }
+
+  if (eventFromInjectedScript(event)) {
+    return true;
+  }
+
+  if (!genericInvalidAccessMessage(message)) {
+    return false;
+  }
+
+  if (!frames.length) {
+    return true;
+  }
+
+  const hasAppFrame = frames.some((frame) =>
+    frameLooksLikeAppBundle(frame.filename, frame.abs_path)
+  );
+  return !hasAppFrame;
+}
+
+function shouldDropInvalidAccessEnvironmentalNoise(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  return isInvalidAccessEnvironmentalNoise(event, hint);
 }
 
 /** EIP-1193 provider RPC codes that are environmental / user-intent, not app bugs. */
@@ -520,6 +620,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (shouldDropIndexedDbNoiseError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropInvalidAccessEnvironmentalNoise(event, hint)) {
     return null;
   }
 
