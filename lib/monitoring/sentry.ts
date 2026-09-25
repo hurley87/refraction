@@ -225,6 +225,38 @@ function shouldDropStorageSecurityError(
 }
 
 /**
+ * Browsers reject `navigator.clipboard.writeText` with NotAllowedError when the
+ * document lacks focus, user activation expired, or permissions policy blocks
+ * clipboard writes (common in embedded webviews). Expected UX failure, not an app bug.
+ */
+export function isClipboardWritePermissionDeniedNoise(
+  reason: unknown
+): boolean {
+  const name = indexedDbErrorName(reason).toLowerCase();
+  const message = indexedDbErrorMessage(reason).toLowerCase();
+
+  if (name === 'notallowederror') {
+    return message.includes('clipboard') || message.includes('writetext');
+  }
+
+  return (
+    message.includes("failed to execute 'writetext' on 'clipboard'") ||
+    message.includes('write permission denied')
+  );
+}
+
+function shouldDropClipboardWritePermissionError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isClipboardWritePermissionDeniedNoise(hint?.originalException)) {
+    return true;
+  }
+
+  return isClipboardWritePermissionDeniedNoise(eventMessage(event, hint));
+}
+
+/**
  * Wallet SDKs (Privy, WalletConnect) persist session state via idb-keyval.
  * Browsers — especially iOS Safari and in-app webviews — can close or delete
  * the IndexedDB database during navigation, tab discard, backgrounding, or when
@@ -524,6 +556,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (shouldDropStorageSecurityError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropClipboardWritePermissionError(event, hint)) {
     return null;
   }
 

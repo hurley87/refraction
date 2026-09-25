@@ -1,3 +1,5 @@
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
+
 import { buildPerkMemberShareUrl } from './member-share-url';
 
 /** How a perk link reached the recipient, for analytics and UI feedback. */
@@ -35,10 +37,8 @@ export async function sharePerkLink(input: {
     }
   }
 
-  try {
-    await navigator.clipboard.writeText(url);
+  if (await copyTextToClipboard(url)) {
     return 'clipboard';
-  } catch {
-    return null;
   }
+  return null;
 }

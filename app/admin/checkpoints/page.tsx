@@ -19,6 +19,7 @@ import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import Image from 'next/image';
 import GradientPicker from '@/components/ui/gradient-picker';
 import FontPicker from '@/components/ui/font-picker';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,7 +95,11 @@ function Section({
           stroke="currentColor"
           strokeWidth={2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
       {open && <div className="px-5 py-4 space-y-4">{children}</div>}
@@ -148,8 +153,18 @@ function SlideOver({
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -253,8 +268,18 @@ function CheckpointCard({
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
             title="Copy URL"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
             </svg>
           </button>
           <button
@@ -263,8 +288,18 @@ function CheckpointCard({
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
             title="Edit"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
             </svg>
           </button>
           <button
@@ -274,8 +309,18 @@ function CheckpointCard({
             className="p-2 rounded-lg hover:bg-red-50 transition-colors text-gray-400 hover:text-red-600 disabled:opacity-50"
             title="Delete"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
             </svg>
           </button>
         </div>
@@ -330,13 +375,19 @@ export default function AdminCheckpointsPage() {
 
   // Slide-over state
   const [panelOpen, setPanelOpen] = useState(false);
-  const [editingCheckpoint, setEditingCheckpoint] = useState<Checkpoint | null>(null);
+  const [editingCheckpoint, setEditingCheckpoint] = useState<Checkpoint | null>(
+    null
+  );
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [partnerImageFile, setPartnerImageFile] = useState<File | null>(null);
-  const [partnerImagePreview, setPartnerImagePreview] = useState<string | null>(null);
+  const [partnerImagePreview, setPartnerImagePreview] = useState<string | null>(
+    null
+  );
 
   // Data fetching
-  const { data: checkpoints = [], isLoading: checkpointsLoading } = useQuery<Checkpoint[]>({
+  const { data: checkpoints = [], isLoading: checkpointsLoading } = useQuery<
+    Checkpoint[]
+  >({
     queryKey: ['admin-checkpoints'],
     queryFn: async () => {
       const auth = await adminApiAuthHeaders(getAccessToken);
@@ -363,18 +414,28 @@ export default function AdminCheckpointsPage() {
         const fd = new FormData();
         fd.append('name', checkpointData.name);
         fd.append('description', checkpointData.description || '');
-        fd.append('login_cta_text', checkpointData.login_cta_text?.trim() || '');
+        fd.append(
+          'login_cta_text',
+          checkpointData.login_cta_text?.trim() || ''
+        );
         fd.append('chain_type', checkpointData.chain_type);
         fd.append('checkpoint_mode', checkpointData.checkpoint_mode);
         fd.append('points_value', String(checkpointData.points_value));
         fd.append('is_active', String(checkpointData.is_active));
-        if (checkpointData.background_gradient) fd.append('background_gradient', checkpointData.background_gradient);
-        if (checkpointData.font_family) fd.append('font_family', checkpointData.font_family);
-        if (checkpointData.font_color) fd.append('font_color', checkpointData.font_color);
-        if (checkpointData.footer_title) fd.append('footer_title', checkpointData.footer_title);
-        if (checkpointData.footer_description) fd.append('footer_description', checkpointData.footer_description);
-        if (checkpointData.cta_text) fd.append('cta_text', checkpointData.cta_text);
-        if (checkpointData.cta_url) fd.append('cta_url', checkpointData.cta_url);
+        if (checkpointData.background_gradient)
+          fd.append('background_gradient', checkpointData.background_gradient);
+        if (checkpointData.font_family)
+          fd.append('font_family', checkpointData.font_family);
+        if (checkpointData.font_color)
+          fd.append('font_color', checkpointData.font_color);
+        if (checkpointData.footer_title)
+          fd.append('footer_title', checkpointData.footer_title);
+        if (checkpointData.footer_description)
+          fd.append('footer_description', checkpointData.footer_description);
+        if (checkpointData.cta_text)
+          fd.append('cta_text', checkpointData.cta_text);
+        if (checkpointData.cta_url)
+          fd.append('cta_url', checkpointData.cta_url);
         fd.append('partner_image', imageFile);
 
         const auth = await adminApiAuthHeaders(getAccessToken);
@@ -415,8 +476,12 @@ export default function AdminCheckpointsPage() {
             size="sm"
             className="mt-2"
             onClick={() => {
-              navigator.clipboard.writeText(`${window.location.origin}${data.url}`);
-              toast.success('URL copied!');
+              void copyTextToClipboard(
+                `${window.location.origin}${data.url}`
+              ).then((copied) => {
+                if (copied) toast.success('URL copied!');
+                else toast.error('Could not copy URL');
+              });
             }}
           >
             Copy URL
@@ -427,7 +492,9 @@ export default function AdminCheckpointsPage() {
       closePanel();
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to create checkpoint');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create checkpoint'
+      );
     },
   });
 
@@ -544,7 +611,10 @@ export default function AdminCheckpointsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const normalizedChain = formData.checkpoint_mode === 'spend' ? 'evm' as ChainType : formData.chain_type;
+    const normalizedChain =
+      formData.checkpoint_mode === 'spend'
+        ? ('evm' as ChainType)
+        : formData.chain_type;
     const payload = {
       ...formData,
       chain_type: normalizedChain,
@@ -559,18 +629,30 @@ export default function AdminCheckpointsPage() {
     };
 
     if (editingCheckpoint) {
-      updateCheckpointMutation.mutate({ id: editingCheckpoint.id, updates: payload, imageFile: partnerImageFile });
+      updateCheckpointMutation.mutate({
+        id: editingCheckpoint.id,
+        updates: payload,
+        imageFile: partnerImageFile,
+      });
     } else {
-      createCheckpointMutation.mutate({ checkpointData: payload, imageFile: partnerImageFile });
+      createCheckpointMutation.mutate({
+        checkpointData: payload,
+        imageFile: partnerImageFile,
+      });
     }
   };
 
   const handleCopyUrl = (id: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/c/${id}`);
-    toast.success('URL copied!');
+    void copyTextToClipboard(`${window.location.origin}/c/${id}`).then(
+      (copied) => {
+        if (copied) toast.success('URL copied!');
+        else toast.error('Could not copy URL');
+      }
+    );
   };
 
-  const isMutating = createCheckpointMutation.isPending || updateCheckpointMutation.isPending;
+  const isMutating =
+    createCheckpointMutation.isPending || updateCheckpointMutation.isPending;
   const isSpendMode = formData.checkpoint_mode === 'spend';
 
   // -------------------------------------------------------------------------
@@ -582,8 +664,19 @@ export default function AdminCheckpointsPage() {
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="flex items-center gap-3 text-gray-500">
           <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
           </svg>
           Loading&hellip;
         </div>
@@ -603,7 +696,9 @@ export default function AdminCheckpointsPage() {
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <p className="text-gray-600">Access denied. Admin permissions required.</p>
+        <p className="text-gray-600">
+          Access denied. Admin permissions required.
+        </p>
       </div>
     );
   }
@@ -620,12 +715,23 @@ export default function AdminCheckpointsPage() {
           <div>
             <h1 className="text-xl font-semibold text-gray-900">Checkpoints</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {checkpoints.length} checkpoint{checkpoints.length !== 1 ? 's' : ''}
+              {checkpoints.length} checkpoint
+              {checkpoints.length !== 1 ? 's' : ''}
             </p>
           </div>
           <Button onClick={openCreate} className="gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             New Checkpoint
           </Button>
@@ -636,17 +742,42 @@ export default function AdminCheckpointsPage() {
       <div className="max-w-5xl mx-auto px-6 py-6">
         {checkpointsLoading ? (
           <div className="flex items-center justify-center py-20 text-gray-400">
-            <svg className="w-5 h-5 animate-spin mr-3" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <svg
+              className="w-5 h-5 animate-spin mr-3"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
             </svg>
             Loading checkpoints&hellip;
           </div>
         ) : checkpoints.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-              <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              <svg
+                className="w-7 h-7 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
             </div>
             <p className="text-gray-500 mb-4">No checkpoints yet.</p>
@@ -662,7 +793,8 @@ export default function AdminCheckpointsPage() {
                 checkpoint={cp}
                 onEdit={() => openEdit(cp)}
                 onDelete={() => {
-                  if (confirm('Delete this checkpoint?')) deleteCheckpointMutation.mutate(cp.id);
+                  if (confirm('Delete this checkpoint?'))
+                    deleteCheckpointMutation.mutate(cp.id);
                 }}
                 onCopy={() => handleCopyUrl(cp.id)}
                 isDeleting={deleteCheckpointMutation.isPending}
@@ -679,16 +811,29 @@ export default function AdminCheckpointsPage() {
         title={editingCheckpoint ? 'Edit Checkpoint' : 'New Checkpoint'}
         footer={
           <>
-            <Button type="button" variant="outline" onClick={closePanel} disabled={isMutating}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closePanel}
+              disabled={isMutating}
+            >
               Cancel
             </Button>
             <Button type="submit" form="checkpoint-form" disabled={isMutating}>
-              {isMutating ? 'Saving\u2026' : editingCheckpoint ? 'Save Changes' : 'Create Checkpoint'}
+              {isMutating
+                ? 'Saving\u2026'
+                : editingCheckpoint
+                  ? 'Save Changes'
+                  : 'Create Checkpoint'}
             </Button>
           </>
         }
       >
-        <form id="checkpoint-form" onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form
+          id="checkpoint-form"
+          onSubmit={handleSubmit}
+          className="p-6 space-y-5"
+        >
           {/* ---- Basic Info ---- */}
           <Section title="Basic Information">
             <div>
@@ -742,7 +887,9 @@ export default function AdminCheckpointsPage() {
                     }))
                   }
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="checkin">Check-in (earn)</SelectItem>
                     <SelectItem value="spend">Spend (redeem)</SelectItem>
@@ -757,7 +904,9 @@ export default function AdminCheckpointsPage() {
                   onValueChange={(v: ChainType) => setField('chain_type', v)}
                   disabled={isSpendMode}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="evm">EVM (Base)</SelectItem>
                     <SelectItem value="solana">Solana</SelectItem>
@@ -766,7 +915,9 @@ export default function AdminCheckpointsPage() {
                   </SelectContent>
                 </Select>
                 {isSpendMode && (
-                  <p className="text-xs text-gray-400 mt-1">Spend mode uses EVM.</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Spend mode uses EVM.
+                  </p>
                 )}
               </div>
             </div>
@@ -782,7 +933,9 @@ export default function AdminCheckpointsPage() {
                   min={1}
                   max={10000}
                   value={formData.points_value}
-                  onChange={(e) => setField('points_value', parseInt(e.target.value) || 100)}
+                  onChange={(e) =>
+                    setField('points_value', parseInt(e.target.value) || 100)
+                  }
                 />
               </div>
               <div>
@@ -816,10 +969,22 @@ export default function AdminCheckpointsPage() {
                   </div>
                 ) : (
                   <>
-                    <svg className="w-8 h-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                    <svg
+                      className="w-8 h-8 text-gray-300 mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
+                      />
                     </svg>
-                    <span className="text-sm text-gray-500">Click to upload</span>
+                    <span className="text-sm text-gray-500">
+                      Click to upload
+                    </span>
                   </>
                 )}
                 <input
@@ -831,7 +996,8 @@ export default function AdminCheckpointsPage() {
                     setPartnerImageFile(file);
                     if (file) {
                       const reader = new FileReader();
-                      reader.onloadend = () => setPartnerImagePreview(reader.result as string);
+                      reader.onloadend = () =>
+                        setPartnerImagePreview(reader.result as string);
                       reader.readAsDataURL(file);
                     } else {
                       setPartnerImagePreview(null);
@@ -858,7 +1024,9 @@ export default function AdminCheckpointsPage() {
           <Section title="Page Styling" defaultOpen={false}>
             <div>
               <Label>Background Gradient</Label>
-              <p className="text-xs text-gray-400 mb-2">Overlay on the hero image</p>
+              <p className="text-xs text-gray-400 mb-2">
+                Overlay on the hero image
+              </p>
               <GradientPicker
                 value={formData.background_gradient}
                 onChange={(val) => setField('background_gradient', val)}
@@ -926,8 +1094,13 @@ export default function AdminCheckpointsPage() {
                 onChange={(e) => setField('cta_text', e.target.value)}
                 placeholder="Default: Explore The IRL Map"
               />
-              <p className="text-xs text-gray-400 mt-1">tip: keep the text short or the button looks weird and can truncate (20-25 characters total)</p>
-              <p className="text-xs text-gray-400 mt-1">Shown after check-in.</p>
+              <p className="text-xs text-gray-400 mt-1">
+                tip: keep the text short or the button looks weird and can
+                truncate (20-25 characters total)
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Shown after check-in.
+              </p>
             </div>
             <div>
               <Label htmlFor="cta_url">Button URL</Label>

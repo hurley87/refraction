@@ -9,6 +9,7 @@ import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import { disconnectWallet, fetchBalances } from '@/lib/stellar/utils/wallet';
 import { stellarNetwork } from '@/lib/stellar/utils/network';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 import FundAccountButton from './fund-account-button';
 
 type WalletSource = 'freighter' | 'privy';
@@ -182,8 +183,10 @@ export const UserBalance = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(address);
-                      toast.success('Address copied!');
+                      void copyTextToClipboard(address).then((copied) => {
+                        if (copied) toast.success('Address copied!');
+                        else toast.error('Could not copy address');
+                      });
                     }}
                     className="flex-shrink-0 cursor-pointer rounded p-1 transition-colors hover:bg-black/5"
                     title="Copy address"

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 import type { OneClickToken, QuoteResponse } from '@/lib/near-intents/types';
 
 const ONECLICK_QUOTE_WAIT_MS = 3000;
@@ -342,7 +343,7 @@ export function NearIntentsBridgeWidget({
   ]);
 
   const copyToClipboard = (text: string) => {
-    void navigator.clipboard.writeText(text);
+    void copyTextToClipboard(text);
   };
 
   if (isLoading) {

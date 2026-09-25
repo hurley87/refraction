@@ -26,6 +26,7 @@ import type {
 } from '@/lib/types';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
 import { spendLedgerTxExplorerUrl } from '@/lib/spend-ledger-explorer-url';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 import type {
   SpendPilotAdminRailVisibility,
   SpendPilotAdminTotals,
@@ -432,7 +433,12 @@ export default function SpendExperienceDetailPage() {
               size="sm"
               className="gap-1 bg-white"
               onClick={() =>
-                void navigator.clipboard.writeText(funding.serverWalletAddress)
+                void copyTextToClipboard(funding.serverWalletAddress).then(
+                  (copied) => {
+                    if (copied) toast.success('Address copied');
+                    else toast.error('Could not copy address');
+                  }
+                )
               }
             >
               <Copy className="size-3.5" />

@@ -19,6 +19,7 @@ import { SpendExperienceList } from './spend-experience-list';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
 import type { SpendRailCatalogEntry } from '@/lib/spend-rail-config/types';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 
 const QUERY_KEY = ['admin-spend-experiences'] as const;
 const RAILS_CATALOG_QUERY_KEY = ['admin-spend-rails-catalog'] as const;
@@ -291,10 +292,12 @@ export default function AdminSpendExperiencesPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                void navigator.clipboard.writeText(
+                void copyTextToClipboard(
                   createdFunding.serverWalletAddress
-                );
-                toast.success('Treasury address copied');
+                ).then((copied) => {
+                  if (copied) toast.success('Treasury address copied');
+                  else toast.error('Could not copy address');
+                });
               }}
             >
               Copy

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isAbortError,
   isAndroidJavascriptBridgeNoise,
+  isClipboardWritePermissionDeniedNoise,
   isCefSharpBotNoise,
   isEip1193ProviderNoise,
   isExtensionStackOverflowNoise,
@@ -74,6 +75,36 @@ describe('isEip1193ProviderNoise', () => {
       })
     ).toBe(false);
     expect(isEip1193ProviderNoise('User rejected the request.')).toBe(false);
+  });
+});
+
+describe('isClipboardWritePermissionDeniedNoise', () => {
+  it('detects NotAllowedError from clipboard writeText (JAVASCRIPT-NEXTJS-24)', () => {
+    const error = new DOMException(
+      "Failed to execute 'writeText' on 'Clipboard': Write permission denied.",
+      'NotAllowedError'
+    );
+    expect(isClipboardWritePermissionDeniedNoise(error)).toBe(true);
+    expect(
+      isClipboardWritePermissionDeniedNoise(
+        "NotAllowedError: Failed to execute 'writeText' on 'Clipboard': Write permission denied."
+      )
+    ).toBe(true);
+  });
+
+  it('keeps unrelated NotAllowedError messages', () => {
+    const error = new DOMException('Permission denied', 'NotAllowedError');
+    expect(isClipboardWritePermissionDeniedNoise(error)).toBe(false);
+  });
+
+  it('drops clipboard permission errors in beforeSend', () => {
+    const error = new DOMException(
+      "Failed to execute 'writeText' on 'Clipboard': Write permission denied.",
+      'NotAllowedError'
+    );
+    expect(
+      sentryBeforeSend({ message: error.message }, { originalException: error })
+    ).toBeNull();
   });
 });
 
