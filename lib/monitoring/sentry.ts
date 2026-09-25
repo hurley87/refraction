@@ -240,9 +240,23 @@ export function isIndexedDbNoiseError(reason: unknown): boolean {
     normalized.includes('database deleted by request of the user') ||
     normalized.includes('internal error opening backing store') ||
     normalized.includes('unable to open database file') ||
-    normalized.includes('connection is closing')
+    normalized.includes('connection is closing') ||
+    normalized.includes(
+      'attempt to get a record from database without an in-progress transaction'
+    )
   ) {
     return true;
+  }
+
+  if (name === 'invalidaccesserror') {
+    if (
+      normalized.includes('failed to execute') &&
+      (normalized.includes('idb') ||
+        normalized.includes('indexeddb') ||
+        normalized.includes('objectstore'))
+    ) {
+      return true;
+    }
   }
 
   // Generic UnknownError from IndexedDB (WebKit crashes, corrupted backing store).
@@ -256,6 +270,91 @@ export function isIndexedDbNoiseError(reason: unknown): boolean {
   return false;
 }
 
+function messageIsGenericInvalidAccessError(message: string): boolean {
+  const lower = message.toLowerCase();
+  if (
+    lower.includes('failed to execute') &&
+    (lower.includes("'idb") ||
+      lower.includes('indexeddb') ||
+      lower.includes('objectstore'))
+  ) {
+    return true;
+  }
+
+  return (
+    lower === 'the object does not support the operation or argument.' ||
+    lower === 'the object does not support the operation or argument' ||
+    lower.includes(
+      'invalidaccesserror: the object does not support the operation or argument'
+    )
+  );
+}
+
+/**
+ * DOMException `InvalidAccessError` with WebIDL's generic message (no
+ * "Failed to execute …" prefix). Wallet SDK IndexedDB races often surface
+ * this as frameless unhandled rejections in Sentry (JAVASCRIPT-NEXTJS-23).
+ */
+export function isGenericInvalidAccessError(reason: unknown): boolean {
+  if (typeof reason === 'string') {
+    return messageIsGenericInvalidAccessError(reason);
+  }
+
+  const name = indexedDbErrorName(reason).toLowerCase();
+  const message = indexedDbErrorMessage(reason);
+  if (name === 'invalidaccesserror') {
+    return messageIsGenericInvalidAccessError(
+      message || 'The object does not support the operation or argument.'
+    );
+  }
+
+  return messageIsGenericInvalidAccessError(message);
+}
+
+/**
+ * Drop frameless or non-app `InvalidAccessError` events — same strategy as
+ * {@link isExtensionStackOverflowNoise} for extension/SDK environmental noise.
+ */
+export function isIndexedDbInvalidAccessEnvironmentalNoise(
+  event: SentryEventLike
+): boolean {
+  const values = event.exception?.values;
+  if (values?.length) {
+    for (const ex of values) {
+      const type = (ex.type ?? '').toLowerCase();
+      const value = (ex.value ?? '').toLowerCase();
+      if (
+        type !== 'invalidaccesserror' &&
+        !value.includes('invalidaccesserror')
+      ) {
+        continue;
+      }
+      if (
+        value.includes('idb') ||
+        value.includes('indexed database') ||
+        value.includes('objectstore') ||
+        value.includes('object store')
+      ) {
+        return true;
+      }
+    }
+  }
+
+  if (eventFromInjectedScript(event)) {
+    return false;
+  }
+
+  const frames = values?.[0]?.stacktrace?.frames;
+  if (!frames?.length) {
+    return true;
+  }
+
+  const hasAppFrame = frames.some((frame) =>
+    frameLooksLikeAppBundle(frame.filename, frame.abs_path)
+  );
+  return !hasAppFrame;
+}
+
 function shouldDropIndexedDbNoiseError(
   event: SentryEventLike,
   hint?: EventHint
@@ -264,7 +363,19 @@ function shouldDropIndexedDbNoiseError(
     return true;
   }
 
-  return isIndexedDbNoiseError(eventMessage(event, hint));
+  if (isIndexedDbNoiseError(eventMessage(event, hint))) {
+    return true;
+  }
+
+  const message = eventMessage(event, hint);
+  if (
+    isGenericInvalidAccessError(hint?.originalException) ||
+    isGenericInvalidAccessError(message)
+  ) {
+    return isIndexedDbInvalidAccessEnvironmentalNoise(event);
+  }
+
+  return false;
 }
 
 /** EIP-1193 provider RPC codes that are environmental / user-intent, not app bugs. */

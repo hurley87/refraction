@@ -6,6 +6,8 @@ import {
   isCefSharpBotNoise,
   isEip1193ProviderNoise,
   isExtensionStackOverflowNoise,
+  isGenericInvalidAccessError,
+  isIndexedDbInvalidAccessEnvironmentalNoise,
   isIndexedDbNoiseError,
   isPrivyEmbeddedWalletHttpsNoise,
   isPrivyWalletProviderOnNoise,
@@ -259,6 +261,80 @@ describe('isIndexedDbNoiseError', () => {
     );
     expect(isIndexedDbNoiseError(error)).toBe(true);
   });
+
+  it('detects WebKit idb-keyval transaction-lifecycle messages (JAVASCRIPT-NEXTJS-1R)', () => {
+    const error = new DOMException(
+      'Attempt to get a record from database without an in-progress transaction',
+      'UnknownError'
+    );
+    expect(isIndexedDbNoiseError(error)).toBe(true);
+  });
+
+  it('detects InvalidAccessError from IDBObjectStore operations', () => {
+    const error = new DOMException(
+      "Failed to execute 'put' on 'IDBObjectStore': The transaction has finished.",
+      'InvalidAccessError'
+    );
+    expect(isIndexedDbNoiseError(error)).toBe(true);
+  });
+});
+
+describe('isGenericInvalidAccessError', () => {
+  it('detects DOMException InvalidAccessError with generic WebIDL message (JAVASCRIPT-NEXTJS-23)', () => {
+    const error = new DOMException(
+      'The object does not support the operation or argument.',
+      'InvalidAccessError'
+    );
+    expect(isGenericInvalidAccessError(error)).toBe(true);
+  });
+
+  it('detects Sentry-serialized InvalidAccessError titles', () => {
+    expect(
+      isGenericInvalidAccessError(
+        'InvalidAccessError: The object does not support the operation or argument.'
+      )
+    ).toBe(true);
+  });
+});
+
+describe('isIndexedDbInvalidAccessEnvironmentalNoise', () => {
+  it('drops frameless InvalidAccessError events', () => {
+    const event = {
+      exception: {
+        values: [
+          {
+            type: 'InvalidAccessError',
+            value:
+              'InvalidAccessError: The object does not support the operation or argument.',
+          },
+        ],
+      },
+    };
+    expect(isIndexedDbInvalidAccessEnvironmentalNoise(event)).toBe(true);
+  });
+
+  it('forwards InvalidAccessError with app bundle frames', () => {
+    const event = {
+      exception: {
+        values: [
+          {
+            type: 'InvalidAccessError',
+            value:
+              'InvalidAccessError: The object does not support the operation or argument.',
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///_next/static/chunks/app/dashboard/page.js',
+                  abs_path: 'app:///_next/static/chunks/app/dashboard/page.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    expect(isIndexedDbInvalidAccessEnvironmentalNoise(event)).toBe(false);
+  });
 });
 
 describe('sentryBeforeSend', () => {
@@ -311,6 +387,48 @@ describe('sentryBeforeSend', () => {
           {
             type: 'Error',
             value: 'Error: UnknownError: Internal error.',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event, { originalException: idbError })).toBeNull();
+  });
+
+  it('returns null for UnknownError idb-keyval transaction-lifecycle IndexedDB noise (JAVASCRIPT-NEXTJS-1R)', () => {
+    const idbError = new DOMException(
+      'Attempt to get a record from database without an in-progress transaction',
+      'UnknownError'
+    );
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value:
+              'Error: UnknownError: Attempt to get a record from database without an in-progress transaction',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event, { originalException: idbError })).toBeNull();
+  });
+
+  it('returns null for frameless InvalidAccessError IndexedDB environmental noise (JAVASCRIPT-NEXTJS-23)', () => {
+    const idbError = new DOMException(
+      'The object does not support the operation or argument.',
+      'InvalidAccessError'
+    );
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'InvalidAccessError',
+            value:
+              'InvalidAccessError: The object does not support the operation or argument.',
           },
         ],
       },
