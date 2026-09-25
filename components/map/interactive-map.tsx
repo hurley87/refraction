@@ -68,6 +68,7 @@ import {
   shouldReopenMapCardAfterCheckInClose,
   shouldShowSaveToListTipAfterCheckIn,
 } from '@/lib/map/post-checkin-map-restore';
+import { coerceToArray } from '@/lib/location-lists/list-locations-count';
 /** Privy ignores `login()` while its modal is unmounting, so wait before reopening. */
 const LOGIN_REPROMPT_DELAY_MS = 400;
 
@@ -368,7 +369,7 @@ export default function InteractiveMap({
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper - data is in responseData.data
         const data = responseData.data || responseData;
-        const dbMarkers: MarkerData[] = (data.locations || []).map(
+        const dbMarkers: MarkerData[] = coerceToArray<any>(data.locations).map(
           (loc: any) => ({
             latitude: loc.latitude,
             longitude: loc.longitude,
@@ -1365,9 +1366,9 @@ export default function InteractiveMap({
               // Unwrap the apiSuccess wrapper
               const locationsData =
                 locationsResponseData.data || locationsResponseData;
-              const existingLocation = (locationsData.locations || []).find(
-                (loc: any) => loc.place_id === selectedMarker.place_id
-              );
+              const existingLocation = coerceToArray<any>(
+                locationsData.locations
+              ).find((loc: any) => loc.place_id === selectedMarker.place_id);
 
               if (existingLocation) {
                 const existingMarker: MarkerData = {
