@@ -60,7 +60,7 @@ export function MapCreateLocationDrawer({
                 id="new-location-drawer-title"
                 className="truncate text-[#000000] tracking-[-0.5px] label-small uppercase"
               >
-                create and check in
+                SAVE
               </p>
             </div>
           </div>
@@ -73,7 +73,7 @@ export function MapCreateLocationDrawer({
             <div className="px-3 pb-3 pt-0">
               <div className="flex flex-col gap-3">
                 <p className="m-0 title3 text-[#000000] font-semibold">
-                  Add Business Details
+                  {formData.name || 'Location Name'}
                 </p>
                 {/* Name Field */}
                 <div className="flex flex-col gap-1.5">
@@ -183,7 +183,7 @@ export function MapCreateLocationDrawer({
                 {/* Image Upload */}
                 <div className="flex flex-col gap-1.5">
                   <label className="label-small text-[#757575] uppercase tracking-[0.3px]">
-                    Add image <span className="text-red-500">*</span>
+                    Add image
                   </label>
                   {formData.locationImage ? (
                     <div className="relative">

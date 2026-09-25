@@ -64,6 +64,10 @@ import {
   getListFocusMapPadding,
   getMapCardFlyToBottomPaddingPx,
 } from '@/lib/map/map-layout';
+import {
+  shouldReopenMapCardAfterCheckInClose,
+  shouldShowSaveToListTipAfterCheckIn,
+} from '@/lib/map/post-checkin-map-restore';
 /** Privy ignores `login()` while its modal is unmounting, so wait before reopening. */
 const LOGIN_REPROMPT_DELAY_MS = 400;
 
@@ -224,6 +228,11 @@ export default function InteractiveMap({
   const walletAddressRef = useRef<string | null | undefined>(walletAddress);
   /** True while the guest has the Privy modal open, so dismissing it re-prompts. */
   const wasLoginModalOpenRef = useRef(false);
+  /**
+   * First search after the welcome tour: if the member checks in before finishing
+   * the save-to-list tip, restore that tip when they return to the map card.
+   */
+  const postTourFirstSearchTipRef = useRef(false);
 
   const {
     showListCreateMapTip,
@@ -250,6 +259,11 @@ export default function InteractiveMap({
     needsLocationPrompt,
     setNeedsLocationPrompt,
   });
+
+  const handleDismissSaveToListTourTip = useCallback(() => {
+    postTourFirstSearchTipRef.current = false;
+    dismissSaveToListTourTip();
+  }, [dismissSaveToListTourTip]);
 
   const handleListCreated = useCallback(() => {
     const createdFromMarker = addToListTargetRef.current ?? addToListTarget;
@@ -834,6 +848,9 @@ export default function InteractiveMap({
       pendingSaveToListTourTipRef.current = true;
     }
     const followFromSearchTour = pendingSaveToListTourTipRef.current;
+    if (followFromSearchTour) {
+      postTourFirstSearchTipRef.current = true;
+    }
     dismissSearchTourTip();
     const { longitude, latitude, name, placeFormatted, id, featureType } =
       picked;
@@ -1079,6 +1096,17 @@ export default function InteractiveMap({
   );
 
   const handleCloseCheckInModal = () => {
+    const restoreTarget = shouldReopenMapCardAfterCheckInClose(
+      Boolean(checkInTarget)
+    )
+      ? checkInTarget
+      : null;
+    const restoreSaveToListTip = shouldShowSaveToListTipAfterCheckIn({
+      hasCheckInTarget: Boolean(checkInTarget),
+      saveToListTipAlreadyShowing: showSaveToListTourTip,
+      postTourFirstSearchPending: postTourFirstSearchTipRef.current,
+    });
+
     setShowCheckInModal(false);
     setShowCheckInCommentModal(false);
     setCheckInComment('');
@@ -1090,6 +1118,18 @@ export default function InteractiveMap({
     setLocationCheckinsError(null);
     setIsLoadingLocationCheckins(false);
     setHasUserCheckedInAtLocation(false);
+
+    // Return to the place's map card (after points screen, or after creating
+    // a location then dismissing check-in) and restore the post-tour tip.
+    if (restoreTarget) {
+      setPendingMapCreateMarker(null);
+      setPopupInfo(restoreTarget);
+      setSelectedMarker(restoreTarget);
+      if (restoreSaveToListTip) {
+        setShowSaveToListTourTip(true);
+        postTourFirstSearchTipRef.current = false;
+      }
+    }
   };
 
   const handleCheckIn = async () => {
@@ -1198,11 +1238,6 @@ export default function InteractiveMap({
 
     if (!formData.categoryId.trim()) {
       toast.error('Category is required');
-      return;
-    }
-
-    if (!formData.locationImage) {
-      toast.error('Location image is required');
       return;
     }
 
@@ -1450,7 +1485,25 @@ export default function InteractiveMap({
       toast.success(
         `Location created! +${creationPoints} point${creationPoints === 1 ? '' : 's'}`
       );
-      handleCloseLocationForm();
+      // Close the create drawer without wiping the place — keep it selected so
+      // dismissing check-in still lands on the map card (+ post-tour list tip).
+      setShowLocationForm(false);
+      setFormStep('business-details');
+      setPendingMapCreateMarker(null);
+      setPointsEarned({ creation: 0, checkIn: 0 });
+      setFormData({
+        name: '',
+        address: '',
+        description: '',
+        categoryId: '',
+        locationImage: null,
+        checkInComment: '',
+      });
+      setPopupInfo(markerForCheckIn);
+      setSelectedMarker(markerForCheckIn);
+      if (postTourFirstSearchTipRef.current) {
+        setShowSaveToListTourTip(true);
+      }
       remindLocationCreationFlow();
       handleStartCheckIn(markerForCheckIn);
     } catch (error) {
@@ -1481,8 +1534,7 @@ export default function InteractiveMap({
   const isCreateLocationFormComplete = Boolean(
     formData.name.trim() &&
     formData.description.trim() &&
-    formData.categoryId.trim() &&
-    formData.locationImage
+    formData.categoryId.trim()
   );
 
   const handleCloseLocationFormRef = useRef(handleCloseLocationForm);
@@ -1924,7 +1976,7 @@ export default function InteractiveMap({
               onAction={() => handleStartCheckIn(popupInfo)}
               onClose={() => {
                 dismissListCreateMapTip();
-                dismissSaveToListTourTip();
+                handleDismissSaveToListTourTip();
                 setPopupInfo(null);
                 setSelectedMarker(null);
               }}
@@ -1938,7 +1990,8 @@ export default function InteractiveMap({
                       if (showSaveToListTourTip) {
                         setShowCreateListTourTip(true);
                       }
-                      dismissSaveToListTourTip();
+                      postTourFirstSearchTipRef.current = false;
+                      handleDismissSaveToListTourTip();
                       setAddToListTarget(popupInfo);
                     }
                   : undefined
@@ -1948,7 +2001,7 @@ export default function InteractiveMap({
                   <MapYellowTip
                     className="absolute bottom-full left-0 right-0 z-30 mb-2.5"
                     pointer="bottom"
-                    onDismiss={dismissSaveToListTourTip}
+                    onDismiss={handleDismissSaveToListTourTip}
                   >
                     Start your first list
                   </MapYellowTip>

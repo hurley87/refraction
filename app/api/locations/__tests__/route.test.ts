@@ -30,7 +30,12 @@ vi.mock('@/lib/analytics/server', () => ({
   trackCityMilestone: vi.fn(),
 }));
 
+vi.mock('@/lib/map/resolve-location-website-image', () => ({
+  resolveLocationWebsiteImage: vi.fn().mockResolvedValue(null),
+}));
+
 import { POST } from '../route';
+import { resolveLocationWebsiteImage } from '@/lib/map/resolve-location-website-image';
 
 function createPostRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest('http://localhost:3000/api/locations', {
@@ -138,5 +143,33 @@ describe('POST /api/locations', () => {
     expect(response.status).toBe(400);
     expect(json.error).toContain('Invalid latitude or longitude');
     expect(mockSupabaseFrom).not.toHaveBeenCalled();
+  });
+
+  it('accepts create without a location image', async () => {
+    mockSuccessfulLocationCreateFlow();
+    const { locationImage: _omit, ...bodyWithoutImage } = baseBody;
+    const request = createPostRequest(bodyWithoutImage);
+
+    const response = await POST(request);
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(resolveLocationWebsiteImage).toHaveBeenCalledWith('zero-lat-place');
+  });
+
+  it('uses a scraped website image when the client omits locationImage', async () => {
+    vi.mocked(resolveLocationWebsiteImage).mockResolvedValueOnce({
+      imageUrl: 'https://cdn.irl/scraped.webp',
+      thumbnailUrl: 'https://cdn.irl/scraped-thumb.webp',
+    });
+    mockSuccessfulLocationCreateFlow();
+    const { locationImage: _omit, ...bodyWithoutImage } = baseBody;
+
+    const response = await POST(createPostRequest(bodyWithoutImage));
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.success).toBe(true);
   });
 });
