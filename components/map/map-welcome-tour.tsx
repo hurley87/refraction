@@ -155,15 +155,17 @@ function Page2Step({ onContinue }: { onContinue: () => void }) {
         className="object-cover object-bottom"
       />
 
-      <div className="absolute inset-x-0 bottom-0 top-24 z-10 flex flex-col gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Image
-          src="/map/tour/tour-page2-poster.jpg"
-          alt=""
-          width={1440}
-          height={1800}
-          priority
-          className="mx-auto h-auto w-auto max-h-[calc(100%-10.5rem)] max-w-full shrink-0 object-contain object-top"
-        />
+      <div className="absolute inset-x-0 bottom-0 top-24 z-10 flex min-h-0 flex-col gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="relative min-h-0 w-full flex-1">
+          <Image
+            src="/map/tour/tour-page2-poster.jpg"
+            alt=""
+            fill
+            priority
+            sizes="393px"
+            className="object-contain object-top"
+          />
+        </div>
 
         <div className="flex w-full shrink-0 items-end justify-between gap-3">
           <p className='max-w-[240px] font-["Gal_Gothic_Variable",sans-serif] text-[20.102px] font-semibold leading-[25.73px] text-[#171717]'>
