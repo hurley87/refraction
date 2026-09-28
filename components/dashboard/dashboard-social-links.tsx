@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { getSocialUrl } from '@/lib/utils/social-links';
 import EditSocialsModal from '@/components/dashboard/edit-socials-modal';
+import { trackMapTourStep } from '@/lib/analytics/map-tour';
 import { MapYellowTip } from '@/components/map/map-yellow-tip';
 import {
   getMissingProfileCompletionLabels,
@@ -89,6 +90,19 @@ export default function DashboardSocialLinks({
       !hasSeenProfileCompleteRewardsTip(profile.wallet_address)
     );
   }, [profile, profile?.profile_completion_awarded, profile?.wallet_address]);
+
+  useEffect(() => {
+    if (!profile?.wallet_address) return;
+    const complete =
+      Boolean(profile.profile_completion_awarded) || isProfileComplete(profile);
+    if (!complete) {
+      trackMapTourStep('pointer_5', { tip: 'complete_profile' });
+      return;
+    }
+    if (!hasSeenProfileCompleteRewardsTip(profile.wallet_address)) {
+      trackMapTourStep('pointer_5', { tip: 'go_to_rewards' });
+    }
+  }, [profile]);
 
   if (!profile) return null;
 

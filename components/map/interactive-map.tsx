@@ -12,6 +12,7 @@ import {
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
 import { useModalStatus, usePrivy } from '@privy-io/react-auth';
+import { trackMapTourStep } from '@/lib/analytics/map-tour';
 import { useMapGateAnalytics } from '@/hooks/use-map-gate-analytics';
 import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
@@ -259,6 +260,22 @@ export default function InteractiveMap({
     needsLocationPrompt,
     setNeedsLocationPrompt,
   });
+
+  useEffect(() => {
+    if (showSearchTourTip) trackMapTourStep('pointer_1');
+  }, [showSearchTourTip]);
+
+  useEffect(() => {
+    if (showSaveToListTourTip) trackMapTourStep('pointer_2');
+  }, [showSaveToListTourTip]);
+
+  useEffect(() => {
+    if (showCreateListTourTip) trackMapTourStep('pointer_3');
+  }, [showCreateListTourTip]);
+
+  useEffect(() => {
+    if (showListCreateMapTip) trackMapTourStep('pointer_4');
+  }, [showListCreateMapTip]);
 
   const handleDismissSaveToListTourTip = useCallback(() => {
     postTourFirstSearchTipRef.current = false;
