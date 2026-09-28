@@ -47,6 +47,21 @@
   background-color: transparent !important;
 }
 
+/*
+ * iOS Safari zooms the page when a focused text field is under 16px, and stays
+ * zoomed. The shared Input/Textarea/Select already use `text-base md:text-sm`,
+ * but a caller passing `text-sm`/`text-xs` (or a raw element) would win via
+ * tailwind-merge. Below the `md` breakpoint, lift any such field back to 16px.
+ * `:is(input, …):is(.text-sm, …)` outranks the bare utility class, so no
+ * `!important` is needed and larger sizes are untouched. Kept outside
+ * `@layer base` so Tailwind doesn't expand the class names into variants.
+ */
+@media (max-width: 767px) {
+  :is(input, textarea, select):is(.text-xs, .text-sm) {
+    font-size: 1rem;
+  }
+}
+
 @layer base {
   h1 {
     font-size: 42px; /* 39px */

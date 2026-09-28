@@ -76,7 +76,7 @@ export function CheckInCommentDialog({
                 value={comment}
                 onChange={(e) => onCommentChange(e.target.value)}
                 placeholder="Share why this place is worth visiting..."
-                className="min-h-[140px] rounded-xl border border-[#e8e8e8] bg-white p-3 text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] resize-none focus-visible:border-[#999] focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="min-h-[140px] rounded-xl border border-[#e8e8e8] bg-white p-3 text-base tracking-[-0.2px] md:text-sm text-[#1a1a1a] placeholder:text-[#c0c0c0] resize-none focus-visible:border-[#999] focus-visible:ring-0 focus-visible:ring-offset-0"
                 maxLength={500}
                 disabled={isCheckingIn}
               />
