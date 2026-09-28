@@ -10,6 +10,11 @@ export const ANALYTICS_EVENTS = {
   LOCATION_LIST_CREATED: 'location_list_created',
   /** Map activation: player finished the mandatory geo location prompt. */
   PLAYER_LOCATION_PROMPT_COMPLETED: 'player_location_prompt_completed',
+  /**
+   * Map walkthrough funnel. One event per slide and pointer, distinguished by
+   * `step`, so drop-off between them can be a Mixpanel funnel.
+   */
+  MAP_TOUR_STEP_VIEWED: 'map_tour_step_viewed',
 
   // Interest
   ACCOUNT_CREATED: 'account_created',

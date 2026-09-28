@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { trackMapTourStep, type MapTourStepId } from '@/lib/analytics/map-tour';
 import { cn } from '@/lib/utils';
 
 export type MapWelcomeTourStep = 'page1' | 'page2' | 'page3' | 'page4';
@@ -13,6 +14,13 @@ type MapWelcomeTourProps = {
 };
 
 const TOUR_STEPS: MapWelcomeTourStep[] = ['page1', 'page2', 'page3', 'page4'];
+
+const SLIDE_STEP: Record<MapWelcomeTourStep, MapTourStepId> = {
+  page1: 'slide_1',
+  page2: 'slide_2',
+  page3: 'slide_3',
+  page4: 'slide_4',
+};
 
 /** Full-bleed on mobile; 393px centered rail on md+ until a desktop tour exists. */
 const TOUR_FRAME_CLASS =
@@ -321,6 +329,12 @@ export function MapWelcomeTour({
   useEffect(() => {
     if (open) setStepIndex(0);
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const step = TOUR_STEPS[stepIndex] ?? 'page1';
+    trackMapTourStep(SLIDE_STEP[step]);
+  }, [open, stepIndex]);
 
   if (!open) return null;
 
