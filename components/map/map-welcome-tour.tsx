@@ -97,11 +97,11 @@ function Page1Step({ onContinue }: { onContinue: () => void }) {
         fill
         priority
         sizes="393px"
-        className="origin-top-left object-cover object-left-top scale-[1.3]"
+        className="origin-top-left object-cover object-left-top scale-[1]"
       />
 
       {/* Lower-half overlay: logo → WELCOME → tagline → yellow arrow */}
-      <div className="absolute inset-x-0 bottom-0 z-10 flex min-h-[50%] flex-col justify-end gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-8">
+      <div className="absolute inset-x-0 bottom-0 z-10 flex min-h-[50%] flex-col justify-end gap-2 px-2 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8">
         <div className="flex flex-col gap-2">
           <TourLogoMark className="-mb-5 self-start" />
 
@@ -109,18 +109,18 @@ function Page1Step({ onContinue }: { onContinue: () => void }) {
             Welcome
           </p>
 
-          <p className="title2 m-0 max-w-full self-start !font-semibold !leading-[52px] text-[#171717]">
-            <span className="box-decoration-clone bg-[#FFF200] px-2 py-1.5">
+          <p className="title2 m-0 max-w-full self-start !font-semibold !leading-[1.15] text-[#171717]">
+            <span className="box-decoration-clone bg-[#FFF200] px-1 py-[0.05em]">
               IRL is your global
               <br />
-              guide to what&apos;s good.
-              2000+ local curators <br /> show you where <br /> to go.
-            </span>
+              guide to what&apos;s good. 2000+ local curators <br /> show you
+              where <br /> to go.
+            </span>{' '}
+            <TourArrowIcon
+              fill="#FFF200"
+              className="ml-1 inline-block align-middle"
+            />
           </p>
-        </div>
-
-        <div className="flex w-full justify-end">
-          <TourArrowIcon fill="#FFF200" />
         </div>
       </div>
     </div>
@@ -223,7 +223,8 @@ function Page3Step({ onContinue }: { onContinue: () => void }) {
 
         <div className="flex w-full shrink-0 items-end justify-between gap-3">
           <p className="title3 max-w-[280px] text-white">
-          Welcome drinks, guest list spots, hotel discounts. Claim them with the points you earn.
+            Welcome drinks, guest list spots, hotel discounts. Claim them with
+            the points you earn.
           </p>
           <TourArrowIcon fill="#FFF200" />
         </div>
