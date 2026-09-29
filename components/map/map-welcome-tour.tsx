@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { trackMapTourStep, type MapTourStepId } from '@/lib/analytics/map-tour';
 import { cn } from '@/lib/utils';
 
-export type MapWelcomeTourStep = 'page1' | 'page2' | 'page3' | 'page4';
+export type MapWelcomeTourStep = 'page1' | 'page2' | 'page3';
 
 type MapWelcomeTourProps = {
   open: boolean;
@@ -13,13 +13,12 @@ type MapWelcomeTourProps = {
   className?: string;
 };
 
-const TOUR_STEPS: MapWelcomeTourStep[] = ['page1', 'page2', 'page3', 'page4'];
+const TOUR_STEPS: MapWelcomeTourStep[] = ['page1', 'page2', 'page3'];
 
 const SLIDE_STEP: Record<MapWelcomeTourStep, MapTourStepId> = {
   page1: 'slide_1',
   page2: 'slide_2',
   page3: 'slide_3',
-  page4: 'slide_4',
 };
 
 /** Full-bleed on mobile; 393px centered rail on md+ until a desktop tour exists. */
@@ -222,12 +221,12 @@ function Page3Step({ onContinue }: { onContinue: () => void }) {
         className="object-cover object-center"
       />
 
-      <div className="absolute inset-x-0 bottom-0 top-14 z-10 flex flex-col items-stretch gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-12">
+      <div className="absolute inset-x-0 bottom-0 top-14 z-10 flex min-h-0 flex-col items-stretch gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-12 short:top-8 short:pt-4">
         <p className="title1 shrink-0 self-end text-right !font-medium text-white">
           Earn and Spend
         </p>
 
-        <p className='shrink-0 self-start bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Gal_Gothic_Variable",sans-serif] text-[58.924px] font-semibold leading-[125%] text-[#181818]'>
+        <p className='shrink-0 self-start bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Gal_Gothic_Variable",sans-serif] text-[58.924px] font-semibold leading-[125%] text-[#181818] short:text-[44px]'>
           Rewards
         </p>
 
@@ -239,77 +238,20 @@ function Page3Step({ onContinue }: { onContinue: () => void }) {
           <TourArrowIcon fill="#FFF200" />
         </div>
 
-        <div className="mt-16 flex w-full justify-center px-6">
-          <Image
-            src="/map/tour/reward.png"
-            alt=""
-            width={442}
-            height={777}
-            priority
-            className="h-auto w-[442px] max-w-full shrink-0"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Final full-bleed tour step: get-started CTA.
- */
-function Page4Step({ onContinue }: { onContinue: () => void }) {
-  return (
-    <div className="pointer-events-auto absolute inset-0 z-40 h-full w-full overflow-hidden bg-black">
-      <Image
-        src="/map/tour/tour-page4.png"
-        alt=""
-        fill
-        priority
-        sizes="393px"
-        className="object-cover object-center"
-      />
-      {/* Blur + gradient darken from the midpoint down for CTA legibility */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-1/2 bottom-0 overflow-hidden"
-        aria-hidden
-      >
-        <div className="absolute inset-x-0 bottom-0 h-full w-full">
-          <Image
-            src="/map/tour/tour-page4.png"
-            alt=""
-            fill
-            priority
-            sizes="393px"
-            className="object-cover object-center blur-[2px]"
-          />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/70" />
-      </div>
-
-      <div className="absolute inset-x-0 top-1/2 bottom-0 z-10 flex flex-col items-center px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="flex w-[361px] max-w-full flex-col items-stretch gap-4">
-          <div className="flex flex-col items-start self-start">
-            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal uppercase leading-[64px] tracking-[-4px] text-[#181818]'>
-              GET
-            </span>
-            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal uppercase leading-[64px] tracking-[-4px] text-[#181818]'>
-              STARTED
-            </span>
+        {/* Height leftover from header drives card width via cqh so short
+            screens keep photo + title + details + description visible. */}
+        <div className="mt-16 min-h-0 flex-1 overflow-hidden [container-type:size] short:mt-4">
+          <div className="flex h-full w-full justify-center px-6">
+            <Image
+              src="/map/tour/reward.png"
+              alt=""
+              width={442}
+              height={777}
+              priority
+              className="mx-auto h-auto w-[min(100%,442px,87cqh)] max-w-none shrink-0"
+            />
           </div>
-
-          <p className="title3 max-w-[75%] text-left text-white">
-            Discover curated city guides, check-in, and curate your own lists to
-            share with your circle.
-          </p>
         </div>
-
-        <button
-          type="button"
-          onClick={onContinue}
-          className="mt-auto flex min-h-11 w-[361px] max-w-full items-center justify-center gap-[var(--sds-size-space-400)] bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] transition-colors hover:bg-black"
-        >
-          <span className="label-large uppercase text-white">START NOW</span>
-        </button>
       </div>
     </div>
   );
@@ -371,7 +313,6 @@ export function MapWelcomeTour({
         {step === 'page1' ? <Page1Step onContinue={advance} /> : null}
         {step === 'page2' ? <Page2Step onContinue={advance} /> : null}
         {step === 'page3' ? <Page3Step onContinue={advance} /> : null}
-        {step === 'page4' ? <Page4Step onContinue={advance} /> : null}
       </div>
     </div>
   );

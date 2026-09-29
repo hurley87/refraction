@@ -10,17 +10,17 @@ const FAQ_ITEMS: { id?: string; question: string; answer: ReactNode }[] = [
     answer: (
       <p>
         IRL is a rewards platform that helps you discover cultural venues and
-        experiences, check in when you attend, earn IRL Points, and redeem
+        experiences, check in when you attend, earn points, and redeem
         exclusive perks from participating partners.
       </p>
     ),
   },
   {
     id: 'earn-points',
-    question: 'How do I earn IRL Points?',
+    question: 'How do I earn more Points?',
     answer: (
       <p>
-        You earn IRL Points by participating in experiences across the IRL
+        You earn points by participating in experiences across the IRL
         network. This includes checking into participating venues, attending
         eligible events, and completing activities made available through the
         app.
@@ -31,7 +31,7 @@ const FAQ_ITEMS: { id?: string; question: string; answer: ReactNode }[] = [
     question: 'What can I use my points for?',
     answer: (
       <p>
-        IRL Points can be redeemed for perks and experiences offered by
+        Points can be redeemed for perks and experiences offered by
         participating venues and partners. Available rewards are shown directly
         inside the app and continue to grow as the network expands.
       </p>
@@ -41,7 +41,7 @@ const FAQ_ITEMS: { id?: string; question: string; answer: ReactNode }[] = [
     question: 'Do my points expire?',
     answer: (
       <p>
-        Unless otherwise stated for a specific campaign or promotion, IRL Points
+        Unless otherwise stated for a specific campaign or promotion, points
         do not expire.
       </p>
     ),
@@ -213,9 +213,9 @@ export default function FAQPage() {
               </div>
 
               <div className="space-y-4">
-                <LegalSubheading>IRL Points</LegalSubheading>
+                <LegalSubheading>Points</LegalSubheading>
                 <Body>
-                  <p>IRL Points are promotional reward points.</p>
+                  <p>Points are promotional reward points.</p>
                   <p>They:</p>
                   <ul className="list-inside list-disc space-y-2 pl-4">
                     <li>have no cash value;</li>
