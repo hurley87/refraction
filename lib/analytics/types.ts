@@ -104,8 +104,9 @@ export interface TierProgressionProperties {
 }
 
 export interface SignupFromGateProperties {
-  surface: 'map' | 'city_guide';
+  surface: 'map' | 'city_guide' | 'reward';
   guide_slug?: string;
+  reward_id?: string;
 }
 
 export interface AccountCreatedProperties {

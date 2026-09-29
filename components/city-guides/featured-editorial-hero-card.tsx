@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { ArticleContributorCredit } from '@/components/city-guides/article-contributor-credit';
 import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
 import { EDITORIAL_HERO_ASPECT_CLASS } from '@/components/city-guides/city-guide-article-hero-image';
 import { EditorialArticleMetaRow } from '@/components/city-guides/editorial-article-meta-row';
@@ -14,7 +15,7 @@ export interface FeaturedEditorialHeroCardProps {
   guideKind: GuideKind;
   titleLine1: string;
   titleHighlightWords?: string[] | null;
-  featuredPeople: string[];
+  featuredPeople: ArticleContributorCredit[];
   heroImageSrc: string;
   heroImageAlt: string;
   readHref: string;

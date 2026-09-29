@@ -13,7 +13,21 @@ export const metadata: Metadata = {
 /** CMS reads Supabase at request time; avoid build-time prerender when `guides` is not migrated yet. */
 export const dynamic = 'force-dynamic';
 
-export default async function CityGuidesHomePage() {
+type CityGuidesHomePageProps = {
+  searchParams?: { type?: string | string[]; city?: string | string[] };
+};
+
+function firstSearchParam(value: string | string[] | undefined): string | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const trimmed = raw?.trim();
+  return trimmed || null;
+}
+
+export default async function CityGuidesHomePage({
+  searchParams,
+}: CityGuidesHomePageProps) {
+  const typeParam = firstSearchParam(searchParams?.type);
+  const cityParam = firstSearchParam(searchParams?.city);
   const featured = await getFeaturedGuide();
   const listRows = await getPublishedGuides(
     featured ? { excludeId: featured.id } : undefined
@@ -54,13 +68,21 @@ export default async function CityGuidesHomePage() {
         featured ? (
           <div className="w-full bg-white">
             <div className="mx-auto w-full max-w-[393px] px-4 pb-16">
-              <CityGuidesHubSection entries={listRows} />
+              <CityGuidesHubSection
+                entries={listRows}
+                typeParam={typeParam}
+                cityParam={cityParam}
+              />
             </div>
           </div>
         ) : (
           <section className="w-full border-t border-[#E5E5E5] bg-white">
             <div className="mx-auto w-full max-w-[393px] px-4 pb-16">
-              <CityGuidesHubSection entries={listRows} />
+              <CityGuidesHubSection
+                entries={listRows}
+                typeParam={typeParam}
+                cityParam={cityParam}
+              />
             </div>
           </section>
         )

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import InteractiveMap from '@/components/map/interactive-map';
+import { MapListViewedTracker } from '@/components/map/map-list-viewed-tracker';
 import AuthWrapper from '@/components/auth/auth-wrapper';
 import {
   getLocationListBySlug,
@@ -92,12 +93,18 @@ export default async function CuratedListMapPage({
     .find((coords) => coords !== null);
   const parsedCoords = parseLatLng(searchParams.lat, searchParams.lng);
 
+  const guideReturnHref = sanitizeInternalReturnPath(searchParams.returnTo);
+
   return (
     <AuthWrapper requireUsername unauthenticatedUI="map-onboarding">
+      <MapListViewedTracker
+        mapListSlug={list.slug}
+        returnTo={guideReturnHref}
+      />
       <div className="font-grotesk h-full w-full">
         <InteractiveMap
           initialCuratedListId={list.id}
-          guideReturnHref={sanitizeInternalReturnPath(searchParams.returnTo)}
+          guideReturnHref={guideReturnHref}
           initialLatitude={parsedCoords?.latitude ?? firstCoords?.latitude}
           initialLongitude={parsedCoords?.longitude ?? firstCoords?.longitude}
         />

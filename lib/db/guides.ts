@@ -20,6 +20,7 @@ import {
   type CityGuideLocationGateMeta,
 } from '@/lib/guides/city-guide-locations';
 import type { GuideKindDb } from '@/lib/guides/guide-paths';
+import type { ArticleContributorCredit } from '@/components/city-guides/article-contributor-credit';
 import type { GuideKind } from '@/components/city-guides/featured-editorial-hero-card';
 
 export type { GuideKindDb } from '@/lib/guides/guide-paths';
@@ -187,7 +188,7 @@ export type GuideHubListItem = {
   imageSrc: string;
   imageAlt: string;
   readHref: string;
-  authors: string[];
+  authors: ArticleContributorCredit[];
   /** Canonical city tag (city name or 'Global') used for hub filtering. */
   city: string;
 };
@@ -199,7 +200,7 @@ export type GuideFeaturedPayload = {
   guideKind: GuideKind;
   titleLine1: string;
   titleHighlightWords: string[];
-  featuredPeople: string[];
+  featuredPeople: ArticleContributorCredit[];
   heroImageSrc: string;
   heroImageAlt: string;
   readHref: string;
@@ -224,56 +225,103 @@ function normalizeTitleHighlightWords(
   return (words ?? []).map((w) => w.trim()).filter(Boolean);
 }
 
-function resolveHubAuthors(
-  row: GuideRow,
-  contributorNamesByGuideId: Map<string, string[]>
-): string[] {
-  const fromFeatured = row.featured_people?.filter((p) => p.trim()) ?? [];
-  if (fromFeatured.length > 0) return fromFeatured;
-  return contributorNamesByGuideId.get(row.id) ?? [];
+type HubContributorCredit = {
+  credit: GuideContributorUi;
+  /** Names this credit can be matched to, including the saved CMS name. */
+  aliases: string[];
+};
+
+function authorMatchKey(name: string): string {
+  return name.trim().toLowerCase();
 }
 
-async function fetchContributorNamesByGuideIds(
+function contributorAliases(
+  row: GuideContributorRow,
+  credit: GuideContributorUi
+): string[] {
+  const linkedPlayer = Array.isArray(row.player) ? row.player[0] : row.player;
+  return [
+    credit.name,
+    row.name,
+    linkedPlayer?.name ?? '',
+    linkedPlayer?.username ?? '',
+  ]
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Hub bylines. Featured names stay in CMS order and pick up a profile link
+ * when they match a linked contributor. Otherwise every contributor is shown.
+ */
+export function resolveHubAuthorCredits(
+  featuredPeople: string[] | null | undefined,
+  contributors: HubContributorCredit[]
+): ArticleContributorCredit[] {
+  const named = (featuredPeople ?? [])
+    .map((person) => person.trim())
+    .filter(Boolean);
+  if (named.length === 0) {
+    return contributors
+      .map((contributor) => contributor.credit)
+      .filter((credit) => credit.name.trim());
+  }
+
+  const byAlias = new Map<string, GuideContributorUi>();
+  for (const contributor of contributors) {
+    for (const alias of contributor.aliases) {
+      const key = authorMatchKey(alias);
+      if (key && !byAlias.has(key)) byAlias.set(key, contributor.credit);
+    }
+  }
+
+  return named.map((name) => byAlias.get(authorMatchKey(name)) ?? name);
+}
+
+async function fetchContributorCreditsByGuideIds(
   guideIds: string[]
-): Promise<Map<string, string[]>> {
+): Promise<Map<string, HubContributorCredit[]>> {
   const uniqueIds = [...new Set(guideIds.filter(Boolean))];
   if (uniqueIds.length === 0) return new Map();
 
   const { data, error } = await supabase
     .from('guide_contributors')
-    .select('guide_id, name, position')
+    .select(CONTRIBUTOR_COLUMNS)
     .in('guide_id', uniqueIds)
     .order('position', { ascending: true });
 
   if (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[guides] fetchContributorNamesByGuideIds:', error.message);
+      console.warn(
+        '[guides] fetchContributorCreditsByGuideIds:',
+        error.message
+      );
     }
     return new Map();
   }
 
-  const byGuide = new Map<string, string[]>();
-  for (const row of data ?? []) {
-    const name = row.name?.trim();
-    if (!name) continue;
+  const hydrated = await hydrateLinkedContributorPlayers(
+    (data ?? []) as GuideContributorRow[]
+  );
+  const byGuide = new Map<string, HubContributorCredit[]>();
+  for (const row of hydrated) {
+    const credit = toGuideContributorUi(row);
+    if (!credit.name.trim()) continue;
     const list = byGuide.get(row.guide_id) ?? [];
-    list.push(name);
+    list.push({ credit, aliases: contributorAliases(row, credit) });
     byGuide.set(row.guide_id, list);
   }
   return byGuide;
 }
 
-async function contributorMapForRowsMissingFeaturedPeople(
+async function contributorCreditsForRows(
   rows: GuideRow[]
-): Promise<Map<string, string[]>> {
-  const guideIds = rows
-    .filter((row) => !row.featured_people?.some((person) => person.trim()))
-    .map((row) => row.id);
+): Promise<Map<string, HubContributorCredit[]>> {
   const mapOrTimeout = await withQueryTimeout(
-    fetchContributorNamesByGuideIds(guideIds)
+    fetchContributorCreditsByGuideIds(rows.map((row) => row.id))
   );
   if (mapOrTimeout === GUIDE_QUERY_TIMEOUT) {
-    logTimeout('fetchContributorNamesByGuideIds');
+    logTimeout('fetchContributorCreditsByGuideIds');
     return new Map();
   }
   return mapOrTimeout ?? new Map();
@@ -281,7 +329,7 @@ async function contributorMapForRowsMissingFeaturedPeople(
 
 function toHubListItem(
   row: GuideRow,
-  contributorNamesByGuideId: Map<string, string[]> = new Map()
+  contributorCreditsByGuideId: Map<string, HubContributorCredit[]> = new Map()
 ): GuideHubListItem {
   const published =
     row.published_at ??
@@ -302,14 +350,17 @@ function toHubListItem(
     imageSrc: row.card_image_url?.trim() || row.hero_image_url || '',
     imageAlt: row.card_image_alt?.trim() || row.hero_image_alt || '',
     readHref: readHrefFor(row),
-    authors: resolveHubAuthors(row, contributorNamesByGuideId),
+    authors: resolveHubAuthorCredits(
+      row.featured_people,
+      contributorCreditsByGuideId.get(row.id) ?? []
+    ),
     city: row.city?.trim() || 'Global',
   };
 }
 
 function toFeaturedPayload(
   row: GuideRow,
-  contributorNamesByGuideId: Map<string, string[]> = new Map()
+  contributorCreditsByGuideId: Map<string, HubContributorCredit[]> = new Map()
 ): GuideFeaturedPayload {
   const titleLine1 = featuredTitleLine(row);
   return {
@@ -321,7 +372,10 @@ function toFeaturedPayload(
     titleHighlightWords: normalizeTitleHighlightWords(
       row.title_highlight_words
     ),
-    featuredPeople: resolveHubAuthors(row, contributorNamesByGuideId),
+    featuredPeople: resolveHubAuthorCredits(
+      row.featured_people,
+      contributorCreditsByGuideId.get(row.id) ?? []
+    ),
     heroImageSrc: row.hero_image_url || '',
     heroImageAlt: row.hero_image_alt || '',
     readHref: readHrefFor(row),
@@ -446,9 +500,8 @@ export async function getPublishedGuides(options?: {
   if (options?.excludeId) {
     rows = rows.filter((r) => r.id !== options.excludeId);
   }
-  const contributorNamesByGuideId =
-    await contributorMapForRowsMissingFeaturedPeople(rows);
-  return rows.map((row) => toHubListItem(row, contributorNamesByGuideId));
+  const contributorCreditsByGuideId = await contributorCreditsForRows(rows);
+  return rows.map((row) => toHubListItem(row, contributorCreditsByGuideId));
 }
 
 /**
@@ -465,9 +518,10 @@ export async function getFeaturedGuide(): Promise<GuideFeaturedPayload | null> {
     return null;
   }
   if (featuredOrTimeout) {
-    const contributorNamesByGuideId =
-      await contributorMapForRowsMissingFeaturedPeople([featuredOrTimeout]);
-    return toFeaturedPayload(featuredOrTimeout, contributorNamesByGuideId);
+    const contributorCreditsByGuideId = await contributorCreditsForRows([
+      featuredOrTimeout,
+    ]);
+    return toFeaturedPayload(featuredOrTimeout, contributorCreditsByGuideId);
   }
 
   const newestOrTimeout = await withQueryTimeout(
@@ -478,9 +532,10 @@ export async function getFeaturedGuide(): Promise<GuideFeaturedPayload | null> {
     return null;
   }
   if (!newestOrTimeout) return null;
-  const contributorNamesByGuideId =
-    await contributorMapForRowsMissingFeaturedPeople([newestOrTimeout]);
-  return toFeaturedPayload(newestOrTimeout, contributorNamesByGuideId);
+  const contributorCreditsByGuideId = await contributorCreditsForRows([
+    newestOrTimeout,
+  ]);
+  return toFeaturedPayload(newestOrTimeout, contributorCreditsByGuideId);
 }
 
 async function fetchContributorsForGuide(

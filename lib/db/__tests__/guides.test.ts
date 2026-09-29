@@ -6,6 +6,7 @@ import {
 import {
   hubListTitle,
   guideKindToUi,
+  resolveHubAuthorCredits,
   toGuideContributorUi,
 } from '@/lib/db/guides';
 import type { GuideContributorRow, GuideRow } from '@/lib/db/guides';
@@ -59,6 +60,39 @@ describe('guides helpers', () => {
   it('guideKindToUi maps DB kind', () => {
     expect(guideKindToUi('city_guide')).toBe('city-guide');
     expect(guideKindToUi('editorial')).toBe('editorial');
+  });
+
+  it('links a featured hub author when their name matches a player profile', () => {
+    const linked = {
+      credit: {
+        name: 'Current Name',
+        bio: '',
+        photoSrc: '/current.jpg',
+        photoAlt: 'Portrait of Current Name',
+        instagramHref: '',
+        profileHref: '/current_user',
+      },
+      aliases: ['Current Name', 'Saved Name', 'current_user'],
+    };
+    const unlinked = {
+      credit: {
+        name: 'Guest Writer',
+        bio: '',
+        photoSrc: '/city-guides/user-icon.svg',
+        photoAlt: 'Guest Writer',
+        instagramHref: '',
+        profileHref: '',
+      },
+      aliases: ['Guest Writer'],
+    };
+
+    expect(
+      resolveHubAuthorCredits(['Saved Name', 'No Profile'], [linked, unlinked])
+    ).toEqual([linked.credit, 'No Profile']);
+    expect(resolveHubAuthorCredits(null, [linked, unlinked])).toEqual([
+      linked.credit,
+      unlinked.credit,
+    ]);
   });
 
   it('uses live linked-player profile data for a contributor', () => {

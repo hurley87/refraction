@@ -269,6 +269,43 @@ describe('Player API Route', () => {
       });
     });
 
+    it('fires signup_from_gate for new players attributed to the reward gate', async () => {
+      const mockPlayer = {
+        id: '130',
+        wallet_address: '0x8234567890abcdef8234567890abcdef82345678',
+        username: 'rewardgate',
+        email: 'rewardgate@example.com',
+        total_points: 0,
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(null);
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x8234567890abcdef8234567890abcdef82345678',
+        username: 'rewardgate',
+        email: 'rewardgate@example.com',
+        signup_attribution: {
+          from_gate: true,
+          surface: 'reward',
+          reward_id: 'perk-floyd',
+          current_path: '/rewards',
+        },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      expect(trackSignupFromGate).toHaveBeenCalledWith(
+        'rewardgate@example.com',
+        {
+          surface: 'reward',
+          reward_id: 'perk-floyd',
+        }
+      );
+    });
+
     it('does not fire signup_from_gate without from_gate', async () => {
       const mockPlayer = {
         id: '127',

@@ -41,6 +41,11 @@ import { usePerks, useUserRedemptions } from '@/hooks/usePerks';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
+import { markSignupFromGate } from '@/lib/analytics/attribution';
+import {
+  consumeGateViewedOncePerSession,
+  gateEventProperties,
+} from '@/lib/analytics/gate';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
@@ -457,10 +462,29 @@ function PerksPageInner() {
     setDrawerDragY(0);
   };
 
+  // Members-only block. Once per reward per tab, so reopening the same perk
+  // does not inflate gate_viewed.
+  useEffect(() => {
+    if (address || !isModalOpen || !selectedPerk?.id) return;
+    if (!consumeGateViewedOncePerSession('reward', selectedPerk.id)) return;
+    trackEvent(
+      ANALYTICS_EVENTS.GATE_VIEWED,
+      gateEventProperties('reward', selectedPerk.id)
+    );
+  }, [address, isModalOpen, selectedPerk?.id, trackEvent]);
+
   // A modal Radix dialog locks pointer events on the rest of the page, which makes
   // Privy's login modal (rendered in its own portal) appear behind an invisible
   // interaction lock and unclickable. Close the perk dialog first, then open Privy.
   const handleLoginClick = () => {
+    const rewardId = selectedPerk?.id;
+    if (rewardId) {
+      markSignupFromGate({ surface: 'reward', reward_id: rewardId });
+      trackEvent(
+        ANALYTICS_EVENTS.GATE_SIGNUP_CLICKED,
+        gateEventProperties('reward', rewardId)
+      );
+    }
     setIsModalOpen(false);
     setSelectedPerk(null);
     setTimeout(() => login(), 0);

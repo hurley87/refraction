@@ -39,8 +39,9 @@ export const signupAttributionSchema = z.object({
   location_id: optionalTrimmed(ATTRIBUTION_LIMITS.id),
 
   from_gate: z.boolean().optional(),
-  surface: z.enum(['map', 'city_guide']).optional(),
+  surface: z.enum(['map', 'city_guide', 'reward']).optional(),
   guide_slug: optionalTrimmed(ATTRIBUTION_LIMITS.id),
+  reward_id: optionalTrimmed(ATTRIBUTION_LIMITS.id),
 });
 
 export type SignupAttributionValidated = z.infer<

@@ -2,41 +2,24 @@
 
 import { cn } from '@/lib/utils';
 
-export type CityGuidesContentFilter = 'all' | 'guides' | 'editorials';
-
-export type CityGuidesSortOrder = 'date-desc' | 'date-asc';
+export type CityGuidesContentFilter = 'guides' | 'editorials';
 
 const OPTIONS: { key: CityGuidesContentFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'guides', label: 'Guides' },
+  { key: 'guides', label: 'City Guides' },
   { key: 'editorials', label: 'Editorial' },
 ];
 
-/** Same paths as `public/filter.svg` (rewards page), stroke for #171717. */
-function FilterIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="24" viewBox="0 0 23 24" fill="none">
-      <path d="M20 8.15416H2V5.51099H20V8.15416ZM17.0463 10.6784H4.95374V13.3216H17.0463V10.6784ZM13.8711 15.8458H8.13216V18.489H13.8711V15.8458Z" fill="#171717"/>
-    </svg>
-  );
-}
-
 export interface CityGuidesContentFilterRowProps {
   selectedFilter: CityGuidesContentFilter;
-  sortOrder: CityGuidesSortOrder;
   onFilterChange: (filter: CityGuidesContentFilter) => void;
-  onSortToggle: () => void;
 }
 
 /**
- * Sorting/filter row: segmented control (298px) + 16px gap + sort (55×52).
- * Controlled by parent so filtering applies to the guides list.
+ * Content-type row: City Guides and Editorial. Controlled by the hub list.
  */
 export default function CityGuidesContentFilterRow({
   selectedFilter,
-  sortOrder,
   onFilterChange,
-  onSortToggle,
 }: CityGuidesContentFilterRowProps) {
   return (
     <div
@@ -70,22 +53,6 @@ export default function CityGuidesContentFilterRow({
           );
         })}
       </div>
-
-      <button
-        type="button"
-        onClick={onSortToggle}
-        className={cn(
-          'box-border flex h-[52px] w-[55px] shrink-0 items-center justify-center outline-none transition-colors',
-          'focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2'
-        )}
-        aria-label={
-          sortOrder === 'date-desc'
-            ? 'Sort by date, newest first. Click to show oldest first.'
-            : 'Sort by date, oldest first. Click to show newest first.'
-        }
-      >
-        <FilterIcon />
-      </button>
     </div>
   );
 }
