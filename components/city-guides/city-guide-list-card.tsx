@@ -1,7 +1,10 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Calendar, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  ArticleContributorCreditItem,
+  type ArticleContributorCredit,
+} from '@/components/city-guides/article-contributor-credit';
 import { GuideArticleHighlightedTitle } from '@/components/city-guides/guide-article-highlighted-title';
 import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
 import {
@@ -17,7 +20,7 @@ export interface CityGuideListCardProps {
   imageSrc: string;
   imageAlt: string;
   readHref: string;
-  authors?: string[];
+  authors?: ArticleContributorCredit[];
   titleHighlightWords?: string[] | null;
   /** Canonical city tag (city name or 'Global'). */
   city?: string;
@@ -64,7 +67,9 @@ export default function CityGuideListCard({
   className,
 }: CityGuideListCardProps) {
   const cityTag = city?.trim() ?? '';
-  const contributorNames = authors.filter((name) => name.trim());
+  const contributorCredits = authors.filter((author) =>
+    typeof author === 'string' ? author.trim() : author.name.trim()
+  );
 
   return (
     <article
@@ -156,24 +161,13 @@ export default function CityGuideListCard({
       </p>
 
       <div className="flex w-full items-end justify-between gap-3">
-        {contributorNames.length > 0 ? (
+        {contributorCredits.length > 0 ? (
           <ul className="flex min-w-0 list-none flex-row flex-wrap items-center gap-2">
-            {contributorNames.map((name, index) => (
-              <li
-                key={`${name}-${index}`}
-                className="flex min-w-0 max-w-full shrink-0 items-center gap-1"
-              >
-                <Image
-                  src="/city-guides/user-icon.svg"
-                  alt=""
-                  width={12}
-                  height={12}
-                  className="size-3 shrink-0"
-                />
-                <span className="min-w-0 label-small leading-none text-[#171717]">
-                  {name}
-                </span>
-              </li>
+            {contributorCredits.map((author, index) => (
+              <ArticleContributorCreditItem
+                key={`${typeof author === 'string' ? author : author.name}-${index}`}
+                contributor={author}
+              />
             ))}
           </ul>
         ) : (

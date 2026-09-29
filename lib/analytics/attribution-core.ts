@@ -13,13 +13,15 @@ export const SIGNUP_FROM_GATE_STORAGE_KEY = 'irl_signup_from_gate_v1';
 export const SIGNUP_FROM_GATE_TTL_MS = 2 * 60 * 60 * 1000;
 
 /** Membership / login gate surface. Split Mixpanel funnels with this property. */
-export const GATE_SURFACES = ['map', 'city_guide'] as const;
+export const GATE_SURFACES = ['map', 'city_guide', 'reward'] as const;
 export type GateSurface = (typeof GATE_SURFACES)[number];
 
 export type SignupFromGateIntent = {
   surface: GateSurface;
-  /** Present for city-guide gates; omitted on the map. */
+  /** Present for city-guide gates; omitted on the map and reward gates. */
   guide_slug?: string;
+  /** Present for reward gates; omitted on the map and city-guide gates. */
+  reward_id?: string;
   marked_at: number;
 };
 
@@ -206,10 +208,12 @@ export type SignupAttributionPayload = {
 
   /** True when the visitor started signup from a membership / login gate. */
   from_gate?: boolean;
-  /** `map` or `city_guide` — one funnel, split by surface. */
+  /** `map`, `city_guide`, or `reward` — one funnel, split by surface. */
   surface?: GateSurface;
-  /** Guide slug for city-guide gates (paired with `from_gate`). Omitted on the map. */
+  /** Guide slug for city-guide gates (paired with `from_gate`). */
   guide_slug?: string;
+  /** Reward id for reward gates (paired with `from_gate`). */
+  reward_id?: string;
 };
 
 export function signupAttributionPayloadHasData(

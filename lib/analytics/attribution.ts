@@ -172,26 +172,35 @@ function buildPayload(
 
 function parseSignupFromGateIntent(raw: unknown): SignupFromGateIntent | null {
   if (!raw || typeof raw !== 'object') return null;
-  const parsed = raw as Partial<SignupFromGateIntent> & { guide_slug?: string };
+  const parsed = raw as Partial<SignupFromGateIntent> & {
+    guide_slug?: string;
+    reward_id?: string;
+  };
   const guideSlug =
     typeof parsed.guide_slug === 'string' ? parsed.guide_slug.trim() : '';
+  const rewardId =
+    typeof parsed.reward_id === 'string' ? parsed.reward_id.trim() : '';
   const markedAt =
     typeof parsed.marked_at === 'number' ? parsed.marked_at : NaN;
   if (!Number.isFinite(markedAt)) return null;
 
   const surface: GateSurface | null =
-    parsed.surface === 'map' || parsed.surface === 'city_guide'
+    parsed.surface === 'map' ||
+    parsed.surface === 'city_guide' ||
+    parsed.surface === 'reward'
       ? parsed.surface
       : guideSlug
         ? 'city_guide'
         : null;
   if (!surface) return null;
   if (surface === 'city_guide' && !guideSlug) return null;
+  if (surface === 'reward' && !rewardId) return null;
 
   return {
     surface,
     marked_at: markedAt,
-    ...(guideSlug ? { guide_slug: guideSlug } : {}),
+    ...(surface === 'city_guide' && guideSlug ? { guide_slug: guideSlug } : {}),
+    ...(surface === 'reward' && rewardId ? { reward_id: rewardId } : {}),
   };
 }
 
@@ -223,17 +232,23 @@ function readSignupFromGateIntent(): SignupFromGateIntent | null {
 export function markSignupFromGate(input: {
   surface: GateSurface;
   guide_slug?: string;
+  reward_id?: string;
 }): void {
   if (typeof window === 'undefined') return;
   const surface = input.surface;
   const guideSlug = input.guide_slug?.trim() ?? '';
+  const rewardId = input.reward_id?.trim() ?? '';
   if (surface === 'city_guide' && !guideSlug) return;
+  if (surface === 'reward' && !rewardId) return;
   try {
     const intent: SignupFromGateIntent = {
       surface,
       marked_at: Date.now(),
-      ...(guideSlug
+      ...(surface === 'city_guide' && guideSlug
         ? { guide_slug: guideSlug.slice(0, ATTRIBUTION_LIMITS.id) }
+        : {}),
+      ...(surface === 'reward' && rewardId
+        ? { reward_id: rewardId.slice(0, ATTRIBUTION_LIMITS.id) }
         : {}),
     };
     localStorage.setItem(SIGNUP_FROM_GATE_STORAGE_KEY, JSON.stringify(intent));
@@ -282,6 +297,7 @@ export function getSignupAttributionBodyFields(): {
           from_gate: true,
           surface: gate.surface,
           ...(gate.guide_slug ? { guide_slug: gate.guide_slug } : {}),
+          ...(gate.reward_id ? { reward_id: gate.reward_id } : {}),
         }
       : {}),
   };

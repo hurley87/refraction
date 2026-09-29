@@ -95,6 +95,15 @@ describe('signup attribution client persistence', () => {
     expect(body.signup_attribution?.guide_slug).toBe('berlin');
   });
 
+  it('includes from_gate + reward_id after a reward gate signup', () => {
+    markSignupFromGate({ surface: 'reward', reward_id: 'perk-floyd' });
+    const body = getSignupAttributionBodyFields();
+    expect(body.signup_attribution?.from_gate).toBe(true);
+    expect(body.signup_attribution?.surface).toBe('reward');
+    expect(body.signup_attribution?.reward_id).toBe('perk-floyd');
+    expect(body.signup_attribution?.guide_slug).toBeUndefined();
+  });
+
   it('includes from_gate + map surface without a guide slug', () => {
     markSignupFromGate({ surface: 'map' });
     const body = getSignupAttributionBodyFields();

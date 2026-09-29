@@ -97,9 +97,19 @@ export async function POST(request: NextRequest) {
       });
 
       const guideSlug = signup_attribution?.guide_slug?.trim();
+      const rewardId = signup_attribution?.reward_id?.trim();
       const surface = signup_attribution?.surface;
       if (signup_attribution?.from_gate && surface === 'map') {
         trackSignupFromGate(distinctId, { surface: 'map' });
+      } else if (
+        signup_attribution?.from_gate &&
+        surface === 'reward' &&
+        rewardId
+      ) {
+        trackSignupFromGate(distinctId, {
+          surface: 'reward',
+          reward_id: rewardId,
+        });
       } else if (signup_attribution?.from_gate && guideSlug) {
         trackSignupFromGate(distinctId, {
           surface: 'city_guide',

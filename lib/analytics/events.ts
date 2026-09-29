@@ -10,6 +10,10 @@ export const ANALYTICS_EVENTS = {
   LOCATION_LIST_CREATED: 'location_list_created',
   /** Map activation: player finished the mandatory geo location prompt. */
   PLAYER_LOCATION_PROMPT_COMPLETED: 'player_location_prompt_completed',
+  /** City guide: player opened the guide's curated map from a specific placement. */
+  GUIDE_MAP_CLICKED: 'guide_map_clicked',
+  /** Curated list map: `/map/lists/{slug}` finished loading. */
+  MAP_LIST_VIEWED: 'map_list_viewed',
   /**
    * Map walkthrough funnel. One event per slide and pointer, distinguished by
    * `step`, so drop-off between them can be a Mixpanel funnel.

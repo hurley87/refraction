@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { GuideMapImageLink } from '@/components/city-guides/guide-map-image-link';
 import { CityGuideArticleNav } from '@/components/city-guides/city-guide-article-nav';
 import { CityGuideArticleDescription } from '@/components/city-guides/city-guide-article-description';
 import { CityGuideArticleHeroImage } from '@/components/city-guides/city-guide-article-hero-image';
@@ -132,14 +133,15 @@ export default async function CityGuideBySlugPage({
                 {mapHeading}
               </h2>
               <div className="aspect-square w-full max-w-[361px] shrink-0 overflow-hidden">
-                {mapListHref ? (
-                  <Link
+                {mapListHref && row.map_list_slug ? (
+                  <GuideMapImageLink
                     href={mapListHref}
-                    className="block h-full w-full transition-opacity hover:opacity-90"
-                    aria-label="Open this guide’s list on the IRL map"
+                    guideSlug={row.slug}
+                    city={row.city}
+                    mapListSlug={row.map_list_slug}
                   >
                     {mapImage}
-                  </Link>
+                  </GuideMapImageLink>
                 ) : (
                   mapImage
                 )}
