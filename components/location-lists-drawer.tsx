@@ -49,7 +49,10 @@ import { CollectionVisibilityToggle } from '@/components/map/collection-visibili
 import type { PublicCustomListOwner } from '@/lib/db/player-custom-lists';
 import { profilePathForPlayer } from '@/lib/username';
 import { curatedListUrlSyncTarget } from '@/lib/location-lists/curated-list-url';
-import { listLocationsCount } from '@/lib/location-lists/list-locations-count';
+import {
+  coerceToArray,
+  listLocationsCount,
+} from '@/lib/location-lists/list-locations-count';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -281,7 +284,7 @@ export default function LocationListsDrawer({
         description: list.description ?? null,
         thumbnail_url: list.thumbnail_url ?? null,
         is_private: list.is_private,
-        locations: (list.locations ?? [])
+        locations: coerceToArray(list.locations)
           .filter((location) => location.id != null)
           .map((location) => ({
             membershipId: location.id as number,
@@ -432,7 +435,7 @@ export default function LocationListsDrawer({
     } else if (selectedPublicProfileList) {
       locations = selectedPublicProfileList.locations ?? [];
     } else if (selectedList?.locations) {
-      locations = selectedList.locations;
+      locations = coerceToArray(selectedList.locations);
     }
 
     return locations.filter(
@@ -646,7 +649,7 @@ export default function LocationListsDrawer({
     }
 
     for (const list of populatedCustomLists) {
-      for (const location of list.locations) {
+      for (const location of coerceToArray(list.locations)) {
         if (location.place_id) {
           ids.add(location.place_id);
         }
@@ -1531,7 +1534,7 @@ export default function LocationListsDrawer({
                                 : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
                             }
                           >
-                            {list.locations.map((location) =>
+                            {coerceToArray(list.locations).map((location) =>
                               isSidebar
                                 ? renderDrawerTile(location)
                                 : renderMobileCarouselCard(location)

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { Location } from '@/lib/types';
+import { coerceToArray } from '@/lib/location-lists/list-locations-count';
 
 interface ToggleFavoriteInput {
   walletAddress: string;
@@ -41,7 +42,7 @@ export async function fetchFavoriteLocations(
   }
 
   const data = (result.data ?? result) as FavoritesResponse;
-  return data.locations ?? [];
+  return coerceToArray<Location>(data.locations);
 }
 
 async function toggleFavoriteRequest(
