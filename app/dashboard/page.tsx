@@ -185,9 +185,10 @@ export default function DashboardPage() {
                   </div>
                   <Link
                     href="/faq#earn-points"
-                    className="label-small shrink-0 font-semibold normal-case tracking-normal text-[#171717] transition-opacity hover:opacity-80"
+                    className="label-small inline-flex shrink-0 items-center gap-1 font-semibold normal-case tracking-normal text-[#171717] underline decoration-[#171717]/40 underline-offset-[3px] transition-opacity hover:decoration-[#171717] hover:opacity-80"
                   >
-                    How points are earned
+                    How do I earn more points?
+                   
                   </Link>
                 </div>
                 {/* Row 2 */}

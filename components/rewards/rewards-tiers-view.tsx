@@ -135,9 +135,9 @@ export default function RewardsTiersView() {
           </Link>
           <Link
             href="/faq#earn-points"
-            className="label-small font-semibold normal-case tracking-normal text-[#171717] underline-offset-2 hover:underline"
+            className="label-small font-semibold normal-case underline tracking-normal text-[#171717] underline-offset-2 hover:underline"
           >
-            How points are earned
+            How do I earn more points? 
           </Link>
         </div>
       </section>

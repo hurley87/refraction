@@ -14,6 +14,8 @@ const config: Config = {
         mapWide: '1367px',
         /** 809px drawer / full-width nav (2560×1440 and larger artboards). */
         mapHd: { raw: '(min-width: 2560px) and (min-height: 1440px)' },
+        /** Short viewports (e.g. iPhone SE) — tighten vertical tour spacing. */
+        short: { raw: '(max-height: 740px)' },
       },
       colors: {
         background: 'hsl(var(--background))',
