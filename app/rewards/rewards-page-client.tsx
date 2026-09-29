@@ -41,11 +41,16 @@ import { usePerks, useUserRedemptions } from '@/hooks/usePerks';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
-import { markSignupFromGate } from '@/lib/analytics/attribution';
+import {
+  clearSignupFromGate,
+  markSignupFromGate,
+  peekSignupFromGate,
+} from '@/lib/analytics/attribution';
 import {
   consumeGateViewedOncePerSession,
   gateEventProperties,
 } from '@/lib/analytics/gate';
+import { apiClientBearerPost } from '@/lib/api/privy-bearer-client';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
@@ -128,11 +133,12 @@ const TimeLeft = ({
 };
 
 function PerksPageInner() {
-  const { login } = usePrivy();
+  const { login, ready, authenticated, getAccessToken } = usePrivy();
   const router = useRouter();
   const searchParams = useSearchParams();
   const address = useEvmWalletAddress();
   const { trackEvent, trackPage } = useAnalytics();
+  const rewardGateSignupRequestedRef = useRef(false);
 
   const activeTab: RewardsTab =
     searchParams.get('tab') === 'tiers' ? 'tiers' : 'rewards';
@@ -462,8 +468,8 @@ function PerksPageInner() {
     setDrawerDragY(0);
   };
 
-  // Members-only block. Once per reward per tab, so reopening the same perk
-  // does not inflate gate_viewed.
+  // Members-only block. Once per reward per tab; same trackEvent path as
+  // reward_page_viewed / gate_signup_clicked so Mixpanel init is shared.
   useEffect(() => {
     if (address || !isModalOpen || !selectedPerk?.id) return;
     if (!consumeGateViewedOncePerSession('reward', selectedPerk.id)) return;
@@ -472,6 +478,29 @@ function PerksPageInner() {
       gateEventProperties('reward', selectedPerk.id)
     );
   }, [address, isModalOpen, selectedPerk?.id, trackEvent]);
+
+  // Rewards never force username / POST /api/player. After a gate login, upsert
+  // the player so net-new accounts still fire signup_from_gate with reward_id.
+  useEffect(() => {
+    if (!ready || !authenticated || !address) return;
+    const intent = peekSignupFromGate();
+    if (intent?.surface !== 'reward' || !intent.reward_id) return;
+    if (rewardGateSignupRequestedRef.current) return;
+    rewardGateSignupRequestedRef.current = true;
+
+    void (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) throw new Error('Missing access token');
+        await apiClientBearerPost(token, '/api/rewards/gate-signup', {
+          reward_id: intent.reward_id,
+        });
+        clearSignupFromGate();
+      } catch {
+        rewardGateSignupRequestedRef.current = false;
+      }
+    })();
+  }, [address, authenticated, getAccessToken, ready]);
 
   // A modal Radix dialog locks pointer events on the rest of the page, which makes
   // Privy's login modal (rendered in its own portal) appear behind an invisible
