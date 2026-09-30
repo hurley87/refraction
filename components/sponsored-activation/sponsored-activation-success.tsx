@@ -58,7 +58,7 @@ export function SponsoredActivationSuccess({
       />
 
       <div
-        className="relative z-10 flex h-full w-full max-w-[420px] flex-col overflow-y-auto rounded-t-2xl bg-white shadow-[0_4px_16px_rgba(0,0,0,0.25)] md:max-w-lg"
+        className="relative z-10 flex h-full w-full max-w-[420px] flex-col overflow-hidden rounded-t-2xl bg-white shadow-[0_4px_16px_rgba(0,0,0,0.25)] md:max-w-lg"
         role="dialog"
         aria-labelledby="sponsored-activation-success-title"
       >
@@ -83,7 +83,7 @@ export function SponsoredActivationSuccess({
           perkValueLabel={perkValueLabel}
         />
 
-        <div className="flex flex-col gap-4 px-4 pb-8 pt-6">
+        <div className="flex shrink-0 flex-col gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 max-[740px]:gap-2 max-[740px]:pt-3">
           <h1
             id="sponsored-activation-success-title"
             className="title2 text-[#171717]"
@@ -101,7 +101,7 @@ export function SponsoredActivationSuccess({
                 />
               }
               bareValue
-              className="border-b-0"
+              className="border-b-0 max-[740px]:py-1.5"
             />
             <SponsoredActivationDetailRow
               label="YOUR POINTS BALANCE"
@@ -112,13 +112,15 @@ export function SponsoredActivationSuccess({
                 />
               }
               bareValue
+              className="max-[740px]:py-1.5"
             />
             <SponsoredActivationDetailRow
               label="YOU SWAPPED"
               value={
-                <SponsoredActivationPointsValue points={1} suffix="USDC" />
+                <SponsoredActivationPointsValue points={5} suffix="CADD" />
               }
               bareValue
+              className="max-[740px]:py-1.5"
             />
             {currentTier ? (
               <SponsoredActivationDetailRow
@@ -129,6 +131,7 @@ export function SponsoredActivationSuccess({
                   </span>
                 }
                 bareValue
+                className="max-[740px]:py-1.5"
               />
             ) : null}
           </div>

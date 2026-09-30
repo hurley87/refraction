@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { usePrivy, useCreateWallet } from '@privy-io/react-auth';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { useAptosWallet } from '@/hooks/useAptosWallet';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
@@ -73,37 +72,28 @@ function CheckinSuccessView({
 
   return (
     <div
-      className="min-h-dvh w-full flex flex-col items-center"
+      className="flex h-dvh w-full flex-col items-center overflow-hidden"
       style={{
         background: checkpoint.background_gradient || brandBg,
         ...fontStyle,
       }}
     >
-      <div className="w-full max-w-[430px] mx-auto flex flex-col justify-center min-h-dvh px-4 py-8">
-        {/* Partner poster image (centered) */}
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-[430px] flex-col px-4 py-4">
+        {/* Native img so the file's own aspect ratio is kept. Shrinks on short screens so the copy and button stay in view. */}
         {checkpoint.partner_image_url && (
-          <div className="mb-10 flex w-full justify-center">
-            <div
-              className="w-full shrink-0 overflow-hidden rounded-lg aspect-[208/260] sm:aspect-auto sm:h-[260px] sm:w-[208px]"
+          <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+            <img
+              src={checkpoint.partner_image_url}
+              alt={checkpoint.name}
+              className="max-h-full max-w-full rounded-lg object-contain"
               style={{
                 boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
               }}
-            >
-              <Image
-                src={checkpoint.partner_image_url}
-                alt={checkpoint.name}
-                width={208}
-                height={260}
-                className="h-full w-full object-cover"
-                sizes="(max-width: 639px) calc(100vw - 2rem), 208px"
-                priority
-              />
-            </div>
+            />
           </div>
         )}
 
-        {/* Content */}
-        <div className="flex flex-col gap-8 align-center justify-center">
+        <div className="flex shrink-0 flex-col gap-4 pt-4 max-[740px]:gap-3 max-[740px]:pt-3">
           <h1
             className="display0 sm:display0-sm text-[#171717] uppercase text-center"
             style={{ color: textColor, ...fontStyle }}
@@ -150,14 +140,6 @@ function CheckinSuccessView({
               </span>
             </div>
           </div>
-
-          <p
-            className="body-medium text-[#ffffff] leading-[1.2] font-medium -tracking-[0.02em] text-center uppercase"
-            style={{ color: textColor }}
-          >
-            {checkpoint.description ||
-              "IRL is a platform that connects you to what's happening in music and art scenes around the world, curated by locals."}
-          </p>
 
           <button
             type="button"

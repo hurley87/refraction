@@ -33,7 +33,7 @@ export function SponsoredActivationConfirm({
   const pointsCost = rewardItem.points_cost;
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex h-dvh flex-col overflow-hidden bg-white">
       <SponsoredActivationLandingHero
         heroImageUrl={rewardItem.hero_image_url}
         itemName={rewardItem.name}
@@ -42,11 +42,15 @@ export function SponsoredActivationConfirm({
         detailsVariant="receive"
       />
 
-      <div className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-4">
+      <div className="flex shrink-0 flex-col gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 max-[740px]:gap-2">
         <div className="flex flex-col gap-2">
-          <h1 className="title2 text-[#171717]">CONFIRM YOUR STABLECOIN SWAP</h1>
+          <h1 className="title2 text-[#171717]">
+            YOU'RE IN! FIRST DRINK IS ON US
+          </h1>
           {description ? (
-            <div className="body-small text-[#757575]">{description}</div>
+            <div className="body-small text-[#757575] max-[740px]:line-clamp-2">
+              {description}
+            </div>
           ) : null}
         </div>
 
@@ -60,14 +64,17 @@ export function SponsoredActivationConfirm({
               />
             }
             bareValue
+            className="max-[740px]:py-1.5"
           />
           <SponsoredActivationDetailRow
             label="You Earn"
-            value={rewardItem.name}
+            value={'A FREE DRINK'}
+            className="max-[740px]:py-1.5"
           />
           <SponsoredActivationDetailRow
             label="Your Account"
             value={accountEmail ?? '—'}
+            className="max-[740px]:py-1.5"
           />
           <SponsoredActivationDetailRow
             label="Current Points"
@@ -79,6 +86,7 @@ export function SponsoredActivationConfirm({
             }
             subValue={`-${pointsCost.toLocaleString()} PTS`}
             bareValue
+            className="max-[740px]:py-1.5"
           />
         </div>
 
@@ -98,7 +106,7 @@ export function SponsoredActivationConfirm({
             <span className="truncate text-left">
               {pending
                 ? 'Processing…'
-                : (primaryActionLabel ?? 'CLICK TO SWAP FOR USDC')}
+                : (primaryActionLabel ?? 'CLAIM YOUR DRINK')}
             </span>
           </span>
           <Trophy className="size-6 shrink-0" strokeWidth={2} aria-hidden />

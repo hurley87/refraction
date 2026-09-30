@@ -52,8 +52,6 @@ export default async function CheckpointLayout({
                     checkpoint.background_gradient ?? undefined,
                   fontFamily: checkpoint.font_family ?? undefined,
                   fontColor: checkpoint.font_color ?? undefined,
-                  footerTitle: checkpoint.footer_title ?? undefined,
-                  footerDescription: checkpoint.footer_description ?? undefined,
                 }
               : undefined
           }
