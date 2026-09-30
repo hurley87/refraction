@@ -13,8 +13,6 @@ export interface CheckpointCustomization {
   backgroundGradient?: string;
   fontFamily?: string;
   fontColor?: string;
-  footerTitle?: string;
-  footerDescription?: string;
 }
 
 interface AuthWrapperProps {
@@ -44,7 +42,7 @@ function extractBaseColorFromGradient(gradient: string): string {
 }
 
 const DEFAULT_AUTH_TITLE = 'Welcome to IRL';
-const DEFAULT_LOGIN_CTA = 'Find spots nearby';
+const DEFAULT_LOGIN_CTA = 'Check In';
 const MINIMAL_LOGIN_CTA = 'Get Started';
 const DEFAULT_EMAIL_HEADING = 'Link your email for updates';
 const DEFAULT_USERNAME_HEADING = 'Choose your username to start earning points';
@@ -171,14 +169,8 @@ export default function AuthWrapper({
     if (unauthenticatedUI !== 'map-onboarding') {
       // Default unauthenticated UI — if checkpoint customization is provided, use the branded layout
       if (checkpointCustomization) {
-        const {
-          partnerImageUrl,
-          backgroundGradient,
-          fontFamily,
-          fontColor,
-          footerTitle,
-          footerDescription,
-        } = checkpointCustomization;
+        const { partnerImageUrl, backgroundGradient, fontFamily, fontColor } =
+          checkpointCustomization;
 
         const textColor = fontColor || '#E3FF30';
         const fontStyle = fontFamily ? { fontFamily } : undefined;
@@ -186,45 +178,38 @@ export default function AuthWrapper({
 
         return (
           <div
-            className="min-h-dvh w-full flex flex-col items-center"
+            className="flex h-dvh w-full flex-col items-center overflow-hidden"
             style={{
               background: backgroundGradient || brandBg,
               ...fontStyle,
             }}
           >
-            <div className="relative w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
-              {/* Poster image (centered) */}
+            <div className="relative mx-auto flex h-full min-h-0 w-full max-w-[430px] flex-col px-4 py-4">
+              {/* Native img so the file's own aspect ratio is kept. next/image would lock 208×260 and crop the sides. */}
               {partnerImageUrl && (
-                <div className="mt-6 mb-10 flex w-full justify-center">
-                  <div
-                    className="w-full shrink-0 overflow-hidden rounded-lg aspect-[208/260] sm:aspect-auto sm:h-[260px] sm:w-[208px]"
+                <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+                  <img
+                    src={partnerImageUrl}
+                    alt={title}
+                    className="max-h-full max-w-full rounded-lg object-contain"
                     style={{
                       boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
                     }}
-                  >
-                    <Image
-                      src={partnerImageUrl}
-                      alt={title}
-                      width={208}
-                      height={260}
-                      className="h-full w-full object-cover"
-                      sizes="(max-width: 639px) calc(100vw - 2rem), 208px"
-                    />
-                  </div>
+                  />
                 </div>
               )}
 
               {/* Hero text content */}
-              <div className="flex flex-col gap-6 pb-8">
+              <div className="flex shrink-0 flex-col gap-4 pt-4 max-[740px]:gap-3 max-[740px]:pt-3">
                 <h1
-                  className="display0 sm:display0-sm font-extrabold uppercase tracking-tighter text-center"
+                  className="display0-sm text-center font-extrabold uppercase tracking-tighter"
                   style={{ color: textColor, ...fontStyle }}
                 >
                   {title}
                 </h1>
                 {description && (
                   <p
-                    className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
+                    className="text-base font-medium leading-snug -tracking-[0.02em] sm:text-xl sm:leading-[1.2]"
                     style={{ color: textColor }}
                   >
                     {description}
@@ -257,54 +242,6 @@ export default function AuthWrapper({
                 </button>
               </div>
             </div>
-
-            {/* Footer / "Get Involved" Section */}
-            {(footerTitle || footerDescription) && (
-              <div
-                className="w-full flex flex-col items-center"
-                style={{ backgroundColor: brandBg }}
-              >
-                <div className="w-full max-w-[430px] mx-auto px-4 py-16 flex flex-col gap-8">
-                  {footerTitle && (
-                    <h2
-                      className="text-[30px] leading-[1em] font-extrabold uppercase -tracking-[0.03em]"
-                      style={{ color: textColor, ...fontStyle }}
-                    >
-                      {footerTitle}
-                    </h2>
-                  )}
-                  {footerDescription && (
-                    <p
-                      className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
-                      style={{ color: textColor }}
-                    >
-                      {footerDescription}
-                    </p>
-                  )}
-
-                  <button
-                    onClick={login}
-                    className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
-                    style={{
-                      backgroundColor: textColor,
-                      color: brandBg,
-                    }}
-                  >
-                    Explore The IRL Map
-                  </button>
-
-                  <div className="flex justify-center pt-8">
-                    <Image
-                      src="/irlfooterlogo.svg"
-                      alt="IRL"
-                      width={72}
-                      height={72}
-                      className="rounded-full opacity-80"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         );
       }

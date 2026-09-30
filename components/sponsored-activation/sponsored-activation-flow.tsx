@@ -388,7 +388,7 @@ export function SponsoredActivationFlow({
 
     return (
       <SponsoredActivationPageShell flush>
-        <div className="flex min-h-screen flex-col bg-white">
+        <div className="flex h-dvh flex-col overflow-hidden bg-white">
           <SponsoredActivationLandingHero
             heroImageUrl={read.rewardItem.hero_image_url}
             itemName={read.rewardItem.name}
@@ -396,7 +396,7 @@ export function SponsoredActivationFlow({
             perkValueLabel={read.rewardItem.perk_value_label}
           />
 
-          <div className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-4">
+          <div className="flex shrink-0 flex-col gap-4 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 max-[740px]:gap-3">
             <div className="flex flex-col gap-2">
               <div className="title3 font-medium text-[#171717]">
                 {read.activation.title}
@@ -412,7 +412,7 @@ export function SponsoredActivationFlow({
               className="label-large flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] font-grotesk uppercase tracking-[0.0625em] text-white transition-opacity hover:opacity-95"
             >
               <div className="truncate uppercase text-left label-large">
-              Pay with USDC on Stellar
+                Pay with USDC on Stellar
               </div>
               <ArrowRight
                 className="size-6 shrink-0"
@@ -421,7 +421,7 @@ export function SponsoredActivationFlow({
               />
             </button>
 
-            <div className="mt-auto flex justify-center pt-6">
+            <div className="flex justify-center pt-2">
               <Image
                 src="/protected.png"
                 alt="Protected"

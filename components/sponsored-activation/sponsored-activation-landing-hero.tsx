@@ -22,7 +22,7 @@ export function SponsoredActivationLandingHero({
   detailsVariant = 'purchase',
 }: SponsoredActivationLandingHeroProps) {
   return (
-    <section className="relative left-1/2 min-h-[470px] w-screen -translate-x-1/2 overflow-hidden bg-neutral-200 md:left-auto md:w-full md:translate-x-0">
+    <section className="relative min-h-0 w-full flex-1 overflow-hidden bg-neutral-200 md:min-h-[470px] md:flex-none">
       {heroImageUrl ? (
         <Image
           src={heroImageUrl}

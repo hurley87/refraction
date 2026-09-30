@@ -18,14 +18,14 @@ export function SponsoredActivationRedeemed({
   pointsSpent,
 }: SponsoredActivationRedeemedProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex h-dvh flex-col overflow-hidden bg-white">
       <SponsoredActivationHero
         heroImageUrl={heroImageUrl}
         itemName={perkName}
         redeemed
       />
 
-      <div className="flex flex-1 flex-col gap-4 px-4 pb-28 pt-4">
+      <div className="flex shrink-0 flex-col gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 max-[740px]:gap-2">
         <h1 className="title2 text-[#171717]">Success!</h1>
 
         <div>
@@ -38,23 +38,21 @@ export function SponsoredActivationRedeemed({
               />
             }
             bareValue
+            className="max-[740px]:py-1.5"
           />
           <SponsoredActivationDetailRow
             label="YOU SWAPPED"
-            value={<SponsoredActivationPointsValue points={1} suffix="USDC" />}
+            value={<SponsoredActivationPointsValue points={5} suffix="CADD" />}
             bareValue
+            className="max-[740px]:py-1.5"
           />
         </div>
 
         <SponsoredActivationCollectInstructions redeemed />
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#171717]/10 bg-white/95 px-4 py-4 backdrop-blur-sm">
-        <div className="mx-auto w-full max-w-[420px] md:max-w-lg">
-          <SponsoredActivationCtaButton variant="redeemed" disabled>
-            Redeemed
-          </SponsoredActivationCtaButton>
-        </div>
+        <SponsoredActivationCtaButton variant="redeemed" disabled>
+          Redeemed
+        </SponsoredActivationCtaButton>
       </div>
     </div>
   );

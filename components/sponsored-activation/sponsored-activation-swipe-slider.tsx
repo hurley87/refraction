@@ -26,7 +26,7 @@ export function SponsoredActivationSwipeSlider({
   disabled,
   onComplete,
   onSwipeGestureStart,
-  label = 'SWIPE TO REDEEM ON STELLAR',
+  label = 'SWIPE TO REDEEM ON SOLANA',
   redeemRequestSucceeded = false,
 }: SponsoredActivationSwipeSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
