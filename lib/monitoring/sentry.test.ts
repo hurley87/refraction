@@ -9,6 +9,7 @@ import {
   isIndexedDbNoiseError,
   isPrivyEmbeddedWalletHttpsNoise,
   isPrivyWalletProviderOnNoise,
+  isReactDomExternalMutationNoise,
   isStorageSecurityError,
   isWalletConnectSessionNoise,
   isWalletExtensionOnboardingNoise,
@@ -154,6 +155,24 @@ describe('isAndroidJavascriptBridgeNoise', () => {
       )
     ).toBe(true);
     expect(isAndroidJavascriptBridgeNoise('TypeError: fetch failed')).toBe(
+      false
+    );
+  });
+});
+
+describe('isReactDomExternalMutationNoise', () => {
+  it('detects React removeChild/insertBefore NotFoundError from external DOM mutation (JAVASCRIPT-NEXTJS-26)', () => {
+    expect(
+      isReactDomExternalMutationNoise(
+        "NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node."
+      )
+    ).toBe(true);
+    expect(
+      isReactDomExternalMutationNoise(
+        "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node."
+      )
+    ).toBe(true);
+    expect(isReactDomExternalMutationNoise('TypeError: fetch failed')).toBe(
       false
     );
   });
@@ -917,6 +936,23 @@ describe('sentryBeforeSend', () => {
 
     expect(isExtensionStackOverflowNoise(event)).toBe(false);
     expect(sentryBeforeSend(event)).toEqual(event);
+  });
+
+  it('returns null for React DOM removeChild NotFoundError (JAVASCRIPT-NEXTJS-26)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            type: 'NotFoundError',
+            value:
+              "Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
   });
 
   it('still forwards unrelated errors without injected-script stack frames', () => {
