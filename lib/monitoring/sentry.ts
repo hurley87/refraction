@@ -434,6 +434,30 @@ export function isAndroidJavascriptBridgeNoise(message: string): boolean {
 }
 
 /**
+ * React reconciler throws when something outside React mutates the DOM tree
+ * (Chrome auto-translate, Google Translate extension, grammar tools). React
+ * then fails removeChild/insertBefore because fiber parents no longer match
+ * live nodes — environmental noise, not an app logic bug.
+ *
+ * @see https://blog.sentry.io/making-your-javascript-projects-less-noisy/
+ */
+export function isReactDomExternalMutationNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    (lower.includes('notfounderror') &&
+      lower.includes('removechild') &&
+      lower.includes('not a child of this node')) ||
+    (lower.includes('notfounderror') &&
+      lower.includes('insertbefore') &&
+      lower.includes('not a child of this node')) ||
+    (lower.includes("failed to execute 'removechild'") &&
+      lower.includes('not a child of this node')) ||
+    (lower.includes("failed to execute 'insertbefore'") &&
+      lower.includes('not a child of this node'))
+  );
+}
+
+/**
  * Privy's PrivyProxyProvider subscribes to EIP-1193 events via `walletProvider.on`.
  * Some browser extensions inject partial providers (request-only, no event API),
  * which surfaces as `this.walletProvider?.on is not a function` inside
@@ -562,6 +586,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     isPrivyEmbeddedWalletHttpsNoise(message) ||
     isWebkitMessageHandlersNoise(message) ||
     isAndroidJavascriptBridgeNoise(message) ||
+    isReactDomExternalMutationNoise(message) ||
     isWalletConnectSessionNoise(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||

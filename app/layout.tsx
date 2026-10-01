@@ -73,7 +73,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={spaceGrotesk.variable}>
+    <html lang="en" translate="no" className={spaceGrotesk.variable}>
       <head>
         {/* Inline script (not next/script beforeInteractive): avoids hydration mismatch — Next injects beforeInteractive children via __next_s with empty SSR markup. */}
         <script
