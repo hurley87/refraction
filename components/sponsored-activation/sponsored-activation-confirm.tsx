@@ -14,8 +14,11 @@ type SponsoredActivationConfirmProps = {
   onConfirm: () => void;
   /** Replaces the idle primary action label (default: "Pay With Points"). */
   primaryActionLabel?: string;
-  /** Player's current points balance, shown in the breakdown. */
-  currentPoints: number;
+  /**
+   * Player's current points balance, shown in the breakdown. Omit when the
+   * visitor is signed out; the row then shows a placeholder.
+   */
+  currentPoints?: number;
   /** Account identifier (email) shown in the breakdown. */
   accountEmail?: string;
 };
@@ -76,18 +79,26 @@ export function SponsoredActivationConfirm({
             value={accountEmail ?? '—'}
             className="max-[740px]:py-1.5"
           />
-          <SponsoredActivationDetailRow
-            label="Current Points"
-            value={
-              <SponsoredActivationPointsValue
-                points={currentPoints}
-                suffix="PTS"
-              />
-            }
-            subValue={`-${pointsCost.toLocaleString()} PTS`}
-            bareValue
-            className="max-[740px]:py-1.5"
-          />
+          {currentPoints === undefined ? (
+            <SponsoredActivationDetailRow
+              label="Current Points"
+              value="—"
+              className="max-[740px]:py-1.5"
+            />
+          ) : (
+            <SponsoredActivationDetailRow
+              label="Current Points"
+              value={
+                <SponsoredActivationPointsValue
+                  points={currentPoints}
+                  suffix="PTS"
+                />
+              }
+              subValue={`-${pointsCost.toLocaleString()} PTS`}
+              bareValue
+              className="max-[740px]:py-1.5"
+            />
+          )}
         </div>
 
         <button

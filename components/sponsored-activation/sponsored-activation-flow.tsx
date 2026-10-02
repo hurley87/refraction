@@ -1,14 +1,12 @@
 'use client';
 
-import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SponsoredActivationPageShell } from '@/components/sponsored-activation/sponsored-activation-page-shell';
 import { SponsoredActivationConfirm } from '@/components/sponsored-activation/sponsored-activation-confirm';
-import { SponsoredActivationLandingHero } from '@/components/sponsored-activation/sponsored-activation-landing-hero';
 import { SponsoredActivationSuccess } from '@/components/sponsored-activation/sponsored-activation-success';
 import { SponsoredActivationRedeemed } from '@/components/sponsored-activation/sponsored-activation-redeemed';
 import { SponsoredActivationExpired } from '@/components/sponsored-activation/sponsored-activation-expired';
@@ -28,7 +26,6 @@ import {
   pickPrimaryActivationRedemption,
   resolveSponsoredActivationBaseScreen,
 } from '@/lib/sponsored-activation/flow-routing';
-import { resolveSponsoredActivationDescription } from '@/lib/sponsored-activation/public-read-display';
 import type { SponsoredActivationPublicReadResponse } from '@/lib/sponsored-activation/public-read';
 import {
   isInitialized,
@@ -384,54 +381,16 @@ export function SponsoredActivationFlow({
   const read = readQuery.data;
 
   if (!user) {
-    const description = resolveSponsoredActivationDescription(read);
-
+    // Signed-out visitors see the same confirm layout as signed-in players;
+    // the primary action signs them in instead of confirming a purchase.
     return (
       <SponsoredActivationPageShell flush>
-        <div className="flex h-dvh flex-col overflow-hidden bg-white">
-          <SponsoredActivationLandingHero
-            heroImageUrl={read.rewardItem.hero_image_url}
-            itemName={read.rewardItem.name}
-            pointsCost={read.rewardItem.points_cost}
-            perkValueLabel={read.rewardItem.perk_value_label}
-          />
-
-          <div className="flex shrink-0 flex-col gap-4 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 max-[740px]:gap-3">
-            <div className="flex flex-col gap-2">
-              <div className="title3 font-medium text-[#171717]">
-                {read.activation.title}
-              </div>
-              {description ? (
-                <div className="body-small text-[#757575]">{description}</div>
-              ) : null}
-            </div>
-
-            <button
-              type="button"
-              onClick={login}
-              className="label-large flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] font-grotesk uppercase tracking-[0.0625em] text-white transition-opacity hover:opacity-95"
-            >
-              <div className="truncate uppercase text-left label-large">
-                Pay with USDC on Stellar
-              </div>
-              <ArrowRight
-                className="size-6 shrink-0"
-                strokeWidth={2}
-                aria-hidden
-              />
-            </button>
-
-            <div className="flex justify-center pt-2">
-              <Image
-                src="/protected.png"
-                alt="Protected"
-                width={157}
-                height={18}
-                className="h-[18px] w-auto invert"
-              />
-            </div>
-          </div>
-        </div>
+        <SponsoredActivationConfirm
+          read={read}
+          pending={false}
+          onConfirm={login}
+          primaryActionLabel="SIGN IN TO CLAIM"
+        />
       </SponsoredActivationPageShell>
     );
   }
