@@ -2,7 +2,7 @@ const COLLECT_INSTRUCTIONS =
   "Swipe below and show this screen to the event staff. Swipe only when you're ready to purchase — once you've redeemed you can't redeem again!";
 
 const REDEEMED_INSTRUCTIONS =
-  'Show this screen to the event staff to collect your drink.';
+  'Show this screen to the bartender to collect your drink.';
 
 const CADD_LEARN_MORE_URL = 'https://tetradg.com/cadd-stablecoin/';
 
