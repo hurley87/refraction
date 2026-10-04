@@ -102,6 +102,42 @@ describe('addCampaignMonitorSubscriber', () => {
     ).rejects.toThrow('Campaign Monitor subscriber API failed');
   });
 
+  it('silently returns (no throw) when CreateSend rate-limits duplicate adds (429)', async () => {
+    process.env.CAMPAIGN_MONITOR_API_KEY = 'k';
+    process.env.CAMPAIGN_MONITOR_LIST_ID = 'lid';
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      text: async () =>
+        '{"Code":429,"Message":"Subscriber was added too many times too quickly, try again later."}',
+    });
+
+    await expect(
+      addCampaignMonitorSubscriber({ email: 'rate-limited@example.com' })
+    ).resolves.toBeUndefined();
+
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining('campaign_monitor_subscribe_rate_limited')
+    );
+    expect(console.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('campaign_monitor_subscribe_http_error')
+    );
+  });
+
+  it('dedupes repeat subscribe attempts for the same email within the window', async () => {
+    process.env.CAMPAIGN_MONITOR_API_KEY = 'k';
+    process.env.CAMPAIGN_MONITOR_LIST_ID = 'lid';
+
+    await addCampaignMonitorSubscriber({ email: 'dedupe-me@example.com' });
+    await addCampaignMonitorSubscriber({ email: 'dedupe-me@example.com' });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('campaign_monitor_subscribe_deduped')
+    );
+  });
+
   it('silently returns (no throw) when email is on the suppression list (Code 204)', async () => {
     process.env.CAMPAIGN_MONITOR_API_KEY = 'k';
     process.env.CAMPAIGN_MONITOR_LIST_ID = 'lid';
