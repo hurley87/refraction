@@ -431,6 +431,22 @@ async function fetchSettlementsByRedemptionIds(
   return map;
 }
 
+/** Settlements that may be broadcasting or awaiting on-chain confirmation right now. */
+export async function countActivationBroadcastingSettlements(
+  activationId: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from('activation_settlement_transaction')
+    .select('id', { count: 'exact', head: true })
+    .eq('activation_id', activationId)
+    .in('status', ['queued', 'submitted', 'retrying']);
+  if (error) {
+    console.error('countActivationBroadcastingSettlements:', error);
+    throw new Error(error.message || 'Failed to load inflight settlements');
+  }
+  return count ?? 0;
+}
+
 /** Reserved USDC for inflight settlements and committed redemptions on one activation. */
 export async function loadActivationReservedUsdc(
   activationId: string
