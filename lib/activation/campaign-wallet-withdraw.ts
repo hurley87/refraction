@@ -138,7 +138,7 @@ async function sumOtherStellarSharedWalletClaimsUsdc(
 }
 
 /** Caps Stellar shared-wallet refunds to this activation's unspent budget and peer claims. */
-async function computeStellarSharedWalletMaxWithdrawMicro(
+export async function computeStellarSharedWalletMaxWithdrawMicro(
   activation: SponsoredActivationRow,
   balanceMicro: number
 ): Promise<number> {
@@ -157,7 +157,7 @@ async function computeStellarSharedWalletMaxWithdrawMicro(
   return maxMicro;
 }
 
-async function readCampaignWalletOnChainBalance(
+export async function readCampaignWalletOnChainBalance(
   activation: SponsoredActivationRow
 ): Promise<number | null> {
   if (activation.settlement_rail === 'base') {
@@ -423,21 +423,13 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  const baseAssetConfig =
-    input.activation.settlement_rail === 'base'
-      ? baseUsdcAssetConfigSchema.safeParse(input.activation.usdc_asset_config)
-      : null;
-  const tokenDecimals =
-    baseAssetConfig?.success === true
-      ? resolveBaseTokenDecimals(baseAssetConfig.data.contract_address)
-      : input.activation.settlement_rail === 'tempo'
-        ? TEMPO_CADD_DECIMALS
-        : 6;
+  const tokenDecimals = resolveCampaignTokenDecimals(input.activation);
 
-  let maxBalanceMicro =
-    input.activation.settlement_rail === 'base'
-      ? balanceToTokenMicro(balance, tokenDecimals)
-      : balanceUsdcToMicro(balance);
+  let maxBalanceMicro = campaignBalanceToMicro(
+    input.activation,
+    balance,
+    tokenDecimals
+  );
   if (input.activation.settlement_rail === 'stellar') {
     maxBalanceMicro = await computeStellarSharedWalletMaxWithdrawMicro(
       input.activation,
@@ -477,12 +469,87 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     withdrawMicro = maxBalanceMicro;
   }
 
-  const withdrawAmount = tokenMicroToAmount(withdrawMicro, tokenDecimals);
-  const destinationAddress = destCheck.normalized;
+  return transferCampaignWalletBalance({
+    activation: input.activation,
+    destinationAddress: destCheck.normalized,
+    amountMicro: withdrawMicro,
+    tokenDecimals,
+    purpose: 'withdraw',
+  });
+}
 
-  if (input.activation.settlement_rail === 'stellar') {
+/** Smallest-unit precision of the campaign token on Base, Tempo, and Stellar. */
+export function resolveCampaignTokenDecimals(
+  activation: SponsoredActivationRow
+): number {
+  if (activation.settlement_rail === 'base') {
+    const cfg = baseUsdcAssetConfigSchema.safeParse(
+      activation.usdc_asset_config
+    );
+    return cfg.success
+      ? resolveBaseTokenDecimals(cfg.data.contract_address)
+      : 6;
+  }
+  return activation.settlement_rail === 'tempo' ? TEMPO_CADD_DECIMALS : 6;
+}
+
+export function campaignBalanceToMicro(
+  activation: SponsoredActivationRow,
+  balance: number,
+  tokenDecimals: number
+): number {
+  return activation.settlement_rail === 'base'
+    ? balanceToTokenMicro(balance, tokenDecimals)
+    : balanceUsdcToMicro(balance);
+}
+
+const TRANSFER_PURPOSE_CONFIG = {
+  withdraw: {
+    label: 'Withdrawal',
+    referenceTag: 'wd',
+    tempoIdPrefix: 'withdraw',
+  },
+  venue: {
+    label: 'Venue transfer',
+    referenceTag: 'venue',
+    tempoIdPrefix: 'venue-sweep',
+  },
+} as const;
+
+/**
+ * Sends `amountMicro` of the campaign token from a Base, Tempo, or Stellar
+ * campaign wallet to an already validated and normalized destination.
+ */
+export async function transferCampaignWalletBalance(input: {
+  activation: SponsoredActivationRow;
+  destinationAddress: string;
+  amountMicro: number;
+  tokenDecimals: number;
+  purpose: keyof typeof TRANSFER_PURPOSE_CONFIG;
+}): Promise<SponsoredActivationCampaignWithdrawResult> {
+  const {
+    activation,
+    destinationAddress,
+    amountMicro,
+    tokenDecimals,
+    purpose,
+  } = input;
+  const { label, referenceTag, tempoIdPrefix } =
+    TRANSFER_PURPOSE_CONFIG[purpose];
+  const tokenSymbol = describeSponsoredActivationPaymentTokenSymbol(activation);
+  const withdrawAmount = tokenMicroToAmount(amountMicro, tokenDecimals);
+
+  if (activation.settlement_rail === 'solana') {
+    return {
+      ok: false,
+      error: SOLANA_WITHDRAW_UNSUPPORTED_ERROR,
+      statusCode: 400,
+    };
+  }
+
+  if (activation.settlement_rail === 'stellar') {
     const submitted = await submitStellarCampaignWalletWithdraw({
-      activation: input.activation,
+      activation,
       destinationAddress,
       usdcAmount: withdrawAmount,
     });
@@ -502,13 +569,13 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  if (input.activation.settlement_rail === 'tempo') {
-    const privyWalletId = input.activation.privy_campaign_wallet_id?.trim();
+  if (activation.settlement_rail === 'tempo') {
+    const privyWalletId = activation.privy_campaign_wallet_id?.trim();
     const campaignAddress = tryNormalizeEvmAddress(
-      input.activation.campaign_wallet_address
+      activation.campaign_wallet_address
     );
     const config = tempoCaddAssetConfigSchema.safeParse(
-      input.activation.usdc_asset_config
+      activation.usdc_asset_config
     );
     if (!privyWalletId || !campaignAddress || !config.success) {
       return {
@@ -518,7 +585,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
       };
     }
     const withdrawNonce = Date.now().toString(36);
-    const withdrawId = `withdraw:${input.activation.id}:${withdrawNonce}`;
+    const withdrawId = `${tempoIdPrefix}:${activation.id}:${withdrawNonce}`;
     const submitted = await submitTempoCaddTransfer({
       serverWalletId: privyWalletId,
       serverWalletAddress: campaignAddress as `0x${string}`,
@@ -526,7 +593,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
       caddAmount: withdrawAmount,
       settlementId: withdrawId,
       caddContractAddress: config.data.contract_address,
-      referenceId: `sa-wd:${input.activation.id}:${withdrawNonce}`,
+      referenceId: `sa-${referenceTag}:${activation.id}:${withdrawNonce}`,
     });
     if (!submitted.ok) {
       return { ok: false, error: submitted.error, statusCode: 500 };
@@ -539,13 +606,13 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
         destinationAddress,
         privyTransactionId: submitted.privyTransactionId,
         referenceId: submitted.referenceId,
-        message: 'Withdrawal was accepted by Privy and is pending on Tempo.',
+        message: `${label} was accepted by Privy and is pending on Tempo.`,
       };
     }
     if (!('txHash' in submitted)) {
       return {
         ok: false,
-        error: 'Unexpected Tempo withdrawal response.',
+        error: `Unexpected Tempo ${label.toLowerCase()} response.`,
         statusCode: 500,
       };
     }
@@ -566,7 +633,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
         destinationAddress,
         privyTransactionId: submitted.privyTransactionId,
         referenceId: submitted.referenceId,
-        message: 'Withdrawal is submitted; Tempo confirmation is pending.',
+        message: `${label} is submitted; Tempo confirmation is pending.`,
       };
     }
     return {
@@ -580,7 +647,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  const privyWalletId = input.activation.privy_campaign_wallet_id?.trim();
+  const privyWalletId = activation.privy_campaign_wallet_id?.trim();
   if (!privyWalletId) {
     return {
       ok: false,
@@ -590,7 +657,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   }
 
   const campaignAddress = tryNormalizeEvmAddress(
-    input.activation.campaign_wallet_address
+    activation.campaign_wallet_address
   );
   if (!campaignAddress || !isEvmAddress(campaignAddress)) {
     return {
@@ -600,9 +667,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  const cfg =
-    baseAssetConfig ??
-    baseUsdcAssetConfigSchema.safeParse(input.activation.usdc_asset_config);
+  const cfg = baseUsdcAssetConfigSchema.safeParse(activation.usdc_asset_config);
   if (!cfg.success) {
     return {
       ok: false,
@@ -618,7 +683,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     usdcAmount: withdrawAmount,
     usdcContractAddress: cfg.data.contract_address,
     decimals: tokenDecimals,
-    referenceId: `sa-wd:${input.activation.id}:${Date.now().toString(36)}`,
+    referenceId: `sa-${referenceTag}:${activation.id}:${Date.now().toString(36)}`,
     withdrawTelemetry: true,
   });
 
@@ -639,8 +704,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
       privyTransactionId: submit.privyTransactionId,
       userOperationHash: submit.userOperationHash,
       referenceId: submit.referenceId,
-      message:
-        'Withdrawal was accepted by Privy; on-chain hash is not available yet. Re-check shortly or use the block explorer with this transaction id.',
+      message: `${label} was accepted by Privy; on-chain hash is not available yet. Re-check shortly or use the block explorer with this transaction id.`,
     };
   }
 
@@ -673,8 +737,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
       privyTransactionId: submit.privyTransactionId,
       userOperationHash: submit.userOperationHash,
       referenceId: submit.referenceId,
-      message:
-        'Withdrawal was included on-chain; full receipt confirmation is still pending or timed out. Check the block explorer for this transaction hash.',
+      message: `${label} was included on-chain; full receipt confirmation is still pending or timed out. Check the block explorer for this transaction hash.`,
     };
   }
 

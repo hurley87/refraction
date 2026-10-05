@@ -420,7 +420,42 @@ export function ActivationLaunchPanel({
         (body as { message?: string }).message ?? 'Withdrawal confirmed.';
       toast.success(message);
       setWithdrawDestination('');
-      await queryClient.invalidateQueries({ queryKey: activationQueryKey });
+      await invalidateAll();
+    },
+    onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
+  });
+
+  const sendToVenueMutation = useMutation({
+    mutationFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(
+        `/api/admin/sponsored-activations/${encodeURIComponent(activationId)}/campaign-wallet/send-to-venue`,
+        { method: 'POST', headers: auth }
+      );
+      const body = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
+      if (!response.ok) {
+        throw new Error(readApiErrorMessage(body, 'Venue transfer failed'));
+      }
+      return unwrapAdminJson<{
+        message?: string;
+        explorerTxUrl?: string | null;
+      }>(body);
+    },
+    onSuccess: async (data) => {
+      const explorerTxUrl = data.explorerTxUrl;
+      toast.success(data.message ?? 'Remaining balance sent to the venue.', {
+        action: explorerTxUrl
+          ? {
+              label: 'View tx',
+              onClick: () =>
+                window.open(explorerTxUrl, '_blank', 'noopener,noreferrer'),
+            }
+          : undefined,
+      });
+      await invalidateAll();
     },
     onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
   });
@@ -520,6 +555,21 @@ export function ActivationLaunchPanel({
             : ''
         )
       : 6;
+  const venueSendableBalance =
+    activation.campaign_wallet_usdc_balance == null
+      ? null
+      : Math.max(
+          0,
+          activation.campaign_wallet_usdc_balance -
+            (activation.campaign_wallet_reserved_usdc ?? 0)
+        );
+
+  const handleSendToVenue = () => {
+    const confirmed = window.confirm(
+      `Send ${fmtUsdc(venueSendableBalance, tokenSymbol)} from the campaign wallet to the venue wallet ${activation.venue_settlement_wallet_address}? This cannot be undone.`
+    );
+    if (confirmed) sendToVenueMutation.mutate();
+  };
 
   let liveStepBody: string;
   if (isDraft) {
@@ -964,6 +1014,52 @@ export function ActivationLaunchPanel({
                         </div>
                       </div>
                     )}
+
+                    <div className="mt-4 flex flex-col gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:items-end sm:justify-between dark:border-neutral-800">
+                      <div className="text-xs text-neutral-500">
+                        <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          Send remaining balance to venue
+                        </div>
+                        <p className="mt-1">
+                          Sends{' '}
+                          <span className="font-medium text-neutral-800 dark:text-neutral-200">
+                            {fmtUsdc(venueSendableBalance, tokenSymbol)}
+                          </span>{' '}
+                          to the venue wallet{' '}
+                          <span className="break-all font-mono text-[11px]">
+                            {activation.venue_settlement_wallet_address}
+                          </span>
+                          . Funds reserved for pending redemptions stay in the
+                          campaign wallet.
+                        </p>
+                        {isLive && (
+                          <p className="mt-1 text-amber-700 dark:text-amber-300">
+                            Pause or end the activation before sending the
+                            remaining balance.
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        className="w-full shrink-0 whitespace-nowrap sm:w-auto"
+                        disabled={
+                          sendToVenueMutation.isPending ||
+                          isLive ||
+                          venueSendableBalance == null ||
+                          venueSendableBalance <= 0
+                        }
+                        onClick={handleSendToVenue}
+                      >
+                        {sendToVenueMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 size-4 animate-spin" />
+                            Sending…
+                          </>
+                        ) : (
+                          'Send to venue'
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
