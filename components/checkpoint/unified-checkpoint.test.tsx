@@ -54,6 +54,43 @@ const CHECKSUMMED_LINKED_EVM_WALLET = getAddress(
   LINKED_EVM_WALLET as `0x${string}`
 );
 
+/** Non-EVM check-in waits until GET /api/player for the EVM wallet has a username. */
+function mockFetchWithEvmPlayer(
+  player: { username?: string } | null = { username: 'tester' }
+) {
+  vi.mocked(global.fetch).mockImplementation(
+    async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/checkin')) {
+        return {
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response;
+      }
+      if (url.includes(CHECKSUMMED_PRIMARY_EVM_WALLET)) {
+        if (!player) {
+          return {
+            ok: false,
+            status: 404,
+            json: async () => ({ success: false, error: 'Player not found' }),
+          } as Response;
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: { player: { total_points: 1000, ...player } },
+          }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ success: true, player: { total_points: 1000 } }),
+      } as Response;
+    }
+  );
+}
+
 describe('UnifiedCheckpoint', () => {
   const mockSignedInEvmUser = () => {
     mockUsePrivy.mockReturnValue({
@@ -476,19 +513,16 @@ describe('UnifiedCheckpoint', () => {
           email: { address: 'test@example.com' },
           linkedAccounts: [
             { type: 'wallet', chainType: 'solana', address: 'SolanaWallet123' },
+            {
+              type: 'wallet',
+              chainType: 'ethereum',
+              address: PRIMARY_EVM_WALLET,
+            },
           ],
         },
       });
 
-      vi.mocked(global.fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, player: { total_points: 1000 } }),
-      } as Response);
-
-      vi.mocked(global.fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      } as Response);
+      mockFetchWithEvmPlayer();
 
       render(<UnifiedCheckpoint checkpoint={mockSolanaCheckpoint} />);
 
@@ -506,11 +540,51 @@ describe('UnifiedCheckpoint', () => {
       });
     });
 
+    it('should wait to check in on Solana until the EVM player has a username', async () => {
+      mockUsePrivy.mockReturnValue({
+        user: {
+          wallet: { address: '0x123' },
+          email: { address: 'test@example.com' },
+          linkedAccounts: [
+            { type: 'wallet', chainType: 'solana', address: 'SolanaWallet123' },
+            {
+              type: 'wallet',
+              chainType: 'ethereum',
+              address: PRIMARY_EVM_WALLET,
+            },
+          ],
+        },
+      });
+
+      mockFetchWithEvmPlayer(null);
+
+      render(<UnifiedCheckpoint checkpoint={mockSolanaCheckpoint} />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          `/api/player?walletAddress=${CHECKSUMMED_PRIMARY_EVM_WALLET}`
+        );
+      });
+
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        '/api/checkin',
+        expect.anything()
+      );
+      expect(screen.getByText('Loading')).toBeInTheDocument();
+    });
+
     it('should call unified endpoint for Stellar checkpoint', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
           wallet: { address: '0x123' },
           email: { address: 'test@example.com' },
+          linkedAccounts: [
+            {
+              type: 'wallet',
+              chainType: 'ethereum',
+              address: PRIMARY_EVM_WALLET,
+            },
+          ],
         },
       });
       mockUseStellarWallet.mockReturnValue({
@@ -521,15 +595,7 @@ describe('UnifiedCheckpoint', () => {
         error: null,
       });
 
-      vi.mocked(global.fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, player: { total_points: 1000 } }),
-      } as Response);
-
-      vi.mocked(global.fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      } as Response);
+      mockFetchWithEvmPlayer();
 
       render(<UnifiedCheckpoint checkpoint={mockStellarCheckpoint} />);
 
@@ -552,6 +618,13 @@ describe('UnifiedCheckpoint', () => {
         user: {
           wallet: { address: '0x123' },
           email: { address: 'test@example.com' },
+          linkedAccounts: [
+            {
+              type: 'wallet',
+              chainType: 'ethereum',
+              address: PRIMARY_EVM_WALLET,
+            },
+          ],
         },
       });
       mockUseAptosWallet.mockReturnValue({
@@ -562,15 +635,7 @@ describe('UnifiedCheckpoint', () => {
         error: null,
       });
 
-      vi.mocked(global.fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, player: { total_points: 1000 } }),
-      } as Response);
-
-      vi.mocked(global.fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      } as Response);
+      mockFetchWithEvmPlayer();
 
       render(<UnifiedCheckpoint checkpoint={mockAptosCheckpoint} />);
 
