@@ -12,3 +12,11 @@ export function tokenMicroToAmount(micro: number, decimals: number): number {
 export function balanceUsdcToMicro(balanceUsdc: number): number {
   return balanceToTokenMicro(balanceUsdc, 6);
 }
+
+/** Ceils reserved USDC so funds left behind always cover every reservation. */
+export function reservedUsdcToMicro(
+  reservedUsdc: number,
+  decimals: number
+): number {
+  return Math.max(0, Math.ceil(reservedUsdc * 10 ** decimals));
+}

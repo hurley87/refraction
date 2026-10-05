@@ -9,10 +9,6 @@ interface RouteParams {
   params: { activationId: string };
 }
 
-/**
- * POST /api/admin/sponsored-activations/{activationId}/campaign-wallet/send-to-venue
- * Sends the campaign wallet's unreserved balance to the activation's venue settlement wallet.
- */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const adminCheck = await requireAdmin(request);

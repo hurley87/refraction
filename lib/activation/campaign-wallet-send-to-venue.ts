@@ -16,9 +16,9 @@ import {
   type SolanaSettlementConnection,
 } from '@/lib/activation/solana-cadd-transfer';
 import { isSolanaAddress } from '@/lib/activation/solana-config';
-import { fetchSolanaSplTokenBalance } from '@/lib/activation/solana-token-rpc';
 import {
   balanceToTokenMicro,
+  reservedUsdcToMicro,
   tokenMicroToAmount,
 } from '@/lib/activation/usdc-micro';
 import {
@@ -31,11 +31,6 @@ import { solanaCaddAssetConfigSchema } from '@/lib/schemas/sponsored-activation'
 import { describeSponsoredActivationPaymentTokenSymbol } from '@/lib/schemas/sponsored-activation-tokens';
 import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
-
-type VenueTransferFailure = Extract<
-  SponsoredActivationCampaignWithdrawResult,
-  { ok: false }
->;
 
 const SOLANA_TRANSFER_ERROR_MESSAGES: Partial<Record<string, string>> = {
   [SOLANA_CADD_TRANSFER_ERROR_CODES.insufficient_campaign_cadd]:
@@ -55,13 +50,8 @@ const SOLANA_TRANSFER_ERROR_MESSAGES: Partial<Record<string, string>> = {
 function fail(
   error: string,
   statusCode: 400 | 500 = 400
-): VenueTransferFailure {
+): Extract<SponsoredActivationCampaignWithdrawResult, { ok: false }> {
   return { ok: false, error, statusCode };
-}
-
-/** Rounds up so the amount left behind always covers every reservation. */
-function reservedToMicro(reserved: number, decimals: number): number {
-  return Math.max(0, Math.ceil(reserved * 10 ** decimals));
 }
 
 function normalizeVenueAddress(
@@ -97,23 +87,16 @@ async function sendSolanaRemainingBalanceToVenue(input: {
     return fail('Campaign wallet is not configured for this activation.');
   }
   const campaignAddress = activation.campaign_wallet_address.trim();
-  const { decimals, mint } = assetConfig.data;
+  const { decimals } = assetConfig.data;
 
-  let balance: number;
-  try {
-    balance = await fetchSolanaSplTokenBalance({
-      ownerAddress: campaignAddress,
-      mint,
-      decimals,
-    });
-  } catch (error) {
-    console.error('sendSolanaRemainingBalanceToVenue balance:', error);
+  const balance = await readCampaignWalletOnChainBalance(activation);
+  if (balance == null) {
     return fail('Could not read campaign wallet CADD balance.', 500);
   }
 
   const sendMicro =
     balanceToTokenMicro(balance, decimals) -
-    reservedToMicro(input.reservedUsdc, decimals);
+    reservedUsdcToMicro(input.reservedUsdc, decimals);
   if (sendMicro <= 0) {
     return fail('No unreserved CADD left to send to the venue.');
   }
@@ -166,21 +149,19 @@ async function sendSolanaRemainingBalanceToVenue(input: {
   if (outcome === 'failed') {
     return fail('The Solana transfer failed on-chain.', 500);
   }
-  if (outcome === 'success') {
-    return {
-      ok: true,
-      status: 'confirmed',
-      txHash: signed.signature,
-      amountUsdc: amount,
-      destinationAddress: venueAddress,
-    };
-  }
-  return {
-    ok: true,
-    status: 'submitted',
+
+  const transferResult = {
+    ok: true as const,
     txHash: signed.signature,
     amountUsdc: amount,
     destinationAddress: venueAddress,
+  };
+  if (outcome === 'success') {
+    return { ...transferResult, status: 'confirmed' as const };
+  }
+  return {
+    ...transferResult,
+    status: 'submitted' as const,
     message:
       'Venue transfer was sent to Solana and is awaiting finalization. Check the explorer for this signature.',
   };
@@ -252,7 +233,7 @@ export async function sendSponsoredActivationRemainingBalanceToVenue(input: {
   const reservedDecimals =
     activation.settlement_rail === 'base' ? tokenDecimals : 6;
   const sendMicro =
-    availableMicro - reservedToMicro(reservedUsdc, reservedDecimals);
+    availableMicro - reservedUsdcToMicro(reservedUsdc, reservedDecimals);
   if (sendMicro <= 0) {
     return fail(`No unreserved ${tokenSymbol} left to send to the venue.`);
   }

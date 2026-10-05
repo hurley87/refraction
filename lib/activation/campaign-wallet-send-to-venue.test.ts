@@ -38,7 +38,6 @@ vi.mock('@/lib/spend-treasury-usdc-transfer', () => ({
 }));
 
 vi.mock('@/lib/activation/solana-token-rpc', () => ({
-  fetchSolanaCampaignWalletBalances: vi.fn(),
   fetchSolanaSplTokenBalance: (...a: unknown[]) =>
     mockFetchSolanaSplTokenBalance(...a),
 }));

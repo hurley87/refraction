@@ -527,16 +527,19 @@ export async function transferCampaignWalletBalance(input: {
   tokenDecimals: number;
   purpose: keyof typeof TRANSFER_PURPOSE_CONFIG;
 }): Promise<SponsoredActivationCampaignWithdrawResult> {
+  const {
+    activation,
+    destinationAddress,
+    amountMicro,
+    tokenDecimals,
+    purpose,
+  } = input;
   const { label, referenceTag, tempoIdPrefix } =
-    TRANSFER_PURPOSE_CONFIG[input.purpose];
-  const tokenSymbol = describeSponsoredActivationPaymentTokenSymbol(
-    input.activation
-  );
-  const tokenDecimals = input.tokenDecimals;
-  const withdrawAmount = tokenMicroToAmount(input.amountMicro, tokenDecimals);
-  const destinationAddress = input.destinationAddress;
+    TRANSFER_PURPOSE_CONFIG[purpose];
+  const tokenSymbol = describeSponsoredActivationPaymentTokenSymbol(activation);
+  const withdrawAmount = tokenMicroToAmount(amountMicro, tokenDecimals);
 
-  if (input.activation.settlement_rail === 'solana') {
+  if (activation.settlement_rail === 'solana') {
     return {
       ok: false,
       error: SOLANA_WITHDRAW_UNSUPPORTED_ERROR,
@@ -544,9 +547,9 @@ export async function transferCampaignWalletBalance(input: {
     };
   }
 
-  if (input.activation.settlement_rail === 'stellar') {
+  if (activation.settlement_rail === 'stellar') {
     const submitted = await submitStellarCampaignWalletWithdraw({
-      activation: input.activation,
+      activation,
       destinationAddress,
       usdcAmount: withdrawAmount,
     });
@@ -566,13 +569,13 @@ export async function transferCampaignWalletBalance(input: {
     };
   }
 
-  if (input.activation.settlement_rail === 'tempo') {
-    const privyWalletId = input.activation.privy_campaign_wallet_id?.trim();
+  if (activation.settlement_rail === 'tempo') {
+    const privyWalletId = activation.privy_campaign_wallet_id?.trim();
     const campaignAddress = tryNormalizeEvmAddress(
-      input.activation.campaign_wallet_address
+      activation.campaign_wallet_address
     );
     const config = tempoCaddAssetConfigSchema.safeParse(
-      input.activation.usdc_asset_config
+      activation.usdc_asset_config
     );
     if (!privyWalletId || !campaignAddress || !config.success) {
       return {
@@ -582,7 +585,7 @@ export async function transferCampaignWalletBalance(input: {
       };
     }
     const withdrawNonce = Date.now().toString(36);
-    const withdrawId = `${tempoIdPrefix}:${input.activation.id}:${withdrawNonce}`;
+    const withdrawId = `${tempoIdPrefix}:${activation.id}:${withdrawNonce}`;
     const submitted = await submitTempoCaddTransfer({
       serverWalletId: privyWalletId,
       serverWalletAddress: campaignAddress as `0x${string}`,
@@ -590,7 +593,7 @@ export async function transferCampaignWalletBalance(input: {
       caddAmount: withdrawAmount,
       settlementId: withdrawId,
       caddContractAddress: config.data.contract_address,
-      referenceId: `sa-${referenceTag}:${input.activation.id}:${withdrawNonce}`,
+      referenceId: `sa-${referenceTag}:${activation.id}:${withdrawNonce}`,
     });
     if (!submitted.ok) {
       return { ok: false, error: submitted.error, statusCode: 500 };
@@ -644,7 +647,7 @@ export async function transferCampaignWalletBalance(input: {
     };
   }
 
-  const privyWalletId = input.activation.privy_campaign_wallet_id?.trim();
+  const privyWalletId = activation.privy_campaign_wallet_id?.trim();
   if (!privyWalletId) {
     return {
       ok: false,
@@ -654,7 +657,7 @@ export async function transferCampaignWalletBalance(input: {
   }
 
   const campaignAddress = tryNormalizeEvmAddress(
-    input.activation.campaign_wallet_address
+    activation.campaign_wallet_address
   );
   if (!campaignAddress || !isEvmAddress(campaignAddress)) {
     return {
@@ -664,9 +667,7 @@ export async function transferCampaignWalletBalance(input: {
     };
   }
 
-  const cfg = baseUsdcAssetConfigSchema.safeParse(
-    input.activation.usdc_asset_config
-  );
+  const cfg = baseUsdcAssetConfigSchema.safeParse(activation.usdc_asset_config);
   if (!cfg.success) {
     return {
       ok: false,
@@ -682,7 +683,7 @@ export async function transferCampaignWalletBalance(input: {
     usdcAmount: withdrawAmount,
     usdcContractAddress: cfg.data.contract_address,
     decimals: tokenDecimals,
-    referenceId: `sa-${referenceTag}:${input.activation.id}:${Date.now().toString(36)}`,
+    referenceId: `sa-${referenceTag}:${activation.id}:${Date.now().toString(36)}`,
     withdrawTelemetry: true,
   });
 

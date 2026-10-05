@@ -420,7 +420,7 @@ export function ActivationLaunchPanel({
         (body as { message?: string }).message ?? 'Withdrawal confirmed.';
       toast.success(message);
       setWithdrawDestination('');
-      await queryClient.invalidateQueries({ queryKey: activationQueryKey });
+      await invalidateAll();
     },
     onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
   });
