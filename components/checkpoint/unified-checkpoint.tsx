@@ -216,6 +216,50 @@ function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
 
   const hasAttemptedCheckIn = useRef(false);
   const router = useRouter();
+  /**
+   * Solana, Stellar, and Aptos check-ins insert `points_activities` with the
+   * player's EVM `wallet_address`. That row is created by the username step,
+   * which can finish after this screen mounts. Wait for it so check-in does
+   * not insert a chain-only player and hit the NOT NULL constraint.
+   */
+  const requiresEvmPlayer = checkpoint.chain_type !== 'evm';
+  const [evmPlayerReady, setEvmPlayerReady] = useState(false);
+
+  useEffect(() => {
+    if (!requiresEvmPlayer || !evmWalletAddress) {
+      setEvmPlayerReady(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const confirmEvmPlayer = async (intervalId: number) => {
+      try {
+        const response = await fetch(
+          `/api/player?walletAddress=${encodeURIComponent(evmWalletAddress)}`
+        );
+        if (!response.ok) return;
+        const body = await response.json();
+        const player = body?.data?.player ?? body?.player;
+        if (!cancelled && player?.username) {
+          setEvmPlayerReady(true);
+          window.clearInterval(intervalId);
+        }
+      } catch (error) {
+        console.error('Failed to confirm player before check-in:', error);
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void confirmEvmPlayer(intervalId);
+    }, 1000);
+    void confirmEvmPlayer(intervalId);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [requiresEvmPlayer, evmWalletAddress]);
 
   // Get the unified request body with chain type
   const getCheckinBody = useCallback(() => {
@@ -333,10 +377,17 @@ function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
       }
     };
 
-    if (user && walletAddress) {
+    if (user && walletAddress && (!requiresEvmPlayer || evmPlayerReady)) {
       autoCheckIn();
     }
-  }, [user, walletAddress, isCheckingIn, getCheckinBody]);
+  }, [
+    user,
+    walletAddress,
+    isCheckingIn,
+    getCheckinBody,
+    requiresEvmPlayer,
+    evmPlayerReady,
+  ]);
 
   // Loading state while waiting for Privy or wallet fetch
   const isLoading =
