@@ -5,6 +5,7 @@ import Image from 'next/image';
 import ProfileMenu from '@/components/profile-menu';
 import UserMenu from '@/components/layout/user-menu';
 import NavigationMenu from '@/components/layout/navigation-menu';
+import { HeaderProfileLink } from '@/components/layout/header-profile-link';
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import {
@@ -34,7 +35,7 @@ export const MAP_NAV_SAFE_AREA_X =
   'pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))]';
 
 /**
- * Top bar: IRL logo (or `leftSlot`) on the left, optional `center`, hamburger + overlays on the right.
+ * Top bar: IRL logo (or `leftSlot`) on the left, optional `center`, profile avatar + hamburger + overlays on the right.
  */
 export default function MapNav({
   center,
@@ -107,23 +108,25 @@ export default function MapNav({
           <div className="flex min-w-0 flex-1 justify-center">{center}</div>
         ) : null}
 
-        {/* Navigation Menu Button */}
-        <button
-          type="button"
-          onClick={handleNavigationMenuClick}
-          className={cn(
-            'relative z-10 flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] shadow-md transition-colors hover:bg-[#5a5a5a]',
-            menuButtonClassName
-          )}
-        >
-          <Image
-            src="/menu/HAMBURGER-MENU.svg"
-            alt="Hamburger Menu"
-            width={24}
-            height={24}
-            className="block shrink-0"
-          />
-        </button>
+        <div className="relative z-10 flex shrink-0 items-center gap-2">
+          <HeaderProfileLink />
+          <button
+            type="button"
+            onClick={handleNavigationMenuClick}
+            className={cn(
+              'flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] shadow-md transition-colors hover:bg-[#5a5a5a]',
+              menuButtonClassName
+            )}
+          >
+            <Image
+              src="/menu/HAMBURGER-MENU.svg"
+              alt="Hamburger Menu"
+              width={24}
+              height={24}
+              className="block shrink-0"
+            />
+          </button>
+        </div>
       </div>
 
       {/* Navigation Menu */}
