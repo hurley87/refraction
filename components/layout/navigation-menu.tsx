@@ -42,27 +42,20 @@ export default function NavigationMenu({
   // Define menu items with their routes
   const allMenuItems: MenuItem[] = [
     { label: 'Map', path: '/interactive-map' },
-    { label: 'Dashboard', path: '/dashboard' },
     { label: 'City Guides', path: '/city-guides' },
     { label: 'Events', path: '/events' },
     { label: 'Rewards', path: '/rewards' },
-    { label: 'About', path: '/faq' },/*
+    { label: 'About', path: '/faq' } /*
     { label: 'Stellar', path: '/stellar' },
     { label: 'Livepaper', path: '/livepaper' },
     { label: 'Become a Partner', path: 'https://www.irl.energy/contact-us', external: true }, // pragma: allowlist secret
-     */
+     */,
+    ,
   ];
 
-  // Filter menu items - Dashboard only shows if user is logged in; hidden items are not shown
-  const menuItems = allMenuItems.filter(
-    (item) => !item.hidden && (item.path !== '/dashboard' || user)
-  );
+  const menuItems = allMenuItems.filter((item) => !item.hidden);
 
-  // Determine active item based on current pathname
-  const activePath =
-    pathname === '/' || pathname === '/game' || pathname === '/dashboard'
-      ? '/dashboard'
-      : pathname;
+  const activePath = pathname;
 
   const handleNavigate = (item: MenuItem) => {
     if (pendingPath) return;

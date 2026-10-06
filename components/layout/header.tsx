@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import NavigationMenu from '@/components/layout/navigation-menu';
+import { HeaderProfileLink } from '@/components/layout/header-profile-link';
 import { HomeDesktopNav } from '@/components/home/home-desktop-nav';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +17,7 @@ interface HeaderProps {
 /**
  * Site header / nav bar.
  *
- * Mobile: 393px-wide bar with logo + sign up (logged out) or hamburger + map (logged in).
+ * Mobile: 393px-wide bar. Logo stays on the left and MAP (or SIGN UP) on the right; the avatar and menu share the space between them.
  * Desktop home (`variant="home"`): full-width nav with search and primary links.
  */
 export default function Header({ variant = 'default' }: HeaderProps) {
@@ -72,6 +73,7 @@ export default function Header({ variant = 'default' }: HeaderProps) {
 
           {authenticated ? (
             <>
+              <HeaderProfileLink />
               <button
                 type="button"
                 onClick={() => setIsNavigationMenuOpen(true)}
