@@ -7,6 +7,7 @@ import {
 import { createOrGetLocation } from '@/lib/db/locations';
 import {
   checkUserLocationCheckin,
+  completeWantToTryCheckin,
   createLocationCheckin,
 } from '@/lib/db/checkins';
 import type { Player, Location } from '@/lib/types';
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
       location.id
     );
 
-    if (existingCheckin) {
+    if (existingCheckin && existingCheckin.visit_status !== 'want_to_try') {
       return apiError('You have already checked in at this location', 409);
     }
 
@@ -148,15 +149,19 @@ export async function POST(request: NextRequest) {
       hadStoredEmailBeforeCheckin,
     });
 
-    // Create new checkin
-    const checkin = await createLocationCheckin({
-      player_id: player.id,
-      location_id: location.id,
+    const checkinFields = {
       points_earned: location.points_value,
       checkin_at: new Date().toISOString(),
       comment: sanitizedComment,
       image_url: sanitizedImageUrl,
-    });
+    };
+    const checkin = existingCheckin
+      ? await completeWantToTryCheckin(existingCheckin.id!, checkinFields)
+      : await createLocationCheckin({
+          player_id: player.id,
+          location_id: location.id,
+          ...checkinFields,
+        });
 
     // Update player points
     const previousPoints = player.total_points ?? 0;

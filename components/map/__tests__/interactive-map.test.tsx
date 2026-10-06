@@ -30,8 +30,12 @@ vi.mock('@/hooks/useFavorites', () => ({
   useToggleFavorite: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
+const mockUsePlayerCustomLists = vi.fn(() => ({
+  data: [] as Array<{ contains_location?: boolean }>,
+}));
+
 vi.mock('@/hooks/usePlayerCustomLists', () => ({
-  usePlayerCustomLists: () => ({ data: [] }),
+  usePlayerCustomLists: () => mockUsePlayerCustomLists(),
 }));
 
 vi.mock('next/image', () => ({
@@ -158,6 +162,8 @@ describe('InteractiveMap characterization', () => {
       },
     });
 
+    mockUsePlayerCustomLists.mockReturnValue({ data: [] });
+
     mockUsePrivy.mockReturnValue({
       user: {
         id: 'did:privy:test',
@@ -239,106 +245,103 @@ describe('InteractiveMap characterization', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens the map card for deepLinkMapCardOnly place ids', async () => {
+  it('opens the check-in modal for deep-linked place ids', async () => {
     renderMap({
       initialPlaceId: 'place-test-1',
       deepLinkMapCardOnly: true,
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('Test Location')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /want to try/i })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    );
+    expect(screen.getByRole('radio', { name: /^been$/i })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    );
     expect(
-      screen.getByRole('button', { name: 'Check In' })
+      screen.getByRole('button', { name: /save location to a list/i })
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Check In' })
+    ).not.toBeInTheDocument();
   });
 
-  it('opens the check-in dialog for shared-link deep links', async () => {
+  it('opens the check-in modal for shared-link deep links', async () => {
     renderMap({
       initialPlaceId: 'place-test-1',
       deepLinkMapCardOnly: false,
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
-    expect(screen.getAllByText('Test Location').length).toBeGreaterThan(0);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /save location to a list/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /check-in/i })
+    ).not.toBeInTheDocument();
   });
 
-  it('opens MapCard on marker click and AddToListDrawer on save', async () => {
-    const user = userEvent.setup();
-    renderMap();
-
-    const marker = await screen.findByRole('button', {
-      name: 'Marker at Test Location',
-    });
-    await user.click(marker);
-
-    expect(
-      await screen.findByRole('button', { name: 'Check In' })
-    ).toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: 'Save location to a list' })
-    );
-
-    expect(await screen.findByTestId('add-to-list-drawer')).toHaveTextContent(
-      'Test Location'
-    );
-  });
-
-  it('opens the create-location drawer from a pending map click', async () => {
-    const user = userEvent.setup();
-    renderMap();
-
-    await screen.findByRole('button', { name: 'Marker at Test Location' });
-    fireEvent.click(screen.getByTestId('mock-map'));
-
-    expect(
-      await screen.findByRole('button', { name: 'Create and check in' })
-    ).toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: 'Create and check in' })
-    );
-
-    expect(
-      await screen.findByRole('button', {
-        name: 'Close create location form',
-      })
-    ).toBeInTheDocument();
-
-    await user.keyboard('{Escape}');
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('button', {
-          name: 'Close create location form',
-        })
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  it('opens check-in then the comment dialog from the map card', async () => {
+  it('opens the check-in modal when a marker is tapped', async () => {
     const user = userEvent.setup();
     renderMap();
 
     await user.click(
       await screen.findByRole('button', { name: 'Marker at Test Location' })
     );
-    await user.click(await screen.findByRole('button', { name: 'Check In' }));
 
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /^been$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /save location to a list/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('add-to-list-drawer')).not.toBeInTheDocument();
+  });
+
+  it('closes the check-in modal and opens add to list on Save to list', async () => {
+    const user = userEvent.setup();
+    renderMap();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Marker at Test Location' })
+    );
+    await user.click(
+      await screen.findByRole('button', { name: /save location to a list/i })
+    );
+
+    expect(await screen.findByTestId('add-to-list-drawer')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    );
+  });
+
+  it('labels the save button Saved to a list when the spot is already saved', async () => {
+    mockUsePlayerCustomLists.mockReturnValue({
+      data: [{ contains_location: true }],
     });
+    const user = userEvent.setup();
+    renderMap();
 
-    await user.click(screen.getByRole('button', { name: 'Check-In' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Marker at Test Location' })
+    );
 
     expect(
-      await screen.findByPlaceholderText(
-        /share why this place is worth visiting/i
-      )
+      await screen.findByRole('button', { name: /saved to a list/i })
     ).toBeInTheDocument();
+  });
+
+  it('opens the check-in modal from a map click instead of the map card', async () => {
+    renderMap();
+
+    await screen.findByRole('button', { name: 'Marker at Test Location' });
+    fireEvent.click(screen.getByTestId('mock-map'));
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Create and check in' })
+    ).not.toBeInTheDocument();
   });
 
   it('shows the welcome tour once and suppresses the location prompt while open', async () => {

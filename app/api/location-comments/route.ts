@@ -67,6 +67,7 @@ async function fetchCheckinsForLocations(
     .from('player_location_checkins')
     .select(select)
     .in('location_id', locationIds)
+    .eq('visit_status', 'been')
     .order('created_at', { ascending: false })
     .limit(fetchLimit);
 
@@ -150,7 +151,11 @@ async function handleSinglePlace(
       if (purpose === 'avatars') {
         return avatarSuccess({ checkins: [] });
       }
-      return apiSuccess({ checkins: [], hasUserCheckedIn: false });
+      return apiSuccess({
+        checkins: [],
+        hasUserCheckedIn: false,
+        visitStatus: null,
+      });
     }
     throw locationError;
   }
@@ -160,23 +165,34 @@ async function handleSinglePlace(
     if (purpose === 'avatars') {
       return avatarSuccess({ checkins: [] });
     }
-    return apiSuccess({ checkins: [], hasUserCheckedIn: false });
+    return apiSuccess({
+      checkins: [],
+      hasUserCheckedIn: false,
+      visitStatus: null,
+    });
   }
 
-  let hasUserCheckedIn = false;
+  let visitStatus: 'want_to_try' | 'been' | null = null;
   if (purpose === 'full' && playerId != null) {
     const { data: existingCheckin, error: existingError } = await supabase
       .from('player_location_checkins')
-      .select('id')
+      .select('visit_status')
       .eq('location_id', locationId)
       .eq('player_id', playerId)
       .limit(1)
       .maybeSingle();
 
-    if (!existingError) {
-      hasUserCheckedIn = existingCheckin != null;
+    if (!existingError && existingCheckin?.visit_status === 'been') {
+      visitStatus = 'been';
+    } else if (
+      !existingError &&
+      existingCheckin?.visit_status === 'want_to_try'
+    ) {
+      visitStatus = 'want_to_try';
     }
   }
+
+  const hasUserCheckedIn = visitStatus === 'been';
 
   const { data: checkinData, error: checkinError } =
     await fetchCheckinsForLocations([locationId], limit, purpose);
@@ -197,7 +213,7 @@ async function handleSinglePlace(
     return avatarSuccess({ checkins });
   }
 
-  return apiSuccess({ checkins, hasUserCheckedIn });
+  return apiSuccess({ checkins, hasUserCheckedIn, visitStatus });
 }
 
 export async function GET(request: NextRequest) {

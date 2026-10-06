@@ -61,12 +61,16 @@ export type Location = {
 /**
  * Record of user check-in at a location
  */
+export type VisitStatus = 'want_to_try' | 'been';
+
 export type PlayerLocationCheckin = {
   id?: number;
   player_id: number;
   location_id: number;
   points_earned: number;
-  checkin_at?: string;
+  /** want_to_try until the player has been; a check-in is been. */
+  visit_status?: VisitStatus;
+  checkin_at?: string | null;
   created_at?: string;
   comment?: string | null;
   image_url?: string | null;

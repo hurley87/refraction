@@ -96,7 +96,8 @@ export const getLeaderboard = async (
   const { data: checkinCounts } = await supabase
     .from('player_location_checkins')
     .select('player_id')
-    .in('player_id', playerIds);
+    .in('player_id', playerIds)
+    .eq('visit_status', 'been');
 
   // Map checkin counts
   const checkinMap = new Map<number, number>();
@@ -192,6 +193,7 @@ export const getPlayerStats = async (playerId: number) => {
     `
     )
     .eq('player_id', playerId)
+    .eq('visit_status', 'been')
     .order('created_at', { ascending: false });
 
   if (checkinsError) throw checkinsError;
