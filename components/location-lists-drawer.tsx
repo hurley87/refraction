@@ -144,9 +144,6 @@ interface LocationListsDrawerProps {
   /** Mobile sheet only: height/size for controls that sit above the drawer. */
   onSheetLayoutChange?: (layout: LocationListsSheetLayout) => void;
   walletAddress?: string;
-  favoritePlaceIds?: Set<string>;
-  onToggleFavorite?: (placeId: string) => void;
-  isFavoritePending?: boolean;
   /**
    * Open the drawer focused on this player custom list (raw UUID from
    * `player_custom_lists.id`). Applied once the list is loaded.
@@ -181,9 +178,6 @@ export default function LocationListsDrawer({
   onListDetailLocationsChange,
   onSheetLayoutChange,
   walletAddress,
-  favoritePlaceIds,
-  onToggleFavorite,
-  isFavoritePending = false,
   initialCustomListId = null,
   focusCustomListId = null,
   initialPublicProfileListId = null,
@@ -1146,13 +1140,6 @@ export default function LocationListsDrawer({
         isExisting
         recentCheckins={checkinsByPlaceId[location.place_id] ?? []}
         onAction={() => onLocationFocus?.(location)}
-        isFavorited={favoritePlaceIds?.has(location.place_id) ?? false}
-        onToggleFavorite={
-          onToggleFavorite
-            ? () => onToggleFavorite(location.place_id)
-            : undefined
-        }
-        isFavoriteLoading={isFavoritePending}
         onRemoveFromList={
           canRemove && rawListId
             ? () =>

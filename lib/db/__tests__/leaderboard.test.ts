@@ -4,7 +4,9 @@ import type { Player } from '@/lib/types';
 // Mock the supabase client
 const mockRpc = vi.fn();
 const mockSingle = vi.fn();
-const mockIn = vi.fn();
+const mockIn = vi.fn(() => ({
+  eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+}));
 const mockRange = vi.fn();
 const mockOrderSecondary = vi.fn(() => ({ range: mockRange }));
 const mockOrder = vi.fn(() => ({ order: mockOrderSecondary }));
@@ -50,7 +52,9 @@ describe('Leaderboard Database Module', () => {
     });
     mockOrder.mockReturnValue({ order: mockOrderSecondary });
     mockOrderSecondary.mockReturnValue({ range: mockRange });
-    mockIn.mockResolvedValue({ data: [], error: null });
+    mockIn.mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+    });
   });
 
   describe('verifyLeaderboardRPC', () => {
@@ -170,7 +174,9 @@ describe('Leaderboard Database Module', () => {
 
       // Fallback query succeeds
       mockRange.mockResolvedValueOnce({ data: playersData, error: null });
-      mockIn.mockResolvedValueOnce({ data: checkinsData, error: null });
+      mockIn.mockReturnValueOnce({
+        eq: vi.fn().mockResolvedValue({ data: checkinsData, error: null }),
+      });
 
       const result = await getLeaderboard(50, 0);
 
@@ -212,7 +218,9 @@ describe('Leaderboard Database Module', () => {
       });
 
       mockRange.mockResolvedValueOnce({ data: playersData, error: null });
-      mockIn.mockResolvedValueOnce({ data: [], error: null });
+      mockIn.mockReturnValueOnce({
+        eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+      });
 
       const result = await getLeaderboard(50, 0);
 
@@ -354,13 +362,15 @@ describe('Leaderboard Database Module', () => {
             }),
           };
         } else {
-          // Second call: get checkins .from('player_location_checkins').select().eq().order()
+          // Second call: get checkins .from('player_location_checkins').select().eq().eq().order()
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                order: vi
-                  .fn()
-                  .mockResolvedValue({ data: mockCheckins, error: null }),
+                eq: vi.fn().mockReturnValue({
+                  order: vi
+                    .fn()
+                    .mockResolvedValue({ data: mockCheckins, error: null }),
+                }),
               }),
             }),
           };
@@ -419,9 +429,11 @@ describe('Leaderboard Database Module', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: 'Checkins query failed' },
+                eq: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { message: 'Checkins query failed' },
+                  }),
                 }),
               }),
             }),

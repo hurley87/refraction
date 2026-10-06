@@ -11,7 +11,8 @@ export async function playerHasPriorCheckins(
   const { count: locationCount, error: locationError } = await supabase
     .from('player_location_checkins')
     .select('id', { count: 'exact', head: true })
-    .eq('player_id', playerId);
+    .eq('player_id', playerId)
+    .eq('visit_status', 'been');
 
   if (locationError) {
     throw locationError;

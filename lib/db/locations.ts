@@ -194,7 +194,8 @@ export const listLocationsByWallet = async (walletAddress: string) => {
       )
     `
     )
-    .eq('player_id', player.id);
+    .eq('player_id', player.id)
+    .eq('visit_status', 'been');
 
   if (error) throw error;
   return (data || []).map((row: any) => row.locations).filter(Boolean);

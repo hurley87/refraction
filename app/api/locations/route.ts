@@ -122,7 +122,8 @@ export async function GET(request: NextRequest) {
           )
         `
         )
-        .eq('player_id', player.id);
+        .eq('player_id', player.id)
+        .eq('visit_status', 'been');
 
       // Filter by visibility unless admin requested all
       if (!includeHidden) {

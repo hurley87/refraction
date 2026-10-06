@@ -432,7 +432,6 @@ export const listPublicCustomListsForProfile = async (
 
 /**
  * Add a location to multiple lists owned by the player (idempotent).
- * Returns the number of lists the location now belongs to.
  */
 export const addLocationToLists = async (
   playerId: number,

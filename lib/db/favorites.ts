@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { setPlayerVisitStatus } from './checkins';
 import type { Location } from '../types';
 
 const LOCATION_COLUMNS = `
@@ -28,46 +29,43 @@ const LOCATION_COLUMNS = `
 `;
 
 /**
- * Add a favorite for a player/location pair (idempotent).
+ * Save a place as want to try. An existing been row stays been.
  */
 export const addFavorite = async (
   playerId: number,
   locationId: number
 ): Promise<void> => {
-  const { error } = await supabase.from('player_location_favorites').insert({
-    player_id: playerId,
-    location_id: locationId,
-  });
-
-  if (error && error.code !== '23505') throw error;
+  await setPlayerVisitStatus(playerId, locationId, 'want_to_try');
 };
 
 /**
- * Remove a favorite for a player/location pair.
+ * Remove a want-to-try save. A been visit is left in place.
  */
 export const removeFavorite = async (
   playerId: number,
   locationId: number
 ): Promise<void> => {
   const { error } = await supabase
-    .from('player_location_favorites')
+    .from('player_location_checkins')
     .delete()
     .eq('player_id', playerId)
-    .eq('location_id', locationId);
+    .eq('location_id', locationId)
+    .eq('visit_status', 'want_to_try');
 
   if (error) throw error;
 };
 
 /**
- * List favorited place_ids for a player (lightweight map hydration).
+ * List want-to-try place_ids for a player (lightweight map hydration).
  */
 export const listFavoritePlaceIdsByPlayer = async (
   playerId: number
 ): Promise<string[]> => {
   const { data, error } = await supabase
-    .from('player_location_favorites')
+    .from('player_location_checkins')
     .select('locations(place_id)')
     .eq('player_id', playerId)
+    .eq('visit_status', 'want_to_try')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -83,15 +81,16 @@ export const listFavoritePlaceIdsByPlayer = async (
 };
 
 /**
- * List full location rows for a player's favorites (drawer/dashboard).
+ * List full location rows the player wants to try (drawer/dashboard).
  */
 export const listFavoriteLocationsByPlayer = async (
   playerId: number
 ): Promise<Location[]> => {
   const { data, error } = await supabase
-    .from('player_location_favorites')
+    .from('player_location_checkins')
     .select(`created_at, locations(${LOCATION_COLUMNS})`)
     .eq('player_id', playerId)
+    .eq('visit_status', 'want_to_try')
     .order('created_at', { ascending: false });
 
   if (error) throw error;

@@ -1,6 +1,6 @@
 'use client';
 
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogDrawerContent } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
@@ -29,7 +29,7 @@ export function CheckInCommentDialog({
 }: CheckInCommentDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
+      <DialogDrawerContent
         hideCloseButton
         overlayClassName={overlayClassName}
         className={shellClassName}
@@ -122,7 +122,7 @@ export function CheckInCommentDialog({
             </div>
           </div>
         </div>
-      </DialogContent>
+      </DialogDrawerContent>
     </Dialog>
   );
 }

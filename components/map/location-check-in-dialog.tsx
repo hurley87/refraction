@@ -1,24 +1,18 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { Bookmark, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
+import { Dialog, DialogDrawerContent } from '@/components/ui/dialog';
 import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';
-import { MapPinImage } from '@/components/map/map-pin-image';
+import { MapSaveToListButton } from '@/components/map/map-card';
 import { cn } from '@/lib/utils';
 import {
   formatLocationCategory,
   isSingleWordLocationCategory,
 } from '@/lib/utils/format-location-category';
-import {
-  getCheckinDisplayName,
-  getCheckinInitial,
-  buildLocationShareUrl,
-} from '@/lib/map/checkin-display';
-import type {
-  MarkerData,
-  LocationCheckinPreview,
-} from '@/components/map/interactive-map-types';
+import { buildLocationShareUrl } from '@/lib/map/checkin-display';
+import type { MarkerData } from '@/components/map/interactive-map-types';
 type LocationCheckInDialogProps = {
   open: boolean;
   onClose: () => void;
@@ -28,16 +22,14 @@ type LocationCheckInDialogProps = {
   checkInSuccess: boolean;
   checkInTarget: MarkerData | null;
   isCheckingIn: boolean;
-  favoritePlaceIds: Set<string> | undefined;
-  onToggleFavorite: (placeId: string) => void;
-  isFavoritePending: boolean;
-  locationCheckins: LocationCheckinPreview[];
-  isLoadingLocationCheckins: boolean;
-  locationCheckinsError: string | null;
-  hasUserCheckedInAtLocation: boolean;
   checkInPointsEarned: number;
   checkInTotalPoints: number;
-  onOpenCommentModal: () => void;
+  /** Stored status for this player and place. Null when they have not chosen one. */
+  savedVisitStatus: 'want_to_try' | 'been' | null;
+  onSelectVisitStatus: (visitStatus: 'want_to_try' | 'been') => Promise<void>;
+  onSaveToList: () => void;
+  /** True when this place is already on one of the player's lists. */
+  savedToList?: boolean;
 };
 export function LocationCheckInDialog({
   open,
@@ -48,17 +40,43 @@ export function LocationCheckInDialog({
   checkInSuccess,
   checkInTarget,
   isCheckingIn,
-  favoritePlaceIds,
-  onToggleFavorite,
-  isFavoritePending,
-  locationCheckins,
-  isLoadingLocationCheckins,
-  locationCheckinsError,
-  hasUserCheckedInAtLocation,
   checkInPointsEarned,
   checkInTotalPoints,
-  onOpenCommentModal,
+  savedVisitStatus,
+  onSelectVisitStatus,
+  onSaveToList,
+  savedToList = false,
 }: LocationCheckInDialogProps) {
+  const [visitStatus, setVisitStatus] = useState<'want_to_try' | 'been' | null>(
+    null
+  );
+  const [isSavingStatus, setIsSavingStatus] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setVisitStatus(
+      savedVisitStatus === 'been' || savedVisitStatus === 'want_to_try'
+        ? savedVisitStatus
+        : null
+    );
+  }, [open, checkInTarget?.place_id, savedVisitStatus]);
+
+  const handleSelectVisitStatus = async (
+    nextStatus: 'want_to_try' | 'been'
+  ) => {
+    if (isSavingStatus || nextStatus === visitStatus) return;
+    const previous = visitStatus;
+    setVisitStatus(nextStatus);
+    setIsSavingStatus(true);
+    try {
+      await onSelectVisitStatus(nextStatus);
+    } catch {
+      setVisitStatus(previous);
+    } finally {
+      setIsSavingStatus(false);
+    }
+  };
+
   return (
     <Dialog
       open={open}
@@ -66,12 +84,18 @@ export function LocationCheckInDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent
+      <DialogDrawerContent
         hideCloseButton
         overlayClassName={overlayClassName}
         className={shellClassName}
       >
         <div className={panelClassName}>
+          <div
+            className="flex w-full shrink-0 justify-center bg-white pb-1 pt-2 xl:hidden"
+            aria-hidden
+          >
+            <span className="h-1 w-10 rounded-full bg-[#DBDBDB]" />
+          </div>
           {/* Hero: location image — first row */}
           {!checkInSuccess && (
             <div className="relative flex h-[258px] w-full shrink-0 items-start overflow-hidden border border-white/15 bg-lightgray p-2">
@@ -163,53 +187,51 @@ export function LocationCheckInDialog({
             {!checkInSuccess ? (
               <>
                 {checkInTarget && (
-                  <div className="flex h-[330px] w-full shrink-0 flex-col items-start gap-0 self-stretch px-4 pb-0 pt-0">
-                    <div className="flex w-full items-center justify-between gap-2 bg-[#ffffff] pb-4 pt-4">
+                  <div className="flex w-full shrink-0 flex-col items-start gap-0 self-stretch px-4 pb-0 pt-0">
+                    <div
+                      role="radiogroup"
+                      aria-label="Have you been here?"
+                      className="grid w-full grid-cols-2 gap-2 pt-4"
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={visitStatus === 'want_to_try'}
+                        disabled={isSavingStatus}
+                        onClick={() =>
+                          void handleSelectVisitStatus('want_to_try')
+                        }
+                        className={cn(
+                          'flex h-11 items-center justify-center gap-2 border label-small uppercase tracking-wide',
+                          visitStatus === 'want_to_try'
+                            ? 'border-[#171717] bg-[#171717] text-white'
+                            : 'border-[#DBDBDB] bg-white text-[#171717]'
+                        )}
+                      >
+                        <Bookmark className="size-4 shrink-0" aria-hidden />
+                        Want to try
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={visitStatus === 'been'}
+                        disabled={isSavingStatus}
+                        onClick={() => void handleSelectVisitStatus('been')}
+                        className={cn(
+                          'flex h-11 items-center justify-center gap-2 border label-small uppercase tracking-wide',
+                          visitStatus === 'been'
+                            ? 'border-[#171717] bg-[#171717] text-white'
+                            : 'border-[#DBDBDB] bg-white text-[#171717]'
+                        )}
+                      >
+                        <MapPin className="size-4 shrink-0" aria-hidden />
+                        Been
+                      </button>
+                    </div>
+                    <div className="flex w-full items-center bg-[#ffffff] pb-4 pt-4">
                       <h3 className="min-w-0 flex-1 line-clamp-1 leading-tight tracking-[-0.3px] text-[#1a1a1a]">
                         {checkInTarget.name || 'Selected Location'}
                       </h3>
-                      {checkInTarget.place_id ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onToggleFavorite(checkInTarget.place_id)
-                          }
-                          disabled={isFavoritePending}
-                          className={cn(
-                            'flex size-8 shrink-0 items-center justify-center gap-4 p-[var(--sds-size-space-100)] transition-opacity hover:opacity-90 disabled:opacity-50',
-                            favoritePlaceIds?.has(checkInTarget.place_id)
-                              ? 'bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)]'
-                              : 'border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]'
-                          )}
-                          aria-label={
-                            favoritePlaceIds?.has(checkInTarget.place_id)
-                              ? 'Remove from favorites'
-                              : 'Add to favorites'
-                          }
-                          aria-pressed={favoritePlaceIds?.has(
-                            checkInTarget.place_id
-                          )}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width={16}
-                            height={16}
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            className="size-4 shrink-0"
-                            aria-hidden
-                          >
-                            <path
-                              d="M13.3369 13.9974L7.99953 11.6311L2.66211 13.9974V2H13.3369V13.9974ZM8.00175 9.02329L10.8949 10.3046V4.37273H5.10861V10.3046L8.00175 9.02329Z"
-                              fill={
-                                favoritePlaceIds?.has(checkInTarget.place_id)
-                                  ? '#171717'
-                                  : '#757575'
-                              }
-                            />
-                          </svg>
-                        </button>
-                      ) : null}
                     </div>
                     <div
                       className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.category) ? 'justify-between' : 'justify-end'}`}
@@ -275,446 +297,6 @@ export function LocationCheckInDialog({
                           'No description provided.'}
                       </p>
                     </div>
-                    {/* Reviews / Check-ins */}{' '}
-                    <div
-                      className={`relative w-full flex-1 ${checkInSuccess ? 'overflow-hidden' : 'overflow-y-auto'}`}
-                    >
-                      {!checkInSuccess ? (
-                        <>
-                          {checkInTarget && (
-                            <div className="flex h-[330px] w-full shrink-0 flex-col items-start gap-0 self-stretch px-2 pb-0 pt-0">
-                              <div className="flex w-full flex-col justify-start bg-[#ffffff] px-3 pb-4 pt-4">
-                                <h3 className="line-clamp-1  leading-tight tracking-[-0.3px] text-[#1a1a1a]">
-                                  {checkInTarget.name || 'Selected Location'}
-                                </h3>
-                              </div>
-                              <div
-                                className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.category) ? 'justify-between' : 'justify-end'}`}
-                              >
-                                {isSingleWordLocationCategory(
-                                  checkInTarget.category
-                                ) ? (
-                                  <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5  uppercase tracking-[0.3px] text-[#171717]">
-                                    {formatLocationCategory(
-                                      checkInTarget.category
-                                    )}
-                                  </p>
-                                ) : null}
-                                <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${checkInTarget.latitude},${checkInTarget.longitude}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="title5 flex items-center uppercase font-bold gap-1 text-[#171717] underline"
-                                >
-                                  Maps Link
-                                  <Image
-                                    src="/arrow-diag-right-black-on-white.svg"
-                                    alt=""
-                                    width={16}
-                                    height={16}
-                                  />
-                                </a>
-                              </div>
-                              <div className="mt-4 flex w-full items-center">
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4 shrink-0 aspect-square"
-                                >
-                                  <path
-                                    d="M12.4492 6.60348C12.2698 3.59906 10.1489 2.04842 8.00027 2.0007C5.8514 2.04842 3.73051 3.59906 3.55108 6.60348C3.4639 9.67401 5.67749 12.4517 8.00004 14C10.3225 12.4517 12.5364 9.67401 12.4492 6.60348ZM8.00027 8.4728C6.65911 8.4728 5.57161 7.37821 5.57161 6.02778C5.57161 4.67735 6.65888 3.58276 8.00027 3.58276C9.34167 3.58276 10.4289 4.67735 10.4289 6.02778C10.4289 7.37821 9.34167 8.4728 8.00027 8.4728Z"
-                                    fill="#A9A9A9"
-                                  />
-                                </svg>
-                                <p className="label-small ml-2 line-clamp-1 text-[#454545]">
-                                  {checkInTarget.address || checkInTarget.name}
-                                </p>
-                              </div>
-                              <div className="mt-3 flex w-full items-start pb-4">
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4 shrink-0 aspect-square"
-                                >
-                                  <path
-                                    d="M8 14C4.69123 14 2 11.3088 2 8C2 4.69123 4.69123 2 8 2C11.3088 2 14 4.69123 14 8C14 11.3088 11.3088 14 8 14ZM8 4.00974C5.80024 4.00974 4.00974 5.80024 4.00974 8C4.00974 10.1998 5.80024 11.9903 8 11.9903C10.1998 11.9903 11.9903 10.1998 11.9903 8C11.9903 5.80024 10.1998 4.00974 8 4.00974Z"
-                                    fill="#A9A9A9"
-                                  />
-                                  <path
-                                    d="M7.26489 10.7386V6.62662H8.75289V10.7386H7.26489ZM7.27289 6.13862V5.01862H8.75289V6.13862H7.27289Z"
-                                    fill="#A9A9A9"
-                                  />
-                                </svg>
-                                <p className="body-small ml-2 text-[#454545]">
-                                  {checkInTarget.description ||
-                                    'No description provided.'}
-                                </p>
-                              </div>
-                              {/* Reviews / Check-ins */}
-                              <section className="flex w-full flex-col items-center gap-4 self-stretch border-t border-[#171717] bg-white pt-4">
-                                <div className="flex w-full items-center justify-between">
-                                  <span className="label-small flex h-[22px] flex-[1_0_0] flex-col justify-center uppercase text-[#757575]">
-                                    CHECK-INS
-                                  </span>
-                                  <div className="flex items-center justify-center gap-2">
-                                    {locationCheckins.length > 0 ? (
-                                      <MapCheckinAvatarStack
-                                        checkins={locationCheckins}
-                                      />
-                                    ) : (
-                                      <div className="flex size-4 items-center justify-center rounded-full bg-[#e8e8e8] text-[8px] font-semibold text-[#999]">
-                                        +
-                                      </div>
-                                    )}
-                                    {locationCheckins.length > 3 ? (
-                                      <span className="label-small text-[#454545]">
-                                        +{locationCheckins.length - 3} OTHERS
-                                      </span>
-                                    ) : locationCheckins.length === 0 ? (
-                                      <span className="label-small text-[#454545]">
-                                        Be first
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                </div>
-                                <div className="flex h-[524px] w-full shrink-0 flex-col items-start self-stretch space-y-2">
-                                  {isLoadingLocationCheckins ? (
-                                    <div className="rounded-xl bg-[#f8f8f8] p-3 animate-pulse">
-                                      <div className="flex items-center gap-2">
-                                        <div className="size-8 rounded-full bg-[#e8e8e8]" />
-                                        <div className="flex-1 space-y-1.5">
-                                          <div className="h-2.5 w-16 rounded bg-[#e8e8e8]" />
-                                          <div className="h-2 w-12 rounded bg-[#e8e8e8]" />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ) : locationCheckinsError ? (
-                                    <div className="rounded-xl bg-[#f8f8f8] p-3">
-                                      <p className="text-xs text-[#999] text-center">
-                                        {locationCheckinsError}
-                                      </p>
-                                    </div>
-                                  ) : locationCheckins.length === 0 ? (
-                                    <div className="rounded-xl bg-[#f8f8f8] p-3 text-center">
-                                      <p className="text-[11px] text-[#999] leading-relaxed">
-                                        No check-ins yet. Be the first to share!
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    locationCheckins
-                                      .slice(0, 3)
-                                      .map((entry) => (
-                                        <div
-                                          key={entry.id}
-                                          className="w-full rounded-xl bg-[#ffffff] p-2.5"
-                                        >
-                                          <div className="flex w-full items-start gap-2 border-t border-[#DBDBDB] pt-4">
-                                            <div className="size-7 rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[10px] font-semibold text-[#313131] flex items-center justify-center shrink-0 overflow-hidden">
-                                              {entry.profilePictureUrl ? (
-                                                <img
-                                                  src={entry.profilePictureUrl}
-                                                  alt={getCheckinDisplayName(
-                                                    entry
-                                                  )}
-                                                  className="size-7 rounded-full object-cover"
-                                                />
-                                              ) : (
-                                                getCheckinInitial(entry)
-                                              )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <div className="flex items-center justify-between gap-2"></div>
-                                              <p className="leading-snug text-[#454545] mt-0.5 body-small">
-                                                {entry.comment}
-                                              </p>
-                                              <div className="mt-2 inline-flex self-start items-center justify-center gap-[var(--sds-size-space-050)] border border-solid border-[var(--Text-Support-Text,#A9A9A9)] px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)]">
-                                                <svg
-                                                  width="16"
-                                                  height="16"
-                                                  viewBox="0 0 16 16"
-                                                  fill="none"
-                                                  xmlns="http://www.w3.org/2000/svg"
-                                                  className="h-4 w-4 shrink-0"
-                                                >
-                                                  <path
-                                                    d="M3.05009 8.71835C3.52996 8.26915 4.16079 8.01803 4.81751 8.01586C6.33908 8.01045 8.74814 7.9769 8.74814 7.9769H9.69817C10.2535 7.9769 10.7043 8.42935 10.7043 8.98679C10.7043 9.54424 10.2535 9.99669 9.69817 9.99669H6.28085C6.08675 9.99669 5.92931 10.1547 5.92931 10.3496C5.92931 10.5444 6.08675 10.7024 6.28085 10.7024H9.74671C10.6428 10.7024 11.3696 9.97288 11.3696 9.07339V8.6231C11.3696 8.51378 11.4117 8.4077 11.4883 8.32868L12.8955 6.79056C13.2891 6.35976 13.962 6.34677 14.3718 6.7635C14.7438 7.14126 14.7665 7.74093 14.4246 8.14575L11.6597 11.4179C11.2607 11.8898 10.6752 12.1615 10.0584 12.1615H5.57776L4.29343 13.0372C4.25353 13.0773 1.56519 10.1093 1.56519 10.1093L3.05117 8.71835H3.05009ZM8.68237 3.33331C7.55332 3.33331 6.63886 4.2512 6.63886 5.3845C6.63886 6.51779 7.55332 7.43569 8.68237 7.43569C9.81141 7.43569 10.7259 6.51779 10.7259 5.3845C10.7259 4.2512 9.81141 3.33331 8.68237 3.33331Z"
-                                                    fill="#757575"
-                                                  />
-                                                </svg>
-                                                <span className="label-small text-[#171717]">
-                                                  +{entry.pointsEarned}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))
-                                  )}
-                                </div>
-                              </section>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        /* Success Screen */
-                        <div
-                          className="relative flex flex-col items-center justify-center min-h-[400px] w-full overflow-hidden"
-                          style={{
-                            backgroundImage: "url('/city-bg.jpg')",
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            backgroundRepeat: 'no-repeat',
-                          }}
-                        >
-                          <div className="relative z-10 flex flex-col items-center gap-7 px-4 py-16 w-full h-full justify-center">
-                            {/* Location Marker Icon */}
-                            <div
-                              className="relative shrink-0"
-                              style={{ width: '46px', height: '66px' }}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="46"
-                                height="66"
-                                viewBox="0 0 46 66"
-                                fill="none"
-                                className="absolute inset-0"
-                              >
-                                <g filter="url(#filter_checkin_success)">
-                                  <path
-                                    d="M41.2 16.6438C41.2 25.836 25.9572 45 25.2 45C24.4429 45 9.20001 25.836 9.20001 16.6438C9.20001 7.4517 16.3635 0 25.2 0C34.0366 0 41.2 7.4517 41.2 16.6438Z"
-                                    fill="white"
-                                  />
-                                </g>
-                                <defs>
-                                  <filter
-                                    id="filter_checkin_success"
-                                    x="0"
-                                    y="0"
-                                    width="50.4"
-                                    height="64.2"
-                                    filterUnits="userSpaceOnUse"
-                                    colorInterpolationFilters="sRGB"
-                                  >
-                                    <feFlood
-                                      floodOpacity="0"
-                                      result="BackgroundImageFix"
-                                    />
-                                    <feColorMatrix
-                                      in="SourceAlpha"
-                                      type="matrix"
-                                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                                      result="hardAlpha"
-                                    />
-                                    <feOffset dy="10" />
-                                    <feGaussianBlur stdDeviation="4.6" />
-                                    <feComposite
-                                      in2="hardAlpha"
-                                      operator="out"
-                                    />
-                                    <feColorMatrix
-                                      type="matrix"
-                                      values="0 0 0 0 1 0 0 0 0 0.949019608 0 0 0 0 0 0 0 0 1 0"
-                                    />
-                                    <feBlend
-                                      mode="normal"
-                                      in2="BackgroundImageFix"
-                                      result="effect1_dropShadow_7557_31214"
-                                    />
-                                    <feBlend
-                                      mode="normal"
-                                      in="SourceGraphic"
-                                      in2="effect1_dropShadow_7557_31214"
-                                      result="shape"
-                                    />
-                                  </filter>
-                                </defs>
-                              </svg>
-                              {checkInTarget?.imageUrl && (
-                                <div
-                                  className="absolute bg-[#ededed] rounded-full shadow-[0px_0px_16px_0px_rgba(255,255,255,0.7)]"
-                                  style={{
-                                    width: '30px',
-                                    height: '30px',
-                                    top: '0px',
-                                    left: '10px',
-                                  }}
-                                >
-                                  <MapPinImage
-                                    imageUrl={checkInTarget.imageUrl}
-                                    imageThumbUrl={checkInTarget.imageThumbUrl}
-                                    alt={checkInTarget.name}
-                                    className="w-full h-full rounded-full object-cover"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            {/* Upper Section */}
-                            <div className="flex flex-col gap-4 items-center w-full">
-                              {/* Reward Section */}
-                              <div className="flex flex-col gap-2 items-center w-full">
-                                <p className="text-[11px] text-white uppercase tracking-[0.44px] font-medium">
-                                  You Earned
-                                </p>
-                                <p
-                                  className="text-6xl text-white tracking-[-4px] font-bold"
-                                  style={{
-                                    fontFamily:
-                                      '"Pleasure Variable Trial", sans-serif',
-                                  }}
-                                >
-                                  {checkInPointsEarned}
-                                </p>
-                              </div>
-                              {/* Checking In At Section */}
-                              <div className="flex flex-col gap-2 items-center w-full">
-                                <p
-                                  className="text-[11px] text-white uppercase tracking-[0.44px]"
-                                  style={{
-                                    fontFamily:
-                                      '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  Checking In At
-                                </p>
-                                <div className="flex items-center">
-                                  <div className="flex gap-1 items-center justify-center border border-white rounded-full px-2 py-1.5">
-                                    <div className="shrink-0 w-4 h-4">
-                                      <svg
-                                        className="w-4 h-4 text-white"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                        />
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                        />
-                                      </svg>
-                                    </div>
-                                    <p className="text-[11px] text-white uppercase tracking-[0.44px] font-medium">
-                                      {checkInTarget?.name || 'Location'}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <section className="flex w-full flex-col items-center gap-4 self-stretch border-t border-[#171717] bg-white pt-4">
-                      <div className="flex w-full items-center justify-between">
-                        <span className="label-small flex h-[22px] flex-[1_0_0] flex-col justify-center uppercase text-[#757575]">
-                          CHECK-INS
-                        </span>
-                        <div className="flex items-center justify-center gap-2">
-                          {locationCheckins.length > 0 ? (
-                            <MapCheckinAvatarStack
-                              checkins={locationCheckins}
-                            />
-                          ) : (
-                            <div className="flex size-4 items-center justify-center rounded-full bg-[#e8e8e8] text-[8px] font-semibold text-[#999]">
-                              +
-                            </div>
-                          )}
-                          {locationCheckins.length > 3 ? (
-                            <span className="label-small text-[#454545]">
-                              +{locationCheckins.length - 3} OTHERS
-                            </span>
-                          ) : locationCheckins.length === 0 ? (
-                            <span className="label-small text-[#454545]">
-                              Be first
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="flex h-[524px] w-full shrink-0 flex-col items-start self-stretch space-y-2 [&>*]:w-full">
-                        {isLoadingLocationCheckins ? (
-                          <div className="rounded-xl bg-[#f8f8f8] p-3 animate-pulse">
-                            <div className="flex items-center gap-2">
-                              <div className="size-8 rounded-full bg-[#e8e8e8]" />
-                              <div className="flex-1 space-y-1.5">
-                                <div className="h-2.5 w-16 rounded bg-[#e8e8e8]" />
-                                <div className="h-2 w-12 rounded bg-[#e8e8e8]" />
-                              </div>
-                            </div>
-                          </div>
-                        ) : locationCheckinsError ? (
-                          <div className="rounded-xl bg-[#f8f8f8] p-3">
-                            <p className="text-xs text-[#999] text-center">
-                              {locationCheckinsError}
-                            </p>
-                          </div>
-                        ) : locationCheckins.length === 0 ? (
-                          <div className="rounded-xl bg-[#f8f8f8] p-3 text-center">
-                            <p className="text-[11px] text-[#999] leading-relaxed">
-                              No check-ins yet. Be the first to share!
-                            </p>
-                          </div>
-                        ) : (
-                          locationCheckins.slice(0, 3).map((entry) => (
-                            <div
-                              key={entry.id}
-                              className="rounded-xl bg-[#ffffff]"
-                            >
-                              <div className="flex w-full items-start gap-2 border-t border-[#DBDBDB] pt-4">
-                                <div className="size-7 rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d]  font-semibold text-[#313131] flex items-center justify-center shrink-0 overflow-hidden">
-                                  {entry.profilePictureUrl ? (
-                                    <img
-                                      src={entry.profilePictureUrl}
-                                      alt={getCheckinDisplayName(entry)}
-                                      className="size-7 rounded-full object-cover"
-                                    />
-                                  ) : (
-                                    getCheckinInitial(entry)
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2"></div>
-                                  <p className="leading-snug text-[#454545] mt-0.5 body-small">
-                                    {entry.comment}
-                                  </p>
-                                  <div className="mt-2 inline-flex self-start items-center justify-center gap-[var(--sds-size-space-050)] border border-solid border-[var(--Text-Support-Text,#A9A9A9)] px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)]">
-                                    <svg
-                                      width="16"
-                                      height="16"
-                                      viewBox="0 0 16 16"
-                                      fill="none"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      className="h-4 w-4 shrink-0"
-                                    >
-                                      <path
-                                        d="M3.05009 8.71835C3.52996 8.26915 4.16079 8.01803 4.81751 8.01586C6.33908 8.01045 8.74814 7.9769 8.74814 7.9769H9.69817C10.2535 7.9769 10.7043 8.42935 10.7043 8.98679C10.7043 9.54424 10.2535 9.99669 9.69817 9.99669H6.28085C6.08675 9.99669 5.92931 10.1547 5.92931 10.3496C5.92931 10.5444 6.08675 10.7024 6.28085 10.7024H9.74671C10.6428 10.7024 11.3696 9.97288 11.3696 9.07339V8.6231C11.3696 8.51378 11.4117 8.4077 11.4883 8.32868L12.8955 6.79056C13.2891 6.35976 13.962 6.34677 14.3718 6.7635C14.7438 7.14126 14.7665 7.74093 14.4246 8.14575L11.6597 11.4179C11.2607 11.8898 10.6752 12.1615 10.0584 12.1615H5.57776L4.29343 13.0372C4.25353 13.0773 1.56519 10.1093 1.56519 10.1093L3.05117 8.71835H3.05009ZM8.68237 3.33331C7.55332 3.33331 6.63886 4.2512 6.63886 5.3845C6.63886 6.51779 7.55332 7.43569 8.68237 7.43569C9.81141 7.43569 10.7259 6.51779 10.7259 5.3845C10.7259 4.2512 9.81141 3.33331 8.68237 3.33331Z"
-                                        fill="#757575"
-                                      />
-                                    </svg>
-                                    <span className="label-small text-[#171717]">
-                                      +{entry.pointsEarned}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </section>
                   </div>
                 )}
               </>
@@ -760,52 +342,19 @@ export function LocationCheckInDialog({
                     />
                   </svg>
                 </div>
-                <button
-                  onClick={() => {
-                    if (hasUserCheckedInAtLocation) return;
-                    onOpenCommentModal();
-                  }}
-                  disabled={
-                    isCheckingIn || !checkInTarget || hasUserCheckedInAtLocation
-                  }
-                  className={cn(
-                    'flex h-11 w-full flex-[1_0_0] self-stretch items-center justify-between px-4 py-2 transition-colors',
-                    hasUserCheckedInAtLocation
-                      ? 'cursor-not-allowed bg-[#DBDBDB]'
-                      : 'bg-[var(--Dark-Tint-100---Ink-Black,#171717)] hover:bg-black disabled:opacity-50'
-                  )}
-                  type="button"
-                >
-                  <span
-                    className={cn(
-                      'label-medium label-large uppercase',
-                      hasUserCheckedInAtLocation
-                        ? 'text-[#999]'
-                        : 'text-[#ffffff]'
-                    )}
-                  >
-                    {hasUserCheckedInAtLocation ? 'CHECKED IN' : 'Check-In'}
-                  </span>
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="block size-6 max-w-none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                      fill={hasUserCheckedInAtLocation ? '#b0b0b0' : '#DBDBDB'}
-                    />
-                  </svg>
-                </button>
+                <MapSaveToListButton
+                  savedListCount={savedToList ? 1 : 0}
+                  unsavedLabel="Save to a list"
+                  savedLabel="Saved to a list"
+                  onClick={() => onSaveToList()}
+                  disabled={!checkInTarget || isCheckingIn}
+                  className="h-11 min-w-0 flex-1"
+                />
               </div>
             </div>
           ) : null}
         </div>
-      </DialogContent>
+      </DialogDrawerContent>
     </Dialog>
   );
 }

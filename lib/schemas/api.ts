@@ -263,6 +263,37 @@ export const playerCustomListAddLocationSchema = z.object({
   walletAddress: walletAddressSchema,
   placeId: z.string().min(1),
   listIds: z.array(z.string().uuid()).min(1),
+  /** Sent only when the member explicitly chose Want to try or Been. */
+  visitStatus: z.enum(['want_to_try', 'been']).optional(),
+  comment: z.string().max(500).optional(),
+  /** Used to create the location when the spot exists only as a search result. */
+  location: z
+    .object({
+      name: z.string().trim().min(1),
+      address: z.string().trim().optional(),
+      latitude: z.number().gte(-90).lte(90),
+      longitude: z.number().gte(-180).lte(180),
+    })
+    .optional(),
+});
+
+/**
+ * Schema for saving Want to try or Been on a place (POST).
+ * A row is created only when this is sent.
+ */
+export const locationVisitStatusSchema = z.object({
+  walletAddress: walletAddressSchema,
+  placeId: z.string().min(1),
+  visitStatus: z.enum(['want_to_try', 'been']),
+  /** Used to create the location when the spot exists only as a search result. */
+  location: z
+    .object({
+      name: z.string().trim().min(1),
+      address: z.string().trim().optional(),
+      latitude: z.number().gte(-90).lte(90),
+      longitude: z.number().gte(-180).lte(180),
+    })
+    .optional(),
 });
 
 /**

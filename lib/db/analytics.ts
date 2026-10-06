@@ -85,7 +85,8 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
       supabase.from('players').select('*', { count: 'exact', head: true }),
       supabase
         .from('player_location_checkins')
-        .select('*', { count: 'exact', head: true }),
+        .select('*', { count: 'exact', head: true })
+        .eq('visit_status', 'been'),
       supabase
         .from('user_perk_redemptions')
         .select('*', { count: 'exact', head: true }),
@@ -156,7 +157,10 @@ export async function getAnalyticsTimeSeries(
     return q;
   };
   const buildCheckinsQuery = () => {
-    let q = supabase.from('player_location_checkins').select('created_at, id');
+    let q = supabase
+      .from('player_location_checkins')
+      .select('created_at, id')
+      .eq('visit_status', 'been');
     if (from) q = q.gte('created_at', from);
     if (to) q = q.lte('created_at', to);
     return q;
@@ -230,6 +234,7 @@ export async function getRecentCheckins(
   const { data: checkins, error } = await supabase
     .from('player_location_checkins')
     .select('id, player_id, location_id, points_earned, created_at')
+    .eq('visit_status', 'been')
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -280,6 +285,7 @@ export async function getTopLocations(
       supabase
         .from('player_location_checkins')
         .select('location_id, id')
+        .eq('visit_status', 'been')
         .order('id', { ascending: true })
         .range(from, to)
   );

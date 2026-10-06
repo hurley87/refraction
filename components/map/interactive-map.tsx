@@ -17,8 +17,6 @@ import { useMapGateAnalytics } from '@/hooks/use-map-gate-analytics';
 import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
-import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
-import { usePlayerCustomLists } from '@/hooks/usePlayerCustomLists';
 import AddToListDrawer from '@/components/map/add-to-list-drawer';
 import MapNav from '@/components/map/mapnav';
 import { MapDesktopNav } from '@/components/map/map-desktop-nav';
@@ -47,6 +45,7 @@ import {
 } from '@/lib/utils/map-bounds';
 import type { LocationCategory } from '@/lib/types';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
+import { usePlayerCustomLists } from '@/hooks/usePlayerCustomLists';
 import { useMapPlayerProfile } from '@/hooks/use-map-player-profile';
 import { useMapOnboarding } from '@/hooks/use-map-onboarding';
 import type {
@@ -65,10 +64,6 @@ import {
   getListFocusMapPadding,
   getMapCardFlyToBottomPaddingPx,
 } from '@/lib/map/map-layout';
-import {
-  shouldReopenMapCardAfterCheckInClose,
-  shouldShowSaveToListTipAfterCheckIn,
-} from '@/lib/map/post-checkin-map-restore';
 import { coerceToArray } from '@/lib/location-lists/list-locations-count';
 /** Privy ignores `login()` while its modal is unmounting, so wait before reopening. */
 const LOGIN_REPROMPT_DELAY_MS = 400;
@@ -116,9 +111,6 @@ export default function InteractiveMap({
   const { isOpen: isPrivyModalOpen } = useModalStatus();
   useMapGateAnalytics({ ready, authenticated, isPrivyModalOpen });
   const walletAddress = useEvmWalletAddress();
-  const { data: favoritePlaceIds } = useFavoritePlaceIds(walletAddress);
-  const { mutate: toggleFavorite, isPending: isFavoritePending } =
-    useToggleFavorite(walletAddress);
   const {
     userUsername,
     userProfileSummary,
@@ -142,6 +134,7 @@ export default function InteractiveMap({
   const [addToListTarget, setAddToListTarget] = useState<MarkerData | null>(
     null
   );
+  const [savePointsTip, setSavePointsTip] = useState<number | null>(null);
   /** Keep the marker for create-handoff even if add-to-list state clears mid-await. */
   const addToListTargetRef = useRef<MarkerData | null>(null);
   addToListTargetRef.current = addToListTarget;
@@ -149,14 +142,6 @@ export default function InteractiveMap({
   const [focusCustomListId, setFocusCustomListId] = useState<string | null>(
     null
   );
-  const { data: popupCustomLists = [] } = usePlayerCustomLists(
-    walletAddress,
-    popupInfo?.place_id
-  );
-  const popupSavedListCount = popupCustomLists.filter(
-    (list) => list.contains_location
-  ).length;
-
   // Close the ADD TO LIST drawer whenever its map card goes away.
   useEffect(() => {
     if (!popupInfo) setAddToListTarget(null);
@@ -194,20 +179,26 @@ export default function InteractiveMap({
   const [checkInTarget, setCheckInTarget] = useState<MarkerData | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [checkInComment, setCheckInComment] = useState('');
+  const [savedVisitStatus, setSavedVisitStatus] = useState<
+    'want_to_try' | 'been' | null
+  >(null);
+  const checkInPlaceId =
+    showCheckInModal && checkInTarget?.place_id
+      ? checkInTarget.place_id
+      : undefined;
+  const { data: checkInLists = [] } = usePlayerCustomLists(
+    checkInPlaceId ? walletAddress : undefined,
+    checkInPlaceId
+  );
+  const savedToList = checkInLists.some((list) => list.contains_location);
   const [checkInSuccess, setCheckInSuccess] = useState(false);
   const [checkInPointsEarned, setCheckInPointsEarned] = useState(0);
   const [checkInTotalPoints, setCheckInTotalPoints] = useState(0);
-  const [locationCheckins, setLocationCheckins] = useState<
-    LocationCheckinPreview[]
-  >([]);
-  const [isLoadingLocationCheckins, setIsLoadingLocationCheckins] =
-    useState(false);
+  const [, setLocationCheckins] = useState<LocationCheckinPreview[]>([]);
+  const [, setIsLoadingLocationCheckins] = useState(false);
   /** From GET /api/location-comments when walletAddress is sent — any check-in counts (incl. no comment). */
-  const [hasUserCheckedInAtLocation, setHasUserCheckedInAtLocation] =
-    useState(false);
-  const [locationCheckinsError, setLocationCheckinsError] = useState<
-    string | null
-  >(null);
+  const [, setHasUserCheckedInAtLocation] = useState(false);
+  const [, setLocationCheckinsError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -583,6 +574,29 @@ export default function InteractiveMap({
     calculateMapBounds,
   ]);
 
+  const openCheckInForMarker = useCallback(
+    (marker: MarkerData) => {
+      if (!walletAddress) {
+        toast.error('Please connect your wallet to check in');
+        return;
+      }
+      setShowLocationForm(false);
+      setPendingMapCreateMarker(null);
+      setPopupInfo(null);
+      setSelectedMarker(marker);
+      setAddToListTarget(null);
+      setCheckInTarget(marker);
+      setCheckInComment('');
+      setCheckInSuccess(false);
+      setLocationCheckins([]);
+      setLocationCheckinsError(null);
+      setHasUserCheckedInAtLocation(false);
+      setSavedVisitStatus(null);
+      setShowCheckInModal(true);
+    },
+    [walletAddress]
+  );
+
   // Handle deep link to specific location via placeId or placeName URL param
   const deepLinkHandledRef = useRef(false);
   useEffect(() => {
@@ -647,19 +661,7 @@ export default function InteractiveMap({
       }
     }, 1300);
 
-    if (deepLinkMapCardOnly) {
-      setPopupInfo(targetMarker);
-      setSelectedMarker(targetMarker);
-      setPendingMapCreateMarker(null);
-    } else {
-      setCheckInTarget(targetMarker);
-      setCheckInComment('');
-      setCheckInSuccess(false);
-      setLocationCheckins([]);
-      setLocationCheckinsError(null);
-      setShowCheckInModal(true);
-      void loadLocationCheckins(targetMarker.place_id);
-    }
+    openCheckInForMarker(targetMarker);
   }, [
     initialPlaceId,
     initialPlaceName,
@@ -669,6 +671,7 @@ export default function InteractiveMap({
     viewState.zoom,
     calculateMapBounds,
     deepLinkMapCardOnly,
+    openCheckInForMarker,
   ]);
 
   const loadLocationCheckins = async (placeId: string) => {
@@ -691,15 +694,28 @@ export default function InteractiveMap({
       const data = responseData.data || responseData;
       setLocationCheckins(data.checkins || []);
       setHasUserCheckedInAtLocation(Boolean(data.hasUserCheckedIn));
+      setSavedVisitStatus(
+        data.visitStatus === 'been' || data.visitStatus === 'want_to_try'
+          ? data.visitStatus
+          : null
+      );
     } catch (error) {
       console.error('Failed to load location check-ins:', error);
       setLocationCheckins([]);
       setHasUserCheckedInAtLocation(false);
+      setSavedVisitStatus(null);
       setLocationCheckinsError('Unable to load check-ins right now.');
     } finally {
       setIsLoadingLocationCheckins(false);
     }
   };
+
+  useEffect(() => {
+    if (!showCheckInModal || !checkInTarget?.place_id) return;
+    void loadLocationCheckins(checkInTarget.place_id);
+    // Reload only when the open target changes. loadLocationCheckins is recreated each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCheckInModal, checkInTarget?.place_id]);
 
   const findExistingMarker = (placeId?: string | null) =>
     findExistingMarkerInList(markers, placeId);
@@ -707,7 +723,7 @@ export default function InteractiveMap({
   // Add markers by clicking the map
   const onMapClick = async (event: any) => {
     if (!walletAddress) {
-      toast.error('Please connect your wallet to create locations');
+      toast.error('Please connect your wallet to save a spot');
       return;
     }
 
@@ -792,25 +808,11 @@ export default function InteractiveMap({
       };
       const duplicateMarker = findExistingMarker(newMarker.place_id);
       if (duplicateMarker) {
-        toast.info('That location already exists—check it out instead!');
-        setSelectedMarker(duplicateMarker);
-        setPopupInfo(duplicateMarker);
-        setShowLocationForm(false);
-        setPendingMapCreateMarker(null);
+        openCheckInForMarker(duplicateMarker);
         return;
       }
 
-      setSelectedMarker(newMarker);
-      setFormData({
-        name: newMarker.name, // Venue name
-        address: newMarker.address || newMarker.name, // Address
-        description: '',
-        categoryId: '',
-        locationImage: null,
-        checkInComment: '',
-      });
-      setFormStep('business-details');
-      setPendingMapCreateMarker(newMarker);
+      openCheckInForMarker(newMarker);
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
       // Still allow creating even if reverse geocoding fails
@@ -823,17 +825,7 @@ export default function InteractiveMap({
         address: fallbackAddress, // Use coordinates as address
       };
 
-      setSelectedMarker(newMarker);
-      setFormData({
-        name: newMarker.name, // Venue name (coordinates)
-        address: newMarker.address || newMarker.name, // Address (coordinates)
-        description: '',
-        categoryId: '',
-        locationImage: null,
-        checkInComment: '',
-      });
-      setFormStep('business-details');
-      setPendingMapCreateMarker(newMarker);
+      openCheckInForMarker(newMarker);
     }
   };
 
@@ -934,18 +926,17 @@ export default function InteractiveMap({
     }
 
     if (matchedMarker) {
-      setPendingMapCreateMarker(null);
-      setPopupInfo(matchedMarker);
-      setSelectedMarker(matchedMarker);
       if (followFromSearchTour && walletAddress) {
         pendingSaveToListTourTipRef.current = false;
         setShowSaveToListTourTip(true);
       }
+      openCheckInForMarker(matchedMarker);
       return;
     }
 
-    // No IRL listing at this suggestion: flow mirrors map click (wallet) or drawer-style fallback card.
-    if (walletAddress) {
+    // Search results that are not on IRL yet still save. The spot is created
+    // from this result when the member confirms the list.
+    if (walletAddress && id) {
       const newMarker: MarkerData = {
         latitude,
         longitude,
@@ -956,18 +947,7 @@ export default function InteractiveMap({
           name?.trim() ||
           `Near ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
       };
-      setPopupInfo(null);
-      setSelectedMarker(newMarker);
-      setFormData({
-        name: newMarker.name,
-        address: newMarker.address || newMarker.name,
-        description: '',
-        categoryId: '',
-        locationImage: null,
-        checkInComment: '',
-      });
-      setFormStep('business-details');
-      setPendingMapCreateMarker(newMarker);
+      openCheckInForMarker(newMarker);
       return;
     }
 
@@ -991,9 +971,7 @@ export default function InteractiveMap({
   };
 
   const handleMarkerClick = (marker: MarkerData) => {
-    setPopupInfo(marker);
-    setSelectedMarker(marker);
-    setPendingMapCreateMarker(null);
+    openCheckInForMarker(marker);
 
     const targetZoom = Math.max(viewState.zoom ?? 12, 15);
     // Bottom padding keeps the pin in the visual center above the fixed map card overlay.
@@ -1088,6 +1066,7 @@ export default function InteractiveMap({
 
     setCheckInTarget(marker);
     setCheckInComment('');
+    setSavedVisitStatus(null);
     setCheckInSuccess(false);
     setLocationCheckins([]);
     setLocationCheckinsError(null);
@@ -1096,35 +1075,7 @@ export default function InteractiveMap({
     void loadLocationCheckins(marker.place_id);
   };
 
-  const handleToggleFavorite = useCallback(
-    (placeId: string) => {
-      if (!walletAddress) {
-        toast.error('Please connect your wallet to save favorites');
-        return;
-      }
-
-      const isFavorited = favoritePlaceIds?.has(placeId) ?? false;
-      toggleFavorite({
-        walletAddress,
-        placeId,
-        favorited: !isFavorited,
-      });
-    },
-    [walletAddress, favoritePlaceIds, toggleFavorite]
-  );
-
   const handleCloseCheckInModal = () => {
-    const restoreTarget = shouldReopenMapCardAfterCheckInClose(
-      Boolean(checkInTarget)
-    )
-      ? checkInTarget
-      : null;
-    const restoreSaveToListTip = shouldShowSaveToListTipAfterCheckIn({
-      hasCheckInTarget: Boolean(checkInTarget),
-      saveToListTipAlreadyShowing: showSaveToListTourTip,
-      postTourFirstSearchPending: postTourFirstSearchTipRef.current,
-    });
-
     setShowCheckInModal(false);
     setShowCheckInCommentModal(false);
     setCheckInComment('');
@@ -1136,18 +1087,9 @@ export default function InteractiveMap({
     setLocationCheckinsError(null);
     setIsLoadingLocationCheckins(false);
     setHasUserCheckedInAtLocation(false);
-
-    // Return to the place's map card (after points screen, or after creating
-    // a location then dismissing check-in) and restore the post-tour tip.
-    if (restoreTarget) {
-      setPendingMapCreateMarker(null);
-      setPopupInfo(restoreTarget);
-      setSelectedMarker(restoreTarget);
-      if (restoreSaveToListTip) {
-        setShowSaveToListTourTip(true);
-        postTourFirstSearchTipRef.current = false;
-      }
-    }
+    setSavedVisitStatus(null);
+    setPopupInfo(null);
+    setPendingMapCreateMarker(null);
   };
 
   const handleCheckIn = async () => {
@@ -1683,21 +1625,26 @@ export default function InteractiveMap({
       : 'mapWide:left-[582px] mapHd:left-[832px]'
   );
 
+  /**
+   * Check-in sheet. Mobile: bottom drawer that slides up over the map.
+   * Desktop (xl): centered panel beside the lists rail.
+   */
   const checkInModalShellClassName = cn(
-    'fixed left-0 top-0 z-[80] flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 border-none bg-transparent p-0 shadow-none data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-none',
-    'xl:bottom-0 xl:top-0 xl:flex xl:h-auto xl:w-auto xl:translate-x-0 xl:translate-y-0 xl:items-center xl:justify-center xl:p-0 xl:data-[state=closed]:zoom-out-100 xl:data-[state=open]:zoom-in-100',
+    'fixed inset-x-0 bottom-0 z-[80] flex h-auto max-h-[92dvh] w-full max-w-none flex-col gap-0 overflow-hidden rounded-t-2xl border-none bg-transparent p-0 shadow-none',
+    'xl:bottom-0 xl:top-0 xl:h-auto xl:w-auto xl:max-h-none xl:items-center xl:justify-center xl:rounded-none xl:data-[state=closed]:slide-out-to-bottom-0 xl:data-[state=open]:slide-in-from-bottom-0',
     desktopMapPanelInsetClassName
   );
 
   const checkInModalOverlayClassName = cn(
-    'xl:z-[80] xl:bg-black/25 xl:backdrop-blur-[2px]',
+    'z-[80] bg-black/40 backdrop-blur-[2px]',
+    'xl:bg-black/25',
     desktopMapPanelInsetClassName
   );
 
   const checkInModalPanelClassName = cn(
-    'flex min-h-0 w-full max-w-none flex-col overflow-hidden bg-white pt-0',
-    checkInSuccess ? 'h-full pb-0' : 'h-full pb-2',
-    'xl:mx-0 xl:flex xl:h-[954px] xl:max-h-[calc(100dvh-90px)] xl:w-[505px] xl:max-w-[505px] xl:shrink-0 xl:flex-col xl:items-center xl:justify-center'
+    'flex min-h-0 w-full max-w-none flex-col overflow-hidden rounded-t-2xl bg-white pt-0',
+    checkInSuccess ? 'h-[92dvh] pb-0' : 'max-h-[92dvh] pb-2',
+    'xl:mx-0 xl:flex xl:h-[954px] xl:max-h-[calc(100dvh-90px)] xl:w-[505px] xl:max-w-[505px] xl:shrink-0 xl:flex-col xl:items-center xl:justify-center xl:rounded-none'
   );
 
   const guideBackLink = effectiveGuideReturnHref ? (
@@ -1789,9 +1736,6 @@ export default function InteractiveMap({
           onListDetailChange={setIsListDetailOpen}
           onListDetailLocationsChange={setListFocusLocations}
           walletAddress={walletAddress}
-          favoritePlaceIds={favoritePlaceIds}
-          onToggleFavorite={handleToggleFavorite}
-          isFavoritePending={isFavoritePending}
           initialCustomListId={initialCustomListId}
           focusCustomListId={focusCustomListId}
           initialPublicProfileListId={initialPublicProfileListId}
@@ -1888,9 +1832,6 @@ export default function InteractiveMap({
           onSheetLayoutChange={handleMobileSheetLayoutChange}
           onListDetailLocationsChange={setListFocusLocations}
           walletAddress={walletAddress}
-          favoritePlaceIds={favoritePlaceIds}
-          onToggleFavorite={handleToggleFavorite}
-          isFavoritePending={isFavoritePending}
           initialCustomListId={initialCustomListId}
           focusCustomListId={focusCustomListId}
           initialPublicProfileListId={initialPublicProfileListId}
@@ -1982,75 +1923,11 @@ export default function InteractiveMap({
 
       <MapErrorOverlay mapRenderError={mapRenderError} />
 
-      {popupInfo && !addToListTarget && (
-        <div className={mapCardBottomOverlayClassName}>
-          <div className="pointer-events-auto relative w-full max-w-[361px]">
-            <MapCard
-              name={popupInfo.name}
-              address={popupInfo.address || popupInfo.name}
-              description={popupInfo.description}
-              category={popupInfo.category}
-              isExisting={true}
-              onAction={() => handleStartCheckIn(popupInfo)}
-              onClose={() => {
-                dismissListCreateMapTip();
-                handleDismissSaveToListTourTip();
-                setPopupInfo(null);
-                setSelectedMarker(null);
-              }}
-              isLoading={isCheckingIn}
-              imageUrl={popupInfo.imageUrl}
-              placeId={popupInfo.place_id}
-              eventUrl={popupInfo.event_url}
-              onSaveToList={
-                walletAddress
-                  ? () => {
-                      if (showSaveToListTourTip) {
-                        setShowCreateListTourTip(true);
-                      }
-                      postTourFirstSearchTipRef.current = false;
-                      handleDismissSaveToListTourTip();
-                      setAddToListTarget(popupInfo);
-                    }
-                  : undefined
-              }
-              saveToListTip={
-                showSaveToListTourTip && !showListCreateMapTip ? (
-                  <MapYellowTip
-                    className="absolute bottom-full left-0 right-0 z-30 mb-2.5"
-                    pointer="bottom"
-                    onDismiss={handleDismissSaveToListTourTip}
-                  >
-                    Start your first list
-                  </MapYellowTip>
-                ) : null
-              }
-              savedListCount={popupSavedListCount}
-            />
-            {showListCreateMapTip ? (
-              <MapYellowTip
-                className="absolute inset-x-3 top-12 z-30 sm:inset-x-4"
-                onDismiss={dismissListCreateMapTip}
-              >
-                You&apos;re in!{' '}
-                <Link
-                  href="/dashboard"
-                  className="underline underline-offset-2"
-                  onClick={() => dismissListCreateMapTip()}
-                >
-                  Go to your profile
-                </Link>{' '}
-                to view your lists
-              </MapYellowTip>
-            ) : null}
-          </div>
-        </div>
-      )}
-
       {addToListTarget && walletAddress && (
         <div
           className={cn(
             mapCardBottomOverlayClassName,
+            showCheckInModal && 'z-[95]',
             // Full-bleed sheet on mobile; centered 393px card from sm up.
             'bottom-0 px-0 sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4'
           )}
@@ -2060,6 +1937,9 @@ export default function InteractiveMap({
               location={{
                 placeId: addToListTarget.place_id,
                 name: addToListTarget.name,
+                address: addToListTarget.address,
+                latitude: addToListTarget.latitude,
+                longitude: addToListTarget.longitude,
                 category: addToListTarget.category,
                 imageUrl:
                   addToListTarget.imageThumbUrl || addToListTarget.imageUrl,
@@ -2068,6 +1948,9 @@ export default function InteractiveMap({
               onClose={() => {
                 dismissCreateListTourTip();
                 setAddToListTarget(null);
+              }}
+              onSaved={({ pointsEarned }) => {
+                if (pointsEarned > 0) setSavePointsTip(pointsEarned);
               }}
               onListCreated={handleListCreated}
               createListTip={
@@ -2087,6 +1970,37 @@ export default function InteractiveMap({
           </div>
         </div>
       )}
+
+      {showListCreateMapTip && !addToListTarget ? (
+        <div className={mapCardBottomOverlayClassName}>
+          <div className="pointer-events-auto w-full max-w-[361px]">
+            <MapYellowTip onDismiss={dismissListCreateMapTip}>
+              You&apos;re in!{' '}
+              <Link
+                href="/dashboard"
+                className="underline underline-offset-2"
+                onClick={() => dismissListCreateMapTip()}
+              >
+                Go to your profile
+              </Link>{' '}
+              to view your lists
+            </MapYellowTip>
+          </div>
+        </div>
+      ) : null}
+
+      {savePointsTip != null && !addToListTarget ? (
+        <div className={mapCardBottomOverlayClassName}>
+          <div className="pointer-events-auto w-full max-w-[361px]">
+            <MapYellowTip
+              pointer="top"
+              onDismiss={() => setSavePointsTip(null)}
+            >
+              You earned {savePointsTip} PTS for saving a spot to a list
+            </MapYellowTip>
+          </div>
+        </div>
+      ) : null}
 
       {pendingMapCreateMarker && !popupInfo && (
         <div className={mapCardBottomOverlayClassName}>
@@ -2117,16 +2031,47 @@ export default function InteractiveMap({
         checkInSuccess={checkInSuccess}
         checkInTarget={checkInTarget}
         isCheckingIn={isCheckingIn}
-        favoritePlaceIds={favoritePlaceIds}
-        onToggleFavorite={handleToggleFavorite}
-        isFavoritePending={isFavoritePending}
-        locationCheckins={locationCheckins}
-        isLoadingLocationCheckins={isLoadingLocationCheckins}
-        locationCheckinsError={locationCheckinsError}
-        hasUserCheckedInAtLocation={hasUserCheckedInAtLocation}
         checkInPointsEarned={checkInPointsEarned}
         checkInTotalPoints={checkInTotalPoints}
-        onOpenCommentModal={() => setShowCheckInCommentModal(true)}
+        savedVisitStatus={savedVisitStatus}
+        savedToList={savedToList}
+        onSelectVisitStatus={async (visitStatus) => {
+          if (!walletAddress || !checkInTarget) return;
+          const response = await fetch('/api/location-visit-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              walletAddress,
+              placeId: checkInTarget.place_id,
+              visitStatus,
+              location: {
+                name: checkInTarget.name,
+                address: checkInTarget.address ?? undefined,
+                latitude: checkInTarget.latitude,
+                longitude: checkInTarget.longitude,
+              },
+            }),
+          });
+          const result = await response.json().catch(() => null);
+          if (!response.ok) {
+            toast.error(result?.error || 'Failed to save status');
+            throw new Error('Failed to save status');
+          }
+          setSavedVisitStatus(visitStatus);
+        }}
+        onSaveToList={() => {
+          if (!checkInTarget) return;
+          if (showSaveToListTourTip) {
+            setShowCreateListTourTip(true);
+          }
+          postTourFirstSearchTipRef.current = false;
+          handleDismissSaveToListTourTip();
+          const target = checkInTarget;
+          handleCloseCheckInModal();
+          // Keep the spot selected: clearing popupInfo also clears the add-to-list target.
+          setPopupInfo(target);
+          setAddToListTarget(target);
+        }}
       />
 
       <CheckInCommentDialog

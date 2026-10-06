@@ -18,6 +18,9 @@ import { CollectionVisibilityToggle } from '@/components/map/collection-visibili
 interface AddToListLocation {
   placeId: string;
   name: string;
+  address?: string | null;
+  latitude?: number;
+  longitude?: number;
   category?: LocationCategory | null;
   imageUrl?: string | null;
 }
@@ -32,6 +35,8 @@ interface AddToListDrawerProps {
    * the parent can open the lists drawer focused on that list.
    */
   onListCreated?: (listId: string, details: { isFirstList: boolean }) => void;
+  /** Fired after the spot is saved, including when points were awarded. */
+  onSaved?: (result: { pointsEarned: number }) => void;
   /** Coaching bubble anchored above the CREATE NEW LIST control. */
   createListTip?: ReactNode;
 }
@@ -107,6 +112,7 @@ export default function AddToListDrawer({
   walletAddress,
   onClose,
   onListCreated,
+  onSaved,
   createListTip,
 }: AddToListDrawerProps) {
   const [view, setView] = useState<'lists' | 'create'>('lists');
@@ -139,6 +145,19 @@ export default function AddToListDrawer({
     useAddLocationToLists(walletAddress);
 
   const selectedCount = selectedListIds.size;
+  const savePayload = {
+    walletAddress,
+    placeId: location.placeId,
+    location:
+      location.latitude != null && location.longitude != null
+        ? {
+            name: location.name,
+            address: location.address ?? undefined,
+            latitude: location.latitude,
+            longitude: location.longitude,
+          }
+        : undefined,
+  };
   const canCreateList =
     newListTitle.trim().length > 0 &&
     !isCreatingList &&
@@ -161,11 +180,15 @@ export default function AddToListDrawer({
     if (selectedCount === 0 || isAddingToLists) return;
     void addToLists(
       {
-        walletAddress,
-        placeId: location.placeId,
+        ...savePayload,
         listIds: [...selectedListIds],
       },
-      { onSuccess: () => onClose() }
+      {
+        onSuccess: (result) => {
+          onSaved?.({ pointsEarned: result.pointsEarned ?? 0 });
+          onClose();
+        },
+      }
     );
   };
 
@@ -224,11 +247,11 @@ export default function AddToListDrawer({
 
       if (createdId && onListCreated) {
         try {
-          await addToLists({
-            walletAddress,
-            placeId: location.placeId,
+          const added = await addToLists({
+            ...savePayload,
             listIds: [createdId],
           });
+          onSaved?.({ pointsEarned: added.pointsEarned ?? 0 });
         } catch (error) {
           // List exists; add-location hook already toasts. Still hand off focus.
           console.error('Failed to add location to new list', error);
@@ -270,7 +293,7 @@ export default function AddToListDrawer({
             }
           }}
           className="flex size-10 shrink-0 items-center justify-center rounded-[179px] border border-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-80"
-          aria-label={view === 'create' ? 'Back to lists' : 'Back to map card'}
+          aria-label={view === 'create' ? 'Back to lists' : 'Back to map'}
         >
           <BackArrowIcon />
         </button>

@@ -60,13 +60,8 @@ WHERE comment IS NOT NULL;
 
 -- =============================================================================
 -- Player location favorites
+-- Retired: want to try now lives on player_location_checkins.visit_status.
 -- =============================================================================
-
-CREATE INDEX IF NOT EXISTS idx_favorites_player_id
-ON player_location_favorites(player_id);
-
-CREATE INDEX IF NOT EXISTS idx_favorites_location_id
-ON player_location_favorites(location_id);
 
 -- =============================================================================
 -- Locations table

@@ -19,6 +19,14 @@ interface AddLocationToListsInput {
   walletAddress: string;
   placeId: string;
   listIds: string[];
+  visitStatus?: 'want_to_try' | 'been';
+  comment?: string;
+  location?: {
+    name: string;
+    address?: string;
+    latitude: number;
+    longitude: number;
+  };
 }
 
 async function fetchPlayerCustomLists(
@@ -331,6 +339,7 @@ export function useAddLocationToLists(walletAddress: string | undefined) {
       return (result.data ?? result) as {
         placeId: string;
         savedListCount: number;
+        pointsEarned: number;
       };
     },
     onSuccess: () => {
