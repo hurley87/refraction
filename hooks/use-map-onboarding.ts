@@ -42,7 +42,7 @@ export function useMapOnboarding({
   const [showSearchTourTip, setShowSearchTourTip] = useState(false);
   const [showSaveToListTourTip, setShowSaveToListTourTip] = useState(false);
   const [showCreateListTourTip, setShowCreateListTourTip] = useState(false);
-  /** Search tour: offer the SAVE TO LIST tip once a result opens a map card. */
+  /** Search tour: offer the save-to-list tip once a result opens the check-in drawer. */
   const pendingSaveToListTourTipRef = useRef(false);
 
   /** Prevents re-opening the tour in the same session after the user dismisses it. */

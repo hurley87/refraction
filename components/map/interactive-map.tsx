@@ -2059,6 +2059,18 @@ export default function InteractiveMap({
           }
           setSavedVisitStatus(visitStatus);
         }}
+        saveToListTip={
+          showSaveToListTourTip && !checkInSuccess ? (
+            <MapYellowTip
+              className="absolute bottom-full right-0 z-30 mb-2.5 w-[min(16rem,calc(100vw-2rem))]"
+              pointer="bottom"
+              pointerAlign="end"
+              onDismiss={handleDismissSaveToListTourTip}
+            >
+              Start your first list
+            </MapYellowTip>
+          ) : null
+        }
         onSaveToList={() => {
           if (!checkInTarget) return;
           if (showSaveToListTourTip) {

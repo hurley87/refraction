@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Bookmark, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,6 +30,8 @@ type LocationCheckInDialogProps = {
   onSaveToList: () => void;
   /** True when this place is already on one of the player's lists. */
   savedToList?: boolean;
+  /** Welcome-tour pointer above the save button. */
+  saveToListTip?: ReactNode;
 };
 export function LocationCheckInDialog({
   open,
@@ -46,6 +48,7 @@ export function LocationCheckInDialog({
   onSelectVisitStatus,
   onSaveToList,
   savedToList = false,
+  saveToListTip,
 }: LocationCheckInDialogProps) {
   const [visitStatus, setVisitStatus] = useState<'want_to_try' | 'been' | null>(
     null
@@ -342,14 +345,17 @@ export function LocationCheckInDialog({
                     />
                   </svg>
                 </div>
-                <MapSaveToListButton
-                  savedListCount={savedToList ? 1 : 0}
-                  unsavedLabel="Save to a list"
-                  savedLabel="Saved to a list"
-                  onClick={() => onSaveToList()}
-                  disabled={!checkInTarget || isCheckingIn}
-                  className="h-11 min-w-0 flex-1"
-                />
+                <div className="relative min-w-0 flex-1">
+                  {saveToListTip}
+                  <MapSaveToListButton
+                    savedListCount={savedToList ? 1 : 0}
+                    unsavedLabel="Save to a list"
+                    savedLabel="Saved to a list"
+                    onClick={() => onSaveToList()}
+                    disabled={!checkInTarget || isCheckingIn}
+                    className="h-11 w-full"
+                  />
+                </div>
               </div>
             </div>
           ) : null}
