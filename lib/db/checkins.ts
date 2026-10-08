@@ -91,6 +91,8 @@ export const setPlayerVisitStatus = async (
     visitStatus === 'been' && comment?.trim()
       ? comment.trim().slice(0, 500)
       : null;
+  /** A string (even empty) replaces the player's single comment; omitted leaves it. */
+  const writesComment = visitStatus === 'been' && typeof comment === 'string';
 
   if (!existing) {
     const { error } = await supabase.from('player_location_checkins').insert({
@@ -105,14 +107,14 @@ export const setPlayerVisitStatus = async (
     return;
   }
 
-  if (currentStatus === visitStatus && !savedComment) return;
+  if (currentStatus === visitStatus && !writesComment) return;
 
   const update: {
     visit_status: VisitStatus;
-    comment?: string;
+    comment?: string | null;
     checkin_at?: string;
   } = { visit_status: visitStatus };
-  if (savedComment) update.comment = savedComment;
+  if (writesComment) update.comment = savedComment;
   if (visitStatus === 'been' && !existing.checkin_at) {
     update.checkin_at = new Date().toISOString();
   }

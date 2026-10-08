@@ -1,11 +1,9 @@
 'use client';
 
-import { FormEvent, useRef, useState, type ReactNode } from 'react';
+import { FormEvent, useEffect, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
-import { Check, Loader2 } from 'lucide-react';
+import { Bookmark, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatLocationCategory } from '@/lib/utils/format-location-category';
-import type { LocationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { MAX_PLAYER_LIST_DESCRIPTION_LENGTH } from '@/lib/constants';
 import {
@@ -14,6 +12,15 @@ import {
   useAddLocationToLists,
 } from '@/hooks/usePlayerCustomLists';
 import { CollectionVisibilityToggle } from '@/components/map/collection-visibility-toggle';
+import { Textarea } from '@/components/ui/textarea';
+import type { VisitStatus } from '@/lib/types';
+
+const MAX_COMMENT_LENGTH = 500;
+
+const VISIT_STATUS_OPTIONS = [
+  { value: 'want_to_try', label: 'Want to try', Icon: Bookmark },
+  { value: 'been', label: 'Been', Icon: Check },
+] as const;
 
 interface AddToListLocation {
   placeId: string;
@@ -21,15 +28,19 @@ interface AddToListLocation {
   address?: string | null;
   latitude?: number;
   longitude?: number;
-  category?: LocationCategory | null;
-  imageUrl?: string | null;
 }
 
 interface AddToListDrawerProps {
   location: AddToListLocation;
   walletAddress: string;
-  /** Back button / after a successful add. */
+  /** Stored status for this player and place. Null when they have not chosen one. */
+  visitStatus: VisitStatus | null;
+  /** Persists the toggle. Rejects when the save fails so the toggle can revert. */
+  onSelectVisitStatus: (visitStatus: VisitStatus) => Promise<void>;
+  /** Back button / after a successful add. Leaves the map with no sheet open. */
   onClose: () => void;
+  /** Close control beside the location name. Reopens the check-in sheet. */
+  onReturnToCheckIn: () => void;
   /**
    * After creating a list (and saving the current spot into it), hand off so
    * the parent can open the lists drawer focused on that list.
@@ -84,6 +95,25 @@ function BackArrowIcon() {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      className="aspect-square size-6 shrink-0"
+      aria-hidden
+    >
+      <path
+        d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+        fill="#757575"
+      />
+    </svg>
+  );
+}
+
 function PlusIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -105,12 +135,15 @@ function PlusIcon({ className }: { className?: string }) {
 
 /**
  * ADD TO LIST drawer: pick (or create) custom lists to save a map location to.
- * Opened from the SAVE TO LIST button on the map card.
+ * Replaces the check-in sheet. Full height on mobile; a capped card from sm up.
  */
 export default function AddToListDrawer({
   location,
   walletAddress,
+  visitStatus: savedVisitStatus,
+  onSelectVisitStatus,
   onClose,
+  onReturnToCheckIn,
   onListCreated,
   onSaved,
   createListTip,
@@ -119,6 +152,77 @@ export default function AddToListDrawer({
   const [selectedListIds, setSelectedListIds] = useState<Set<string>>(
     new Set()
   );
+  const [visitStatus, setVisitStatus] = useState<VisitStatus | null>(
+    savedVisitStatus
+  );
+  const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [comment, setComment] = useState('');
+  /** The player's stored comment; each player has at most one per place. */
+  const [savedComment, setSavedComment] = useState('');
+  const [isSavingComment, setIsSavingComment] = useState(false);
+  const userEditedCommentRef = useRef(false);
+  /** A tap in this drawer wins over a status response that is still in flight. */
+  const userPickedStatusRef = useRef(false);
+
+  useEffect(() => {
+    if (savedVisitStatus === 'been' || savedVisitStatus === 'want_to_try') {
+      setVisitStatus(savedVisitStatus);
+    }
+  }, [savedVisitStatus]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      placeId: location.placeId,
+      walletAddress,
+    });
+
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/location-comments?${params.toString()}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) return;
+        const body = await response.json();
+        const data = body.data ?? body;
+        const status = data.visitStatus;
+        if (
+          !userPickedStatusRef.current &&
+          (status === 'been' || status === 'want_to_try')
+        ) {
+          setVisitStatus(status);
+        }
+        const existingComment =
+          typeof data.userComment === 'string' ? data.userComment : '';
+        setSavedComment(existingComment);
+        if (!userEditedCommentRef.current) {
+          setComment(existingComment);
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, [location.placeId, walletAddress]);
+
+  const handleSelectVisitStatus = async (nextStatus: VisitStatus) => {
+    if (isSavingStatus || nextStatus === visitStatus) return;
+    userPickedStatusRef.current = true;
+    const previous = visitStatus;
+    setVisitStatus(nextStatus);
+    setIsSavingStatus(true);
+    try {
+      await onSelectVisitStatus(nextStatus);
+    } catch {
+      setVisitStatus(previous);
+    } finally {
+      setIsSavingStatus(false);
+    }
+  };
 
   // Create-list form state
   const [newListTitle, setNewListTitle] = useState('');
@@ -145,9 +249,15 @@ export default function AddToListDrawer({
     useAddLocationToLists(walletAddress);
 
   const selectedCount = selectedListIds.size;
+  const canComment = visitStatus === 'been';
+  const trimmedComment = comment.trim();
+  const commentChanged = canComment && trimmedComment !== savedComment.trim();
   const savePayload = {
     walletAddress,
     placeId: location.placeId,
+    ...(commentChanged
+      ? { visitStatus: 'been' as const, comment: trimmedComment }
+      : {}),
     location:
       location.latitude != null && location.longitude != null
         ? {
@@ -177,19 +287,56 @@ export default function AddToListDrawer({
   };
 
   const handleAdd = () => {
-    if (selectedCount === 0 || isAddingToLists) return;
-    void addToLists(
-      {
-        ...savePayload,
-        listIds: [...selectedListIds],
-      },
-      {
-        onSuccess: (result) => {
-          onSaved?.({ pointsEarned: result.pointsEarned ?? 0 });
-          onClose();
+    if (isAddingToLists || isSavingComment) return;
+    const hasLists = selectedCount > 0;
+    if (!hasLists && !commentChanged) {
+      onReturnToCheckIn();
+      return;
+    }
+
+    if (hasLists) {
+      void addToLists(
+        {
+          ...savePayload,
+          listIds: [...selectedListIds],
         },
-      }
-    );
+        {
+          onSuccess: (result) => {
+            onSaved?.({ pointsEarned: result.pointsEarned ?? 0 });
+            onReturnToCheckIn();
+          },
+        }
+      );
+      return;
+    }
+
+    setIsSavingComment(true);
+    void fetch('/api/location-visit-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        walletAddress,
+        placeId: location.placeId,
+        visitStatus: 'been',
+        comment: trimmedComment,
+        ...(savePayload.location ? { location: savePayload.location } : {}),
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.error || 'Failed to save comment');
+        }
+        onReturnToCheckIn();
+      })
+      .catch((error: unknown) => {
+        toast.error(
+          error instanceof Error ? error.message : 'Failed to save comment'
+        );
+      })
+      .finally(() => {
+        setIsSavingComment(false);
+      });
   };
 
   const handleThumbnailChange = async (file: File | null) => {
@@ -272,12 +419,13 @@ export default function AddToListDrawer({
     }
   };
 
-  const headerLabel = view === 'create' ? 'NEW COLLECTION' : 'ADD TO LIST';
+  const headerLabel = view === 'create' ? 'NEW COLLECTION' : location.name;
 
   return (
     <div
+      data-testid="add-to-list-drawer"
       className={cn(
-        'flex max-h-[70vh] w-full flex-col border border-[rgba(255,255,255,0.15)] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] sm:pb-0',
+        'flex h-dvh max-h-dvh w-full flex-col border border-[rgba(255,255,255,0.15)] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] sm:h-auto sm:max-h-[70vh] sm:pb-0',
         createListTip ? 'overflow-visible' : 'overflow-hidden'
       )}
     >
@@ -298,9 +446,16 @@ export default function AddToListDrawer({
           <BackArrowIcon />
         </button>
 
-        <span className="label-medium uppercase tracking-wide text-[#171717]">
+        <h2
+          className={cn(
+            'min-w-0 flex-1 truncate px-2 text-center text-[#171717]',
+            view === 'create'
+              ? 'label-medium uppercase tracking-wide'
+              : 'title5'
+          )}
+        >
           {headerLabel}
-        </span>
+        </h2>
 
         {view === 'create' ? (
           <button
@@ -317,8 +472,14 @@ export default function AddToListDrawer({
             )}
           </button>
         ) : (
-          /* Spacer keeps the title optically centered when there's no checkmark. */
-          <div className="size-10 shrink-0" aria-hidden />
+          <button
+            type="button"
+            onClick={onReturnToCheckIn}
+            className="flex size-10 shrink-0 items-center justify-center rounded-[179px] border border-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-80"
+            aria-label="Back to check-in"
+          >
+            <CloseIcon />
+          </button>
         )}
       </div>
 
@@ -400,28 +561,62 @@ export default function AddToListDrawer({
         </form>
       ) : (
         <>
-          {/* Row 2: location being added + CREATE NEW LIST link (anchored right) */}
-          <div className="flex shrink-0 items-center gap-2 px-4 pb-2 border-b border-[#DBDBDB]">
-            <div className="relative flex h-[42px] w-[41px] shrink-0 items-start justify-end gap-2 overflow-hidden bg-neutral-100 p-2">
-              {location.imageUrl ? (
-                <Image
-                  src={location.imageUrl}
-                  alt=""
-                  fill
-                  sizes="41px"
-                  className="object-cover"
-                />
-              ) : null}
+          <div className="flex shrink-0 flex-col gap-3 px-4 pb-4">
+            <div
+              role="radiogroup"
+              aria-label="Have you been here?"
+              className="grid w-full grid-cols-2 border border-[#171717]"
+            >
+              {VISIT_STATUS_OPTIONS.map(({ value, label, Icon }) => {
+                const isOn = visitStatus === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isOn}
+                    disabled={isSavingStatus}
+                    onClick={() => void handleSelectVisitStatus(value)}
+                    className={cn(
+                      'flex h-11 items-center justify-center gap-2 label-small uppercase tracking-wide transition-colors disabled:cursor-wait',
+                      isOn
+                        ? 'bg-[#171717] text-white'
+                        : 'bg-white text-[#171717] hover:bg-neutral-100'
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0" aria-hidden />
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
-              <span className="title5 w-full truncate text-[#171717]">
-                {location.name}
+
+            <Textarea
+              aria-label="Comment"
+              value={comment}
+              maxLength={MAX_COMMENT_LENGTH}
+              onChange={(e) => {
+                userEditedCommentRef.current = true;
+                setComment(e.target.value);
+              }}
+              disabled={!canComment}
+              placeholder={
+                canComment
+                  ? 'Share why this place is worth visiting...'
+                  : 'Mark as Been to add a comment'
+              }
+              rows={3}
+              className="min-h-[88px] resize-none rounded-none border border-neutral-300 bg-white px-3 py-2 text-base text-[#171717] placeholder:text-[#A9A9A9] focus-visible:border-[var(--Borders-Heavy-Border,#454545)] focus-visible:shadow-[0_0_0_2px_#FFE600] focus-visible:ring-0 focus-visible:ring-offset-0 md:text-sm"
+            />
+          </div>
+
+          <div className="flex shrink-0 items-center justify-end gap-3 border-b border-[#DBDBDB] px-4 pb-2">
+            {selectedCount > 0 ? (
+              <span className="label-medium min-w-0 flex-1 uppercase tracking-wide text-[#171717]">
+                {`Add to ${selectedCount} list${selectedCount === 1 ? '' : 's'}`}
               </span>
-              <span className="label-small flex shrink-0 items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase text-[#171717]">
-                {formatLocationCategory(location.category)}
-              </span>
-            </div>
-            <div className="relative ml-auto shrink-0 self-end">
+            ) : null}
+            <div className="relative shrink-0">
               {createListTip}
               <button
                 type="button"
@@ -449,12 +644,13 @@ export default function AddToListDrawer({
             ) : (
               lists.map((list) => {
                 const isSelected = selectedListIds.has(list.id);
+                const alreadySaved = Boolean(list.contains_location);
                 return (
                   <div
                     key={list.id}
                     className={cn(
                       'flex w-full items-center gap-[var(--sds-size-space-400)] px-[var(--sds-size-space-400)] pb-[var(--sds-size-space-300)] pt-[var(--sds-size-space-400)] transition-colors',
-                      isSelected && 'bg-[#DBDBDB]'
+                      isSelected && !alreadySaved && 'bg-[#DBDBDB]'
                     )}
                   >
                     <div className="relative size-12 shrink-0 overflow-hidden bg-neutral-200">
@@ -474,21 +670,32 @@ export default function AddToListDrawer({
                       </span>
                       <span className="label-small uppercase tracking-wide text-[#757575]">
                         {`${list.location_count} LOCATION${list.location_count === 1 ? '' : 'S'}`}
-                        {list.contains_location ? ' · SAVED' : ''}
+                        {alreadySaved ? ' · SAVED' : ''}
                       </span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => toggleListSelection(list.id)}
+                      onClick={() => {
+                        if (alreadySaved) return;
+                        toggleListSelection(list.id);
+                      }}
+                      disabled={alreadySaved}
                       aria-pressed={isSelected}
                       aria-label={
-                        isSelected
-                          ? `Remove ${list.title} from selection`
-                          : `Add location to ${list.title}`
+                        alreadySaved
+                          ? `Already saved to ${list.title}`
+                          : isSelected
+                            ? `Remove ${list.title} from selection`
+                            : `Add location to ${list.title}`
                       }
-                      className="flex size-10 shrink-0 items-center justify-center text-[#171717] transition-opacity hover:opacity-70"
+                      className={cn(
+                        'flex size-10 shrink-0 items-center justify-center',
+                        alreadySaved
+                          ? 'cursor-not-allowed text-[#A9A9A9]'
+                          : 'text-[#171717] transition-opacity hover:opacity-70'
+                      )}
                     >
-                      {isSelected ? (
+                      {isSelected && !alreadySaved ? (
                         <Check className="size-6" aria-hidden />
                       ) : (
                         <PlusIcon />
@@ -505,18 +712,11 @@ export default function AddToListDrawer({
             <button
               type="button"
               onClick={handleAdd}
-              disabled={selectedCount === 0 || isAddingToLists}
-              className={cn(
-                'flex h-11 w-full items-center justify-center label-medium uppercase tracking-wide transition-colors',
-                selectedCount === 0
-                  ? 'cursor-not-allowed bg-[#DBDBDB] text-[#757575]'
-                  : 'bg-[#171717] text-white hover:bg-black'
-              )}
+              disabled={isAddingToLists || isSavingComment}
+              className="flex h-11 w-full items-center justify-center bg-[#171717] text-white label-medium uppercase tracking-wide transition-colors hover:bg-black disabled:opacity-100"
             >
-              {isAddingToLists ? (
+              {isAddingToLists || isSavingComment ? (
                 <Loader2 className="size-5 animate-spin" />
-              ) : selectedCount === 0 ? (
-                'SELECT A LIST TO ADD'
               ) : (
                 'SAVE'
               )}

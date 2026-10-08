@@ -204,8 +204,10 @@ export async function getPlayerIdByWalletAddress(
   const candidates: string[] = [];
   const evm = tryNormalizeEvmAddress(t);
   if (evm) {
+    const lower = evm.toLowerCase();
     candidates.push(evm);
-    if (evm !== t) candidates.push(t);
+    if (lower !== evm) candidates.push(lower);
+    if (t !== evm && t !== lower) candidates.push(t);
   } else {
     candidates.push(t);
   }

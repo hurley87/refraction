@@ -64,8 +64,21 @@ vi.mock('@/components/location-lists-drawer', () => ({
 }));
 
 vi.mock('@/components/map/add-to-list-drawer', () => ({
-  default: ({ location }: { location: { name: string } }) => (
-    <div data-testid="add-to-list-drawer">{location.name}</div>
+  default: ({
+    location,
+    visitStatus,
+    onReturnToCheckIn,
+  }: {
+    location: { name: string };
+    visitStatus: string | null;
+    onReturnToCheckIn: () => void;
+  }) => (
+    <div data-testid="add-to-list-drawer" data-visit-status={visitStatus ?? ''}>
+      {location.name}
+      <button type="button" onClick={onReturnToCheckIn}>
+        Back to check-in
+      </button>
+    </div>
   ),
 }));
 
@@ -299,6 +312,49 @@ describe('InteractiveMap characterization', () => {
     expect(screen.queryByTestId('add-to-list-drawer')).not.toBeInTheDocument();
   });
 
+  it('closes the check-in modal and opens add to list on Want to try', async () => {
+    server.use(
+      http.post('/api/location-visit-status', () =>
+        HttpResponse.json({ success: true })
+      )
+    );
+    const user = userEvent.setup();
+    renderMap();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Marker at Test Location' })
+    );
+    await user.click(
+      await screen.findByRole('radio', { name: /want to try/i })
+    );
+
+    expect(await screen.findByTestId('add-to-list-drawer')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    );
+  });
+
+  it('closes the check-in modal and opens add to list on Been', async () => {
+    server.use(
+      http.post('/api/location-visit-status', () =>
+        HttpResponse.json({ success: true })
+      )
+    );
+    const user = userEvent.setup();
+    renderMap();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Marker at Test Location' })
+    );
+    await user.click(await screen.findByRole('radio', { name: /^been$/i }));
+
+    const drawer = await screen.findByTestId('add-to-list-drawer');
+    expect(drawer).toHaveAttribute('data-visit-status', 'been');
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    );
+  });
+
   it('closes the check-in modal and opens add to list on Save to list', async () => {
     const user = userEvent.setup();
     renderMap();
@@ -314,6 +370,27 @@ describe('InteractiveMap characterization', () => {
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     );
+  });
+
+  it('reopens the check-in modal for the same place from the add-to-list close button', async () => {
+    const user = userEvent.setup();
+    renderMap();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Marker at Test Location' })
+    );
+    await user.click(
+      await screen.findByRole('button', { name: /save location to a list/i })
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Back to check-in' })
+    );
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Test Location' })
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('add-to-list-drawer')).not.toBeInTheDocument();
   });
 
   it('labels the save button Saved to a list when the spot is already saved', async () => {

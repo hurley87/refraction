@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
       return apiValidationError(parsed.error);
     }
 
-    const { walletAddress, placeId, visitStatus, location } = parsed.data;
+    const { walletAddress, placeId, visitStatus, comment, location } =
+      parsed.data;
 
     const player = await getPlayerByWallet(walletAddress);
     if (!player?.id) {
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       return apiError('Location not found', 404);
     }
 
-    await setPlayerVisitStatus(player.id, locationId, visitStatus, null, {
+    await setPlayerVisitStatus(player.id, locationId, visitStatus, comment, {
       allowDowngrade: true,
     });
 

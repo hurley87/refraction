@@ -173,10 +173,11 @@ async function handleSinglePlace(
   }
 
   let visitStatus: 'want_to_try' | 'been' | null = null;
+  let userComment: string | null = null;
   if (purpose === 'full' && playerId != null) {
     const { data: existingCheckin, error: existingError } = await supabase
       .from('player_location_checkins')
-      .select('visit_status')
+      .select('visit_status, comment')
       .eq('location_id', locationId)
       .eq('player_id', playerId)
       .limit(1)
@@ -189,6 +190,9 @@ async function handleSinglePlace(
       existingCheckin?.visit_status === 'want_to_try'
     ) {
       visitStatus = 'want_to_try';
+    }
+    if (!existingError && typeof existingCheckin?.comment === 'string') {
+      userComment = existingCheckin.comment;
     }
   }
 
@@ -213,7 +217,7 @@ async function handleSinglePlace(
     return avatarSuccess({ checkins });
   }
 
-  return apiSuccess({ checkins, hasUserCheckedIn, visitStatus });
+  return apiSuccess({ checkins, hasUserCheckedIn, visitStatus, userComment });
 }
 
 export async function GET(request: NextRequest) {

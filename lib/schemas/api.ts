@@ -285,6 +285,8 @@ export const locationVisitStatusSchema = z.object({
   walletAddress: walletAddressSchema,
   placeId: z.string().min(1),
   visitStatus: z.enum(['want_to_try', 'been']),
+  /** Stored only when visitStatus is been. */
+  comment: z.string().max(500).optional(),
   /** Used to create the location when the spot exists only as a search result. */
   location: z
     .object({
