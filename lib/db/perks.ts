@@ -332,6 +332,18 @@ export const getUniversalDiscountCodesByPerkId = async (perkId: string) => {
   return data;
 };
 
+/** True when this perk has one-time codes that must be issued via redeem. */
+export const perkHasIndividualDiscountCodes = async (perkId: string) => {
+  const { count, error } = await supabase
+    .from('perk_discount_codes')
+    .select('id', { count: 'exact', head: true })
+    .eq('perk_id', perkId)
+    .eq('is_universal', false);
+
+  if (error) throw error;
+  return (count ?? 0) > 0;
+};
+
 /**
  * Delete a discount code
  */
