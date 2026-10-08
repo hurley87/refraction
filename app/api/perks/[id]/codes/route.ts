@@ -1,5 +1,8 @@
 import { NextRequest } from 'next/server';
-import { getUniversalDiscountCodesByPerkId } from '@/lib/db/perks';
+import {
+  getUniversalDiscountCodesByPerkId,
+  perkHasIndividualDiscountCodes,
+} from '@/lib/db/perks';
 import { apiSuccess, apiError } from '@/lib/api/response';
 
 export const dynamic = 'force-dynamic';
@@ -10,8 +13,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const codes = await getUniversalDiscountCodesByPerkId(params.id);
-    return apiSuccess({ codes: codes ?? [] });
+    const [codes, hasIndividualCodes] = await Promise.all([
+      getUniversalDiscountCodesByPerkId(params.id),
+      perkHasIndividualDiscountCodes(params.id),
+    ]);
+    return apiSuccess({ codes: codes ?? [], hasIndividualCodes });
   } catch (error) {
     console.error('GET /api/perks/[id]/codes error:', error);
     return apiError('Failed to fetch codes', 500);

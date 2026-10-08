@@ -29,7 +29,7 @@ import {
 } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MapNav, { MAP_NAV_SAFE_AREA_X } from '@/components/map/mapnav';
 import PerkShareButton from '@/components/rewards/perk-share-button';
 import type { PerkShareMethod } from '@/lib/perks/share-perk-link';
@@ -38,6 +38,7 @@ import {
   MapDesktopSearchSlot,
 } from '@/components/map/map-desktop-nav';
 import { usePerks, useUserRedemptions } from '@/hooks/usePerks';
+import { shouldIssueIndividualDiscountCode } from '@/lib/perks/individual-code-claim';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
@@ -178,10 +179,14 @@ function PerksPageInner() {
       (redemption: UserPerkRedemption) => redemption.perk_id === perkId
     );
 
-  //const queryClient = useQueryClient();
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInPersonClaiming, setIsInPersonClaiming] = useState(false);
+  const [isRedeemingCode, setIsRedeemingCode] = useState(false);
+  const [issuedDiscountCode, setIssuedDiscountCode] = useState<
+    string | undefined
+  >();
+  const queryClient = useQueryClient();
 
   // Filter chips: city + type, both AND-combined. "all" means no filter.
   const [selectedCity, setSelectedCity] = useState<string>('all');
@@ -192,16 +197,23 @@ function PerksPageInner() {
     setSelectedType('all');
   };
 
-  // Universal codes only; individual codes come from redemption after /api/perks/redeem
-  const { data: universalCodes = [] } = useQuery({
+  // Universal codes are public. Individual codes stay hidden until redeem.
+  const { data: perkCodeListing } = useQuery({
     queryKey: ['perk-codes-public', selectedPerk?.id],
     queryFn: async () => {
-      if (!selectedPerk?.id) return [];
+      if (!selectedPerk?.id) {
+        return { codes: [] as PerkDiscountCode[], hasIndividualCodes: false };
+      }
       const response = await fetch(`/api/perks/${selectedPerk.id}/codes`);
-      if (!response.ok) return [];
+      if (!response.ok) {
+        return { codes: [] as PerkDiscountCode[], hasIndividualCodes: false };
+      }
       const responseData = await response.json();
       const data = responseData.data || responseData;
-      return (data.codes ?? []) as PerkDiscountCode[];
+      return {
+        codes: (data.codes ?? []) as PerkDiscountCode[],
+        hasIndividualCodes: Boolean(data.hasIndividualCodes),
+      };
     },
     enabled: !!selectedPerk?.id && isModalOpen,
   });
@@ -213,13 +225,20 @@ function PerksPageInner() {
         )
       : undefined;
 
-  const universalDiscountCode = universalCodes[0]?.code?.trim() || undefined;
+  const universalDiscountCode =
+    perkCodeListing?.codes[0]?.code?.trim() || undefined;
   const individualDiscountCode =
-    redemptionForSelected?.perk_discount_codes?.code?.trim() || undefined;
+    redemptionForSelected?.perk_discount_codes?.code?.trim() ||
+    issuedDiscountCode;
 
   const selectedDiscountCode =
     universalDiscountCode ?? individualDiscountCode ?? undefined;
   const hasDiscountCode = Boolean(selectedDiscountCode);
+  const issuesIndividualCode = shouldIssueIndividualDiscountCode({
+    hasIndividualCodes: perkCodeListing?.hasIndividualCodes ?? false,
+    universalCode: universalDiscountCode,
+    issuedCode: individualDiscountCode,
+  });
 
   // Check if the code is a URL
   const isCodeUrl = (str: string) => {
@@ -340,6 +359,10 @@ function PerksPageInner() {
     });
   };
 
+  useEffect(() => {
+    setIssuedDiscountCode(undefined);
+  }, [selectedPerk?.id]);
+
   // Online: partner URL / code-as-URL. In-person: POST claim then success screen.
   const handleClaimClick = () => {
     if (!selectedPerk) return;
@@ -350,6 +373,47 @@ function PerksPageInner() {
       points_required: selectedPerk.points_threshold,
       perk_type: 'online',
     });
+  };
+
+  const handleRedeemIndividualCode = async () => {
+    if (!selectedPerk?.id || !address || isRedeemingCode) return;
+
+    handleClaimClick();
+    setIsRedeemingCode(true);
+    try {
+      const result = await apiClient<{
+        redemption: UserPerkRedemption;
+      }>('/api/perks/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          perkId: selectedPerk.id,
+          walletAddress: address,
+        }),
+      });
+
+      const code = result.redemption?.perk_discount_codes?.code?.trim();
+      if (!code) {
+        toast.error('Failed to claim reward');
+        return;
+      }
+
+      setIssuedDiscountCode(code);
+      await queryClient.invalidateQueries({
+        queryKey: ['user-redemptions', address],
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to claim reward';
+      if (/already redeemed/i.test(message)) {
+        await queryClient.invalidateQueries({
+          queryKey: ['user-redemptions', address],
+        });
+      }
+      toast.error(message);
+    } finally {
+      setIsRedeemingCode(false);
+    }
   };
 
   const handleInPersonClaim = async () => {
@@ -1507,7 +1571,32 @@ function PerksPageInner() {
                       </p>
 
                       {/* Row 3: Pills */}
-                      {codeIsClaimUrl || !hasDiscountCode ? (
+                      {issuesIndividualCode ? (
+                        <div className="w-full">
+                          <button
+                            type="button"
+                            onClick={handleRedeemIndividualCode}
+                            disabled={isRedeemingCode}
+                            className="label-large flex h-11 min-h-11 w-full items-center justify-between bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-95 disabled:opacity-50"
+                          >
+                            {isRedeemingCode ? '...' : 'Claim Reward'}
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              className="shrink-0"
+                              aria-hidden
+                            >
+                              <path
+                                d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                                fill="#FFFFFF"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : codeIsClaimUrl || !hasDiscountCode ? (
                         /* Full width claim button when code is a URL or in-person */
                         <div className="w-full">
                           {claimUrl ? (
