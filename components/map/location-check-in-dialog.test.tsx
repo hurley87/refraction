@@ -44,4 +44,67 @@ describe('LocationCheckInDialog save-to-list tour tip', () => {
       screen.getByRole('button', { name: 'Save location to a list' })
     ).toBeInTheDocument();
   });
+
+  it('shows only the saved status icon', () => {
+    render(
+      <LocationCheckInDialog
+        open
+        onClose={vi.fn()}
+        overlayClassName=""
+        shellClassName=""
+        panelClassName=""
+        checkInSuccess={false}
+        checkInTarget={target}
+        isCheckingIn={false}
+        checkInPointsEarned={0}
+        checkInTotalPoints={0}
+        savedVisitStatus="want_to_try"
+        onSelectVisitStatus={vi.fn(async () => undefined)}
+        onSaveToList={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('radio', { name: /want to try/i })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+    expect(
+      screen.queryByRole('radio', { name: /^been$/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('lists member comments below the description', () => {
+    render(
+      <LocationCheckInDialog
+        open
+        onClose={vi.fn()}
+        overlayClassName=""
+        shellClassName=""
+        panelClassName=""
+        checkInSuccess={false}
+        checkInTarget={{ ...target, description: 'A quiet bar.' }}
+        isCheckingIn={false}
+        checkInPointsEarned={0}
+        checkInTotalPoints={0}
+        savedVisitStatus={null}
+        onSelectVisitStatus={vi.fn(async () => undefined)}
+        onSaveToList={vi.fn()}
+        locationCheckins={[
+          {
+            id: 1,
+            comment: 'The natural wine list is excellent',
+            pointsEarned: 100,
+            username: 'ada',
+          },
+        ]}
+      />
+    );
+
+    const description = screen.getByText('A quiet bar.');
+    const comment = screen.getByText('The natural wine list is excellent');
+    expect(description.compareDocumentPosition(comment)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(screen.getByText('ada')).toBeInTheDocument();
+  });
 });

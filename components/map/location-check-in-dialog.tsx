@@ -1,18 +1,25 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import Image from 'next/image';
-import { Bookmark, MapPin } from 'lucide-react';
+import { Bookmark, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogDrawerContent } from '@/components/ui/dialog';
 import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';
 import { MapSaveToListButton } from '@/components/map/map-card';
 import { cn } from '@/lib/utils';
 import {
+  buildLocationShareUrl,
+  getCheckinDisplayName,
+  getCheckinInitial,
+} from '@/lib/map/checkin-display';
+import type {
+  LocationCheckinPreview,
+  MarkerData,
+} from '@/components/map/interactive-map-types';
+import {
   formatLocationCategory,
   isSingleWordLocationCategory,
 } from '@/lib/utils/format-location-category';
-import { buildLocationShareUrl } from '@/lib/map/checkin-display';
-import type { MarkerData } from '@/components/map/interactive-map-types';
 type LocationCheckInDialogProps = {
   open: boolean;
   onClose: () => void;
@@ -27,9 +34,14 @@ type LocationCheckInDialogProps = {
   /** Stored status for this player and place. Null when they have not chosen one. */
   savedVisitStatus: 'want_to_try' | 'been' | null;
   onSelectVisitStatus: (visitStatus: 'want_to_try' | 'been') => Promise<void>;
-  onSaveToList: () => void;
+  /** Hands off to the add-to-list drawer with the status chosen here. */
+  onSaveToList: (visitStatus: 'want_to_try' | 'been' | null) => void;
   /** True when this place is already on one of the player's lists. */
   savedToList?: boolean;
+  /** Comments left by members who have been here. */
+  locationCheckins?: LocationCheckinPreview[];
+  isLoadingLocationCheckins?: boolean;
+  locationCheckinsError?: string | null;
   /** Welcome-tour pointer above the save button. */
   saveToListTip?: ReactNode;
 };
@@ -48,6 +60,9 @@ export function LocationCheckInDialog({
   onSelectVisitStatus,
   onSaveToList,
   savedToList = false,
+  locationCheckins = [],
+  isLoadingLocationCheckins = false,
+  locationCheckinsError = null,
   saveToListTip,
 }: LocationCheckInDialogProps) {
   const [visitStatus, setVisitStatus] = useState<'want_to_try' | 'been' | null>(
@@ -67,18 +82,33 @@ export function LocationCheckInDialog({
   const handleSelectVisitStatus = async (
     nextStatus: 'want_to_try' | 'been'
   ) => {
-    if (isSavingStatus || nextStatus === visitStatus) return;
-    const previous = visitStatus;
-    setVisitStatus(nextStatus);
-    setIsSavingStatus(true);
-    try {
-      await onSelectVisitStatus(nextStatus);
-    } catch {
-      setVisitStatus(previous);
-    } finally {
-      setIsSavingStatus(false);
+    if (isSavingStatus) return;
+    if (nextStatus !== visitStatus) {
+      const previous = visitStatus;
+      setVisitStatus(nextStatus);
+      setIsSavingStatus(true);
+      try {
+        await onSelectVisitStatus(nextStatus);
+      } catch {
+        setVisitStatus(previous);
+        return;
+      } finally {
+        setIsSavingStatus(false);
+      }
     }
+    onSaveToList(nextStatus);
   };
+
+  const savedStatus =
+    savedVisitStatus === 'been' || savedVisitStatus === 'want_to_try'
+      ? savedVisitStatus
+      : null;
+  const statusChoices = (
+    [
+      { value: 'want_to_try' as const, label: 'Want to try', Icon: Bookmark },
+      { value: 'been' as const, label: 'Been', Icon: Check },
+    ] as const
+  ).filter((choice) => savedStatus == null || choice.value === savedStatus);
 
   return (
     <Dialog
@@ -194,42 +224,30 @@ export function LocationCheckInDialog({
                     <div
                       role="radiogroup"
                       aria-label="Have you been here?"
-                      className="grid w-full grid-cols-2 gap-2 pt-4"
+                      className="flex items-center gap-2 pt-4"
                     >
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={visitStatus === 'want_to_try'}
-                        disabled={isSavingStatus}
-                        onClick={() =>
-                          void handleSelectVisitStatus('want_to_try')
-                        }
-                        className={cn(
-                          'flex h-11 items-center justify-center gap-2 border label-small uppercase tracking-wide',
-                          visitStatus === 'want_to_try'
-                            ? 'border-[#171717] bg-[#171717] text-white'
-                            : 'border-[#DBDBDB] bg-white text-[#171717]'
-                        )}
-                      >
-                        <Bookmark className="size-4 shrink-0" aria-hidden />
-                        Want to try
-                      </button>
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={visitStatus === 'been'}
-                        disabled={isSavingStatus}
-                        onClick={() => void handleSelectVisitStatus('been')}
-                        className={cn(
-                          'flex h-11 items-center justify-center gap-2 border label-small uppercase tracking-wide',
-                          visitStatus === 'been'
-                            ? 'border-[#171717] bg-[#171717] text-white'
-                            : 'border-[#DBDBDB] bg-white text-[#171717]'
-                        )}
-                      >
-                        <MapPin className="size-4 shrink-0" aria-hidden />
-                        Been
-                      </button>
+                      {statusChoices.map(({ value, label, Icon }) => {
+                        const isOn = savedStatus === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-label={label}
+                            aria-checked={isOn}
+                            disabled={isSavingStatus}
+                            onClick={() => void handleSelectVisitStatus(value)}
+                            className={cn(
+                              'flex size-8 items-center justify-center rounded-full border',
+                              isOn
+                                ? 'border-[#171717] bg-[#171717] text-white'
+                                : 'border-[#DBDBDB] bg-white text-[#171717]'
+                            )}
+                          >
+                            <Icon className="size-4 shrink-0" aria-hidden />
+                          </button>
+                        );
+                      })}
                     </div>
                     <div className="flex w-full items-center bg-[#ffffff] pb-4 pt-4">
                       <h3 className="min-w-0 flex-1 line-clamp-1 leading-tight tracking-[-0.3px] text-[#1a1a1a]">
@@ -300,6 +318,47 @@ export function LocationCheckInDialog({
                           'No description provided.'}
                       </p>
                     </div>
+                    <section className="flex w-full flex-col gap-4 border-t border-[#171717] pb-4 pt-4">
+                      {isLoadingLocationCheckins ? (
+                        <div className="h-16 animate-pulse bg-[#f8f8f8]" />
+                      ) : locationCheckinsError ? (
+                        <p className="body-small text-center text-[#999]">
+                          {locationCheckinsError}
+                        </p>
+                      ) : locationCheckins.length === 0 ? (
+                        <p className="body-small text-center text-[#999]">
+                          No comments yet.
+                        </p>
+                      ) : (
+                        locationCheckins.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="flex w-full items-start gap-2 border-t border-[#DBDBDB] pt-4 first:border-t-0 first:pt-0"
+                          >
+                            <div className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] font-semibold text-[#313131]">
+                              {entry.profilePictureUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element -- member avatars are arbitrary remote URLs
+                                <img
+                                  src={entry.profilePictureUrl}
+                                  alt=""
+                                  className="size-7 rounded-full object-cover"
+                                />
+                              ) : (
+                                getCheckinInitial(entry)
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="label-small text-[#171717]">
+                                {getCheckinDisplayName(entry)}
+                              </p>
+                              <p className="body-small mt-0.5 leading-snug text-[#454545]">
+                                {entry.comment}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </section>
                   </div>
                 )}
               </>
@@ -351,7 +410,7 @@ export function LocationCheckInDialog({
                     savedListCount={savedToList ? 1 : 0}
                     unsavedLabel="Save to a list"
                     savedLabel="Saved to a list"
-                    onClick={() => onSaveToList()}
+                    onClick={() => onSaveToList(visitStatus)}
                     disabled={!checkInTarget || isCheckingIn}
                     className="h-11 w-full"
                   />

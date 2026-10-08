@@ -43,7 +43,7 @@ import {
   lngLatBoundsFromPoints,
   parseLatLng,
 } from '@/lib/utils/map-bounds';
-import type { LocationCategory } from '@/lib/types';
+import type { LocationCategory, VisitStatus } from '@/lib/types';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { usePlayerCustomLists } from '@/hooks/usePlayerCustomLists';
 import { useMapPlayerProfile } from '@/hooks/use-map-player-profile';
@@ -194,11 +194,16 @@ export default function InteractiveMap({
   const [checkInSuccess, setCheckInSuccess] = useState(false);
   const [checkInPointsEarned, setCheckInPointsEarned] = useState(0);
   const [checkInTotalPoints, setCheckInTotalPoints] = useState(0);
-  const [, setLocationCheckins] = useState<LocationCheckinPreview[]>([]);
-  const [, setIsLoadingLocationCheckins] = useState(false);
+  const [locationCheckins, setLocationCheckins] = useState<
+    LocationCheckinPreview[]
+  >([]);
+  const [isLoadingLocationCheckins, setIsLoadingLocationCheckins] =
+    useState(false);
   /** From GET /api/location-comments when walletAddress is sent — any check-in counts (incl. no comment). */
   const [, setHasUserCheckedInAtLocation] = useState(false);
-  const [, setLocationCheckinsError] = useState<string | null>(null);
+  const [locationCheckinsError, setLocationCheckinsError] = useState<
+    string | null
+  >(null);
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -1092,6 +1097,35 @@ export default function InteractiveMap({
     setPendingMapCreateMarker(null);
   };
 
+  /** Throws after toasting when the save fails so callers can revert. */
+  const saveVisitStatus = async (
+    target: MarkerData,
+    visitStatus: VisitStatus
+  ) => {
+    if (!walletAddress) return;
+    const response = await fetch('/api/location-visit-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        walletAddress,
+        placeId: target.place_id,
+        visitStatus,
+        location: {
+          name: target.name,
+          address: target.address ?? undefined,
+          latitude: target.latitude,
+          longitude: target.longitude,
+        },
+      }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      toast.error(result?.error || 'Failed to save status');
+      throw new Error('Failed to save status');
+    }
+    setSavedVisitStatus(visitStatus);
+  };
+
   const handleCheckIn = async () => {
     if (!walletAddress) {
       toast.error('Please connect your wallet to check in');
@@ -1940,14 +1974,27 @@ export default function InteractiveMap({
                 address: addToListTarget.address,
                 latitude: addToListTarget.latitude,
                 longitude: addToListTarget.longitude,
-                category: addToListTarget.category,
-                imageUrl:
-                  addToListTarget.imageThumbUrl || addToListTarget.imageUrl,
               }}
               walletAddress={walletAddress}
+              visitStatus={savedVisitStatus}
+              onSelectVisitStatus={(visitStatus) =>
+                saveVisitStatus(addToListTarget, visitStatus)
+              }
               onClose={() => {
                 dismissCreateListTourTip();
                 setAddToListTarget(null);
+              }}
+              onReturnToCheckIn={() => {
+                const target = addToListTarget;
+                if (!target) return;
+                setShowLocationForm(false);
+                setPendingMapCreateMarker(null);
+                setPopupInfo(null);
+                setSelectedMarker(target);
+                setAddToListTarget(null);
+                setCheckInTarget(target);
+                setCheckInSuccess(false);
+                setShowCheckInModal(true);
               }}
               onSaved={({ pointsEarned }) => {
                 if (pointsEarned > 0) setSavePointsTip(pointsEarned);
@@ -2033,31 +2080,14 @@ export default function InteractiveMap({
         isCheckingIn={isCheckingIn}
         checkInPointsEarned={checkInPointsEarned}
         checkInTotalPoints={checkInTotalPoints}
+        locationCheckins={locationCheckins}
+        isLoadingLocationCheckins={isLoadingLocationCheckins}
+        locationCheckinsError={locationCheckinsError}
         savedVisitStatus={savedVisitStatus}
         savedToList={savedToList}
         onSelectVisitStatus={async (visitStatus) => {
-          if (!walletAddress || !checkInTarget) return;
-          const response = await fetch('/api/location-visit-status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              walletAddress,
-              placeId: checkInTarget.place_id,
-              visitStatus,
-              location: {
-                name: checkInTarget.name,
-                address: checkInTarget.address ?? undefined,
-                latitude: checkInTarget.latitude,
-                longitude: checkInTarget.longitude,
-              },
-            }),
-          });
-          const result = await response.json().catch(() => null);
-          if (!response.ok) {
-            toast.error(result?.error || 'Failed to save status');
-            throw new Error('Failed to save status');
-          }
-          setSavedVisitStatus(visitStatus);
+          if (!checkInTarget) return;
+          await saveVisitStatus(checkInTarget, visitStatus);
         }}
         saveToListTip={
           showSaveToListTourTip && !checkInSuccess ? (
@@ -2071,7 +2101,7 @@ export default function InteractiveMap({
             </MapYellowTip>
           ) : null
         }
-        onSaveToList={() => {
+        onSaveToList={(visitStatus) => {
           if (!checkInTarget) return;
           if (showSaveToListTourTip) {
             setShowCreateListTourTip(true);
@@ -2083,6 +2113,7 @@ export default function InteractiveMap({
           // Keep the spot selected: clearing popupInfo also clears the add-to-list target.
           setPopupInfo(target);
           setAddToListTarget(target);
+          setSavedVisitStatus(visitStatus);
         }}
       />
 

@@ -87,6 +87,21 @@ describe('Players Database Module', () => {
       expect(mockEq).toHaveBeenNthCalledWith(2, 'wallet_address', rawLower);
     });
 
+    it('matches a lowercase stored address when given the checksummed form', async () => {
+      const rawLower = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
+      const checksummed = getAddress(rawLower as `0x${string}`);
+
+      mockMaybeSingle
+        .mockResolvedValueOnce({ data: null, error: null })
+        .mockResolvedValueOnce({ data: { id: 99 }, error: null });
+
+      const id = await getPlayerIdByWalletAddress(checksummed);
+
+      expect(id).toBe(99);
+      expect(mockEq).toHaveBeenNthCalledWith(1, 'wallet_address', checksummed);
+      expect(mockEq).toHaveBeenNthCalledWith(2, 'wallet_address', rawLower);
+    });
+
     it('returns null when no row matches', async () => {
       mockMaybeSingle.mockReset();
       mockMaybeSingle.mockResolvedValue({ data: null, error: null });
