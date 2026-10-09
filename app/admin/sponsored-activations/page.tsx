@@ -8,7 +8,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
-import { Loader2, ArrowLeft, CircleDollarSign, Plus } from 'lucide-react';
+import { Loader2, CircleDollarSign, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { AdminCreateSponsoredActivationRequest } from '@/lib/schemas/sponsored-activation';
@@ -279,13 +279,6 @@ export default function AdminSponsoredActivationsListPage() {
     <div className="min-h-screen bg-gray-50 p-6 dark:bg-neutral-950">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
-          <Link
-            href="/admin"
-            className="mb-4 inline-flex items-center gap-1 text-sm text-blue-700 hover:underline dark:text-blue-400"
-          >
-            <ArrowLeft className="size-4" />
-            Admin home
-          </Link>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
