@@ -273,6 +273,7 @@ export function CityGuideLocationsSection({
               {section.locations.map((entry, index) => {
                 const location = entry.location;
                 const description =
+                  entry.quote?.trim() ||
                   location.description?.trim() ||
                   location.address?.trim() ||
                   '—';

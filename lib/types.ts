@@ -151,6 +151,8 @@ export type LocationListLocation = {
   list_id: string;
   location_id: number;
   created_at: string;
+  /** Contributor quote for this list only. Null falls back to the spot description. */
+  quote: string | null;
   location: Location;
 };
 

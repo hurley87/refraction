@@ -168,6 +168,7 @@ export const getLocationsForList = async (
         list_id,
         location_id,
         created_at,
+        quote,
         locations (
           ${locationSelection}
         )
@@ -190,6 +191,7 @@ export const getLocationsForList = async (
         list_id: row.list_id,
         location_id: row.location_id,
         created_at: row.created_at,
+        quote: row.quote ?? null,
         location: location as Location,
       } as LocationListLocation;
     });
@@ -214,6 +216,7 @@ export const addLocationToList = async (
         list_id,
         location_id,
         created_at,
+        quote,
         locations (
           ${locationSelection}
         )
@@ -240,10 +243,31 @@ export const addLocationToList = async (
     list_id: data.list_id,
     location_id: data.location_id,
     created_at: data.created_at,
+    quote: data.quote ?? null,
     // PostgREST returns the embedded `category` as a single object for this
     // many-to-one join, but the client's static inference types it as an array.
     location: location as unknown as Location,
   } as LocationListLocation;
+};
+
+/**
+ * Set or clear the contributor quote for one spot on one list.
+ * @returns false when that spot is not on the list.
+ */
+export const updateLocationListQuote = async (
+  listId: string,
+  locationId: number,
+  quote: string | null
+): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from('location_list_members')
+    .update({ quote })
+    .eq('list_id', listId)
+    .eq('location_id', locationId)
+    .select('id');
+
+  if (error) throw error;
+  return (data ?? []).length > 0;
 };
 
 /**
