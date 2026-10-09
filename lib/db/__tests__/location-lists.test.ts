@@ -439,8 +439,36 @@ describe('Location Lists Database Module', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].membership_id).toBe('member-1');
+      expect(result[0].quote).toBeNull();
       expect(result[0].location).toEqual(sampleLocation);
       expect(mockFrom).toHaveBeenCalledWith('location_list_members');
+    });
+
+    it('returns the membership quote', async () => {
+      const membershipData = [
+        {
+          id: 'member-1',
+          list_id: 'list-1',
+          location_id: 1,
+          created_at: '2024-01-01T00:00:00Z',
+          quote: 'A quiet room.',
+          locations: sampleLocation,
+        },
+      ];
+
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            order: vi
+              .fn()
+              .mockResolvedValue({ data: membershipData, error: null }),
+          })),
+        })),
+      });
+
+      const result = await getLocationsForList('list-1');
+
+      expect(result[0].quote).toBe('A quiet room.');
     });
 
     it('should filter out rows with null locations', async () => {

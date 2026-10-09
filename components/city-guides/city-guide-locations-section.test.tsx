@@ -45,7 +45,18 @@ vi.mock('@/lib/api/privy-bearer-client', () => ({
 }));
 
 vi.mock('@/components/city-guides/city-guide-location-card', () => ({
-  CityGuideLocationCard: ({ name }: { name: string }) => <div>{name}</div>,
+  CityGuideLocationCard: ({
+    name,
+    description,
+  }: {
+    name: string;
+    description: string;
+  }) => (
+    <div>
+      <span>{name}</span>
+      <span data-testid={`spot-text-${name}`}>{description}</span>
+    </div>
+  ),
 }));
 
 function section(name: string): CityGuideLocationSection {
@@ -298,6 +309,80 @@ describe('CityGuideLocationsSection', () => {
     act(() => setSentinelIntersecting?.(true));
 
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('shows the list quote, then the spot description, then the address', () => {
+    render(
+      <CityGuideLocationsSection
+        {...baseProps}
+        initialLocationSections={[
+          {
+            heading: null,
+            defaultContributorName: 'Alice',
+            locations: [
+              {
+                membership_id: 1,
+                list_id: 'list',
+                location_id: 1,
+                created_at: '2026-01-01T00:00:00.000Z',
+                quote: '  A quiet room.  ',
+                location: {
+                  id: 1,
+                  place_id: 'standard-time',
+                  name: 'Standard Time',
+                  latitude: 1,
+                  longitude: 2,
+                  description: 'Shared description',
+                  address: '1 Main',
+                },
+              },
+              {
+                membership_id: 2,
+                list_id: 'list',
+                location_id: 2,
+                created_at: '2026-01-01T00:00:00.000Z',
+                quote: '   ',
+                location: {
+                  id: 2,
+                  place_id: 'other',
+                  name: 'Other Spot',
+                  latitude: 1,
+                  longitude: 2,
+                  description: 'Spot description',
+                  address: '2 Main',
+                },
+              },
+              {
+                membership_id: 3,
+                list_id: 'list',
+                location_id: 3,
+                created_at: '2026-01-01T00:00:00.000Z',
+                quote: null,
+                location: {
+                  id: 3,
+                  place_id: 'third',
+                  name: 'Third Spot',
+                  latitude: 1,
+                  longitude: 2,
+                  description: '  ',
+                  address: '3 Main',
+                },
+              },
+            ],
+          } as CityGuideLocationSection,
+        ]}
+      />
+    );
+
+    expect(screen.getByTestId('spot-text-Standard Time')).toHaveTextContent(
+      'A quiet room.'
+    );
+    expect(screen.getByTestId('spot-text-Other Spot')).toHaveTextContent(
+      'Spot description'
+    );
+    expect(screen.getByTestId('spot-text-Third Spot')).toHaveTextContent(
+      '3 Main'
+    );
   });
 
   it('replaces the public slice and closes the modal after authenticated fetch', async () => {

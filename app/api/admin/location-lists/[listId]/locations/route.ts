@@ -1,12 +1,13 @@
-import { NextRequest } from "next/server";
-import { z } from "zod";
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
 import {
   addLocationToList,
   getLocationsForList,
   removeLocationFromList,
-} from "@/lib/db/location-lists";
-import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
-import { getAuthenticatedAdminEmail } from "@/lib/auth";
+  updateLocationListQuote,
+} from '@/lib/db/location-lists';
+import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 const addSchema = z.object({
   locationId: z.coerce.number().int().positive(),
@@ -16,38 +17,43 @@ const removeSchema = z.object({
   locationId: z.coerce.number().int().positive(),
 });
 
+const quoteSchema = z.object({
+  locationId: z.coerce.number().int().positive(),
+  quote: z.string().max(2000),
+});
+
 const isDuplicateError = (error: unknown) =>
-  typeof error === "object" &&
+  typeof error === 'object' &&
   error !== null &&
-  "code" in error &&
-  (error as { code?: string }).code === "23505";
+  'code' in error &&
+  (error as { code?: string }).code === '23505';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { listId: string } },
+  { params }: { params: { listId: string } }
 ) {
   try {
     const adminEmail = await getAuthenticatedAdminEmail(request);
     if (!adminEmail) {
-      return apiError("Unauthorized", 403);
+      return apiError('Unauthorized', 403);
     }
 
     const locations = await getLocationsForList(params.listId);
     return apiSuccess({ locations });
   } catch (error) {
-    console.error("Failed to fetch list locations", error);
-    return apiError("Failed to fetch list locations", 500);
+    console.error('Failed to fetch list locations', error);
+    return apiError('Failed to fetch list locations', 500);
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { listId: string } },
+  { params }: { params: { listId: string } }
 ) {
   try {
     const adminEmail = await getAuthenticatedAdminEmail(request);
     if (!adminEmail) {
-      return apiError("Unauthorized", 403);
+      return apiError('Unauthorized', 403);
     }
 
     const json = await request.json();
@@ -61,37 +67,72 @@ export async function POST(
     }
 
     if (isDuplicateError(error)) {
-      return apiError("Location is already on this list", 409);
+      return apiError('Location is already on this list', 409);
     }
 
-    console.error("Failed to add location to list", error);
-    return apiError("Failed to add location", 500);
+    console.error('Failed to add location to list', error);
+    return apiError('Failed to add location', 500);
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { listId: string } }
+) {
+  try {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
+      return apiError('Unauthorized', 403);
+    }
+
+    const json = await request.json();
+    const { locationId, quote } = quoteSchema.parse(json);
+    const trimmed = quote.trim();
+    const storedQuote = trimmed.length > 0 ? trimmed : null;
+
+    const updated = await updateLocationListQuote(
+      params.listId,
+      locationId,
+      storedQuote
+    );
+    if (!updated) {
+      return apiError('Location is not on this list', 404);
+    }
+
+    return apiSuccess({ locationId, quote: storedQuote });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return apiValidationError(error);
+    }
+
+    console.error('Failed to update list quote', error);
+    return apiError('Failed to update quote', 500);
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { listId: string } },
+  { params }: { params: { listId: string } }
 ) {
   try {
     const adminEmail = await getAuthenticatedAdminEmail(request);
     if (!adminEmail) {
-      return apiError("Unauthorized", 403);
+      return apiError('Unauthorized', 403);
     }
 
     const { searchParams } = new URL(request.url);
     const parsed = removeSchema.safeParse({
-      locationId: searchParams.get("locationId"),
+      locationId: searchParams.get('locationId'),
     });
 
     if (!parsed.success) {
-      return apiError("locationId is required", 400);
+      return apiError('locationId is required', 400);
     }
 
     await removeLocationFromList(params.listId, parsed.data.locationId);
     return apiSuccess({ deleted: true });
   } catch (error) {
-    console.error("Failed to remove location from list", error);
-    return apiError("Failed to remove location", 500);
+    console.error('Failed to remove location from list', error);
+    return apiError('Failed to remove location', 500);
   }
 }

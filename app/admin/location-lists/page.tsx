@@ -79,6 +79,51 @@ const updateListSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+const MAX_LIST_QUOTE_LENGTH = 2000;
+
+function AssignedLocationQuote({
+  locationId,
+  quote,
+  isSaving,
+  onSave,
+}: {
+  locationId: number;
+  quote: string | null;
+  isSaving: boolean;
+  onSave: (quote: string) => void;
+}) {
+  const [draft, setDraft] = useState(quote ?? '');
+
+  useEffect(() => {
+    setDraft(quote ?? '');
+  }, [quote]);
+
+  const isUnchanged = draft.trim() === (quote ?? '').trim();
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={`list-quote-${locationId}`}>Quote</Label>
+      <Textarea
+        id={`list-quote-${locationId}`}
+        value={draft}
+        maxLength={MAX_LIST_QUOTE_LENGTH}
+        rows={3}
+        placeholder="Contributor quote for this list. Leave empty to use the spot description."
+        onChange={(event) => setDraft(event.target.value)}
+      />
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={isSaving || isUnchanged}
+        onClick={() => onSave(draft)}
+      >
+        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save quote'}
+      </Button>
+    </div>
+  );
+}
+
 const assignmentSchema = z.object({
   locationId: z.coerce.number().int().positive(),
 });
@@ -603,6 +648,56 @@ export default function AdminLocationListsPage() {
     },
     onSettled: () => {
       setRemovalTarget(null);
+    },
+  });
+
+  const [quoteSaveTarget, setQuoteSaveTarget] = useState<number | null>(null);
+  const updateQuoteMutation = useMutation({
+    mutationFn: async ({
+      listId,
+      locationId,
+      quote,
+    }: {
+      listId: string;
+      locationId: number;
+      quote: string;
+    }) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(
+        `/api/admin/location-lists/${listId}/locations`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...auth,
+          },
+          body: JSON.stringify({ locationId, quote }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.error || 'Failed to update quote');
+      }
+
+      return response.json();
+    },
+    onMutate: ({ locationId }) => {
+      setQuoteSaveTarget(locationId);
+    },
+    onSuccess: () => {
+      if (selectedListId) {
+        queryClient.invalidateQueries({
+          queryKey: LIST_LOCATIONS_KEY(selectedListId),
+        });
+      }
+      toast.success('Quote saved');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Unable to save quote');
+    },
+    onSettled: () => {
+      setQuoteSaveTarget(null);
     },
   });
 
@@ -1445,6 +1540,18 @@ export default function AdminLocationListsPage() {
                               </Button>
                             </div>
                           </div>
+                          <AssignedLocationQuote
+                            locationId={item.location_id}
+                            quote={item.quote}
+                            isSaving={quoteSaveTarget === item.location_id}
+                            onSave={(quote) =>
+                              updateQuoteMutation.mutate({
+                                listId: selectedList.id,
+                                locationId: item.location_id,
+                                quote,
+                              })
+                            }
+                          />
                         </div>
                       ))}
                     </div>
