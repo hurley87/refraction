@@ -122,7 +122,7 @@ function IosHomeScreenSteps() {
         <li className="flex gap-2">
           <span className="font-semibold">2.</span>
           <span>
-            Scroll down and pick{' '}
+            Click View More at the bottom of the screen, then scroll down and pick{' '}
             <span className="font-semibold">Add to Home Screen</span>
           </span>
         </li>
