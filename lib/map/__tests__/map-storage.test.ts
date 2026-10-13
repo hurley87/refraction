@@ -9,6 +9,10 @@ import {
 } from '../map-storage';
 
 describe('getWelcomeTourStorageKey', () => {
+  it('uses a new key so members who finished the previous tour see it again', () => {
+    expect(WELCOME_TOUR_STORAGE_KEY).toBe('irl-map-welcome-tour-v5');
+  });
+
   it('scopes by wallet when provided', () => {
     expect(getWelcomeTourStorageKey('0xabc')).toBe(
       `${WELCOME_TOUR_STORAGE_KEY}:0xabc`

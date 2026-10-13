@@ -1,4 +1,4 @@
-export const WELCOME_TOUR_STORAGE_KEY = 'irl-map-welcome-tour-v4';
+export const WELCOME_TOUR_STORAGE_KEY = 'irl-map-welcome-tour-v5';
 export const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
 /** Shown once after a member creates their first custom list from the map. */
