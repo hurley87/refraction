@@ -53,6 +53,8 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [imageUrl],
     },
     appleWebApp: {
+      capable: true,
+      title: 'IRL',
       statusBarStyle: 'black-translucent', // Options: "default", "black", "black-translucent"
     },
     other: {

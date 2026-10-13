@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { trackMapTourStep, type MapTourStepId } from '@/lib/analytics/map-tour';
 import { cn } from '@/lib/utils';
 
-export type MapWelcomeTourStep = 'page1' | 'page2' | 'page3';
+export type MapWelcomeTourStep = 'page1' | 'page2' | 'page3' | 'page4';
 
 type MapWelcomeTourProps = {
   open: boolean;
@@ -13,13 +13,61 @@ type MapWelcomeTourProps = {
   className?: string;
 };
 
-const TOUR_STEPS: MapWelcomeTourStep[] = ['page1', 'page2', 'page3'];
+const DESKTOP_TOUR_STEPS: MapWelcomeTourStep[] = ['page1', 'page2', 'page3'];
+const MOBILE_TOUR_STEPS: MapWelcomeTourStep[] = [
+  'page1',
+  'page2',
+  'page3',
+  'page4',
+];
+
+/** Matches Tailwind `md` (768px). Page 4 is phones only. */
+const MOBILE_TOUR_MEDIA_QUERY = '(max-width: 767px)';
 
 const SLIDE_STEP: Record<MapWelcomeTourStep, MapTourStepId> = {
   page1: 'slide_1',
   page2: 'slide_2',
   page3: 'slide_3',
+  page4: 'slide_4',
 };
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+};
+
+function readMobileTourViewport(): boolean {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.matchMedia !== 'function'
+  ) {
+    return false;
+  }
+  return window.matchMedia(MOBILE_TOUR_MEDIA_QUERY).matches;
+}
+
+function isRunningAsInstalledApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const standaloneDisplay =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(display-mode: standalone)').matches;
+  const iosStandalone =
+    'standalone' in navigator &&
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return standaloneDisplay || iosStandalone;
+}
+
+/** Safari has no install API. Other browsers fall back to the menu. */
+function homeScreenInstallInstructions(): string {
+  const ua = navigator.userAgent;
+  const ios =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ios) {
+    return 'Tap the Share button in Safari, then tap Add to Home Screen.';
+  }
+  return 'Open your browser menu, then tap Install app or Add to Home screen.';
+}
 
 /** Full-bleed on mobile; 393px centered rail on md+ until a desktop tour exists. */
 const TOUR_FRAME_CLASS =
@@ -257,6 +305,132 @@ function Page3Step({ onContinue }: { onContinue: () => void }) {
   );
 }
 
+function TourCloseButton({ onClose }: { onClose: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClose();
+      }}
+      className="pointer-events-auto absolute right-2 top-2 z-50 flex size-10 shrink-0 items-center justify-center rounded-[179px] border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90"
+      aria-label="Skip tour"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={24}
+        height={24}
+        viewBox="0 0 24 24"
+        fill="none"
+        className="size-6 shrink-0 aspect-square"
+        aria-hidden
+      >
+        <path
+          d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+          fill="#757575"
+        />
+      </svg>
+    </button>
+  );
+}
+
+/**
+ * Get Started slide. Phones only. START NOW finishes the tour.
+ * Add to Home Screen installs when the browser offers a prompt, otherwise
+ * it shows the manual steps and leaves the tour open.
+ */
+function Page4Step({
+  onContinue,
+  onClose,
+  isInstalled,
+  installHelp,
+  onAddToHomeScreen,
+}: {
+  onContinue: () => void;
+  onClose: () => void;
+  isInstalled: boolean;
+  installHelp: string | null;
+  onAddToHomeScreen: () => void;
+}) {
+  return (
+    <div className={cn(TOUR_STEP_SHELL_CLASS, 'cursor-default')}>
+      <TourCloseButton onClose={onClose} />
+      <Image
+        src="/map/tour/tour-page4.png"
+        alt=""
+        fill
+        priority
+        sizes="393px"
+        className="object-cover object-center"
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-1/2 overflow-hidden short:top-[34%]"
+        aria-hidden
+      >
+        <div className="absolute inset-x-0 bottom-0 h-dvh w-full">
+          <Image
+            src="/map/tour/tour-page4.png"
+            alt=""
+            fill
+            priority
+            sizes="393px"
+            className="object-cover object-center blur-[2px]"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/70" />
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 top-1/2 z-10 flex flex-col items-center overflow-y-auto px-2 pb-[max(1rem,env(safe-area-inset-bottom))] short:top-[34%] short:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex w-[361px] max-w-full flex-col items-stretch gap-4 short:gap-2">
+          <div className="flex flex-col items-start self-start">
+            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal uppercase leading-[64px] tracking-[-4px] text-[#181818] short:text-[44px] short:leading-[48px] short:tracking-[-3px]'>
+              GET
+            </span>
+            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal uppercase leading-[64px] tracking-[-4px] text-[#181818] short:text-[44px] short:leading-[48px] short:tracking-[-3px]'>
+              STARTED
+            </span>
+          </div>
+
+          {installHelp ? (
+            <p
+              role="status"
+              className="title3 max-w-[75%] text-left text-white short:max-w-[85%]"
+            >
+              {installHelp}
+            </p>
+          ) : (
+            <p className="title3 max-w-[75%] text-left text-white short:max-w-[85%]">
+              Discover cool spots, check-in, and curate your own lists to share
+              with your circle.
+            </p>
+          )}
+        </div>
+
+        <div className="mt-auto flex w-[361px] max-w-full shrink-0 flex-col gap-3 pt-4 short:gap-2 short:pt-3">
+          {isInstalled ? null : (
+            <button
+              type="button"
+              onClick={onAddToHomeScreen}
+              className="flex min-h-11 w-full items-center justify-center bg-[var(--Brand-Colors-Yellow,#FFF200)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] transition-opacity hover:opacity-90"
+            >
+              <span className="label-large uppercase text-[#171717]">
+                Add to Home Screen
+              </span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onContinue}
+            className="flex min-h-11 w-full items-center justify-center gap-[var(--sds-size-space-400)] bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] transition-colors hover:bg-black"
+          >
+            <span className="label-large uppercase text-white">Start Now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Sequential map welcome tour overlay.
  * Full device width on mobile; 393px centered rail on md+.
@@ -267,6 +441,47 @@ export function MapWelcomeTour({
   className,
 }: MapWelcomeTourProps) {
   const [stepIndex, setStepIndex] = useState(0);
+  const [isMobileTour, setIsMobileTour] = useState(readMobileTourViewport);
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [installHelp, setInstallHelp] = useState<string | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const openRef = useRef(open);
+  openRef.current = open;
+
+  const tourSteps = isMobileTour ? MOBILE_TOUR_STEPS : DESKTOP_TOUR_STEPS;
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia(MOBILE_TOUR_MEDIA_QUERY);
+    const update = () => setIsMobileTour(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    setIsInstalled(isRunningAsInstalledApp());
+
+    const onPrompt = (event: Event) => {
+      // Only take over the prompt while the phone tour can show the button.
+      if (!openRef.current || !readMobileTourViewport()) return;
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const onInstalled = () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
+  }, []);
 
   useEffect(() => {
     if (open) setStepIndex(0);
@@ -274,21 +489,40 @@ export function MapWelcomeTour({
 
   useEffect(() => {
     if (!open) return;
-    const step = TOUR_STEPS[stepIndex] ?? 'page1';
+    if (stepIndex >= tourSteps.length) {
+      onCompleteRef.current();
+    }
+  }, [open, stepIndex, tourSteps.length]);
+
+  useEffect(() => {
+    if (!open || stepIndex >= tourSteps.length) return;
+    const step = tourSteps[stepIndex];
     trackMapTourStep(SLIDE_STEP[step]);
-  }, [open, stepIndex]);
+  }, [open, stepIndex, tourSteps]);
 
-  if (!open) return null;
+  if (!open || stepIndex >= tourSteps.length) return null;
 
-  const step = TOUR_STEPS[stepIndex] ?? 'page1';
+  const step = tourSteps[stepIndex];
 
   const advance = () => {
     const next = stepIndex + 1;
-    if (next >= TOUR_STEPS.length) {
+    if (next >= tourSteps.length) {
       onComplete();
       return;
     }
     setStepIndex(next);
+  };
+
+  const handleAddToHomeScreen = () => {
+    if (!installPrompt) {
+      setInstallHelp(homeScreenInstallInstructions());
+      return;
+    }
+    const prompt = installPrompt;
+    setInstallPrompt(null);
+    void prompt.prompt().catch(() => {
+      setInstallHelp(homeScreenInstallInstructions());
+    });
   };
 
   return (
@@ -313,6 +547,15 @@ export function MapWelcomeTour({
         {step === 'page1' ? <Page1Step onContinue={advance} /> : null}
         {step === 'page2' ? <Page2Step onContinue={advance} /> : null}
         {step === 'page3' ? <Page3Step onContinue={advance} /> : null}
+        {step === 'page4' ? (
+          <Page4Step
+            onContinue={advance}
+            onClose={onComplete}
+            isInstalled={isInstalled}
+            installHelp={installHelp}
+            onAddToHomeScreen={handleAddToHomeScreen}
+          />
+        ) : null}
       </div>
     </div>
   );
