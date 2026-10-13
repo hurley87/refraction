@@ -57,16 +57,78 @@ function isRunningAsInstalledApp(): boolean {
   return standaloneDisplay || iosStandalone;
 }
 
-/** Safari has no install API. Other browsers fall back to the menu. */
-function homeScreenInstallInstructions(): string {
+function isIosDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
-  const ios =
+  return (
     /iPad|iPhone|iPod/.test(ua) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (ios) {
-    return 'Tap the Share button in Safari, then tap Add to Home Screen.';
-  }
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
+/** Browsers without an install prompt fall back to the menu. */
+function homeScreenInstallInstructions(): string {
   return 'Open your browser menu, then tap Install app or Add to Home screen.';
+}
+
+function SafariShareIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="mx-0.5 inline-block size-4 shrink-0 align-[-3px]"
+      aria-label="Share"
+      role="img"
+    >
+      <path
+        d="M12 3v11"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.5 7.5 12 3l4.5 4.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 11.5V18a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** iPhone has no install API, so the steps stay on the slide. */
+function IosHomeScreenSteps() {
+  return (
+    <div className="w-full rounded-2xl border border-white/30 bg-black/60 px-4 py-3 text-left text-white">
+      <p className="text-base font-semibold leading-tight">
+        Put IRL on your home screen
+      </p>
+      <ol className="mt-2.5 space-y-1.5 text-sm leading-snug">
+        <li className="flex gap-2">
+          <span className="font-semibold">1.</span>
+          <span>
+            Tap <SafariShareIcon /> in the browser bar
+          </span>
+        </li>
+        <li className="flex gap-2">
+          <span className="font-semibold">2.</span>
+          <span>
+            Scroll down and pick{' '}
+            <span className="font-semibold">Add to Home Screen</span>
+          </span>
+        </li>
+      </ol>
+    </div>
+  );
 }
 
 /** Full-bleed on mobile; 393px centered rail on md+ until a desktop tour exists. */
@@ -343,12 +405,14 @@ function Page4Step({
   onContinue,
   onClose,
   isInstalled,
+  isIos,
   installHelp,
   onAddToHomeScreen,
 }: {
   onContinue: () => void;
   onClose: () => void;
   isInstalled: boolean;
+  isIos: boolean;
   installHelp: string | null;
   onAddToHomeScreen: () => void;
 }) {
@@ -364,7 +428,7 @@ function Page4Step({
         className="object-cover object-center"
       />
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 top-1/2 overflow-hidden short:top-[34%]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-[30%] overflow-hidden"
         aria-hidden
       >
         <div className="absolute inset-x-0 bottom-0 h-dvh w-full">
@@ -380,18 +444,18 @@ function Page4Step({
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/70" />
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 top-1/2 z-10 flex flex-col items-center overflow-y-auto px-2 pb-[max(1rem,env(safe-area-inset-bottom))] short:top-[34%] short:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="flex w-[361px] max-w-full flex-col items-stretch gap-4 short:gap-2">
+      <div className="absolute inset-x-0 bottom-0 top-14 z-10 flex flex-col items-center justify-end overflow-hidden px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="flex w-[361px] max-w-full flex-col items-stretch gap-3 short:gap-2">
           <div className="flex flex-col items-start self-start">
-            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal uppercase leading-[64px] tracking-[-4px] text-[#181818] short:text-[44px] short:leading-[48px] short:tracking-[-3px]'>
+            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[52px] font-normal uppercase leading-[54px] tracking-[-3px] text-[#181818] short:text-[40px] short:leading-[42px] short:tracking-[-2px]'>
               GET
             </span>
-            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal uppercase leading-[64px] tracking-[-4px] text-[#181818] short:text-[44px] short:leading-[48px] short:tracking-[-3px]'>
+            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[52px] font-normal uppercase leading-[54px] tracking-[-3px] text-[#181818] short:text-[40px] short:leading-[42px] short:tracking-[-2px]'>
               STARTED
             </span>
           </div>
 
-          {installHelp ? (
+          {installHelp && !isIos ? (
             <p
               role="status"
               className="title3 max-w-[75%] text-left text-white short:max-w-[85%]"
@@ -406,8 +470,9 @@ function Page4Step({
           )}
         </div>
 
-        <div className="mt-auto flex w-[361px] max-w-full shrink-0 flex-col gap-3 pt-4 short:gap-2 short:pt-3">
-          {isInstalled ? null : (
+        <div className="flex w-[361px] max-w-full shrink-0 flex-col gap-3 short:gap-2">
+          {isIos && !isInstalled ? <IosHomeScreenSteps /> : null}
+          {isInstalled || isIos ? null : (
             <button
               type="button"
               onClick={onAddToHomeScreen}
@@ -552,6 +617,7 @@ export function MapWelcomeTour({
             onContinue={advance}
             onClose={onComplete}
             isInstalled={isInstalled}
+            isIos={isIosDevice()}
             installHelp={installHelp}
             onAddToHomeScreen={handleAddToHomeScreen}
           />

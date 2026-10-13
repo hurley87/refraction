@@ -100,7 +100,7 @@ describe('MapWelcomeTour page 4', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('shows Safari steps on iPhone when no install prompt exists', async () => {
+  it('shows the two Safari steps on iPhone instead of an install button', async () => {
     installMatchMedia(true);
     vi.stubGlobal('navigator', {
       ...navigator,
@@ -113,13 +113,17 @@ describe('MapWelcomeTour page 4', () => {
     render(<MapWelcomeTour open onComplete={vi.fn()} />);
 
     await advanceToLastSharedSlide(user);
-    await user.click(
-      screen.getByRole('button', { name: /add to home screen/i })
-    );
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Tap the Share button in Safari, then tap Add to Home Screen.'
-    );
+    expect(screen.getByText('Put IRL on your home screen')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Share' })).toBeInTheDocument();
+    expect(screen.getByText(/in the browser bar/i)).toBeInTheDocument();
+    expect(screen.getByText(/scroll down and pick/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /add to home screen/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /start now/i })
+    ).toBeInTheDocument();
   });
 
   it('hides Add to Home Screen when the app is already installed', async () => {
