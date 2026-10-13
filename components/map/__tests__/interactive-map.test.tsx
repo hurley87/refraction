@@ -52,13 +52,37 @@ vi.mock('@/components/shared/location-search', () => ({
 vi.mock('@/components/location-lists-drawer', () => ({
   default: ({
     initialCuratedListId,
+    onLocationFocus,
   }: {
     initialCuratedListId?: string | null;
+    onLocationFocus?: (location: {
+      id: number;
+      name: string;
+      address: string;
+      latitude: number;
+      longitude: number;
+      place_id: string;
+    }) => void;
   }) => (
     <div data-testid="location-lists-drawer">
       {initialCuratedListId ? (
         <span data-testid="curated-list-focus">{initialCuratedListId}</span>
       ) : null}
+      <button
+        type="button"
+        onClick={() =>
+          onLocationFocus?.({
+            id: 1,
+            name: 'Test Location',
+            address: '123 Test St, New York, NY',
+            latitude: 40.7128,
+            longitude: -74.006,
+            place_id: 'place-test-1',
+          })
+        }
+      >
+        Focus list thumbnail
+      </button>
     </div>
   ),
 }));
@@ -391,6 +415,22 @@ describe('InteractiveMap characterization', () => {
       screen.getByRole('heading', { name: 'Test Location' })
     ).toBeInTheDocument();
     expect(screen.queryByTestId('add-to-list-drawer')).not.toBeInTheDocument();
+  });
+
+  it('opens the check-in dialog when a list thumbnail is focused', async () => {
+    const user = userEvent.setup();
+    renderMap();
+
+    await screen.findByRole('button', { name: 'Marker at Test Location' });
+    const [thumbnail] = screen.getAllByRole('button', {
+      name: 'Focus list thumbnail',
+    });
+    await user.click(thumbnail);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Test Location' })
+    ).toBeInTheDocument();
   });
 
   it('labels the save button Saved to a list when the spot is already saved', async () => {

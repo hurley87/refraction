@@ -221,38 +221,40 @@ export function LocationCheckInDialog({
               <>
                 {checkInTarget && (
                   <div className="flex w-full shrink-0 flex-col items-start gap-0 self-stretch px-4 pb-0 pt-0">
-                    <div
-                      role="radiogroup"
-                      aria-label="Have you been here?"
-                      className="flex items-center gap-2 pt-4"
-                    >
-                      {statusChoices.map(({ value, label, Icon }) => {
-                        const isOn = savedStatus === value;
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            role="radio"
-                            aria-label={label}
-                            aria-checked={isOn}
-                            disabled={isSavingStatus}
-                            onClick={() => void handleSelectVisitStatus(value)}
-                            className={cn(
-                              'flex size-8 items-center justify-center rounded-full border',
-                              isOn
-                                ? 'border-[#171717] bg-[#171717] text-white'
-                                : 'border-[#DBDBDB] bg-white text-[#171717]'
-                            )}
-                          >
-                            <Icon className="size-4 shrink-0" aria-hidden />
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="flex w-full items-center bg-[#ffffff] pb-4 pt-4">
+                    <div className="flex w-full items-center gap-3 bg-[#ffffff] pb-4 pt-4">
                       <h3 className="min-w-0 flex-1 line-clamp-1 leading-tight tracking-[-0.3px] text-[#1a1a1a]">
                         {checkInTarget.name || 'Selected Location'}
                       </h3>
+                      <div
+                        role="radiogroup"
+                        aria-label="Have you been here?"
+                        className="flex shrink-0 items-center gap-2"
+                      >
+                        {statusChoices.map(({ value, label, Icon }) => {
+                          const isOn = savedStatus === value;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              role="radio"
+                              aria-label={label}
+                              aria-checked={isOn}
+                              disabled={isSavingStatus}
+                              onClick={() =>
+                                void handleSelectVisitStatus(value)
+                              }
+                              className={cn(
+                                'flex size-8 items-center justify-center rounded-full border shadow-[0_2px_8px_0_rgba(0,0,0,0.18)] transition-shadow hover:shadow-[0_3px_12px_0_rgba(0,0,0,0.24)] active:shadow-[0_1px_4px_0_rgba(0,0,0,0.18)]',
+                                isOn
+                                  ? 'border-[#171717] bg-[#171717] text-white'
+                                  : 'border-[#DBDBDB] bg-white text-[#171717]'
+                              )}
+                            >
+                              <Icon className="size-4 shrink-0" aria-hidden />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                     <div
                       className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.category) ? 'justify-between' : 'justify-end'}`}
