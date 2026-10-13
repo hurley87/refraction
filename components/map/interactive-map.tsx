@@ -1586,27 +1586,30 @@ export default function InteractiveMap({
       ? markers.find((marker) => marker.place_id === location.place_id)
       : null;
 
-    if (matchedMarker) {
-      setPopupInfo(matchedMarker);
-      setSelectedMarker(matchedMarker);
-    } else {
-      setPopupInfo({
-        latitude: lat,
-        longitude: lon,
-        place_id:
-          location.place_id ||
-          (location.id !== undefined
-            ? `list-${location.id}`
-            : `list-${Date.now()}`),
-        name: location.name,
-        imageUrl: location.coin_image_url ?? null,
-        imageThumbUrl: location.coin_image_thumb_url ?? null,
-        creator_wallet_address: null,
-        creator_username: null,
-        category: location.category ?? null,
-        event_url: location.event_url ?? null,
-      });
-    }
+    const marker: MarkerData = matchedMarker ?? {
+      latitude: lat,
+      longitude: lon,
+      place_id:
+        location.place_id ||
+        (location.id !== undefined
+          ? `list-${location.id}`
+          : `list-${Date.now()}`),
+      name: location.name,
+      address: location.address ?? null,
+      description: location.description ?? null,
+      imageUrl: location.coin_image_url ?? null,
+      imageThumbUrl: location.coin_image_thumb_url ?? null,
+      creator_wallet_address: null,
+      creator_username: null,
+      category: location.category ?? null,
+      event_url: location.event_url ?? null,
+      points_value: location.points_value ?? null,
+    };
+
+    // Open the check-in sheet, then keep the spot selected so the lists drawer stays collapsed.
+    openCheckInForMarker(marker);
+    setPopupInfo(marker);
+    setSelectedMarker(marker);
   };
 
   const isDrawerMinimized = Boolean(
