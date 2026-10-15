@@ -135,6 +135,9 @@ export default function InteractiveMap({
     null
   );
   const [savePointsTip, setSavePointsTip] = useState<number | null>(null);
+  /** First save awarded points; the profile tip waits until that pointer is dismissed. */
+  const savePointsAwardedRef = useRef(false);
+  const profileTipAfterPointsRef = useRef(false);
   /** Keep the marker for create-handoff even if add-to-list state clears mid-await. */
   const addToListTargetRef = useRef<MarkerData | null>(null);
   addToListTargetRef.current = addToListTarget;
@@ -142,6 +145,11 @@ export default function InteractiveMap({
   const [focusCustomListId, setFocusCustomListId] = useState<string | null>(
     null
   );
+  /**
+   * Pointer 2 re-selects the spot so add-to-list can stay open. That selection
+   * normally minimizes the lists drawer; keep the expanded sheet through this step.
+   */
+  const [keepListsDrawerExpanded, setKeepListsDrawerExpanded] = useState(false);
   // Close the ADD TO LIST drawer whenever its map card goes away.
   useEffect(() => {
     if (!popupInfo) setAddToListTarget(null);
@@ -281,7 +289,6 @@ export default function InteractiveMap({
 
   const handleListCreated = useCallback(() => {
     const createdFromMarker = addToListTargetRef.current ?? addToListTarget;
-    setAddToListTarget(null);
     setFocusCustomListId(null);
     dismissCreateListTourTip();
 
@@ -290,11 +297,13 @@ export default function InteractiveMap({
       return;
     }
 
-    // Stay on the location that started save-to-list so the profile tip
-    // is visible on the map card.
-    setPopupInfo(createdFromMarker);
-    setSelectedMarker(createdFromMarker);
-    setShowListCreateMapTip(true);
+    // The drawer returns to the location dialog. Show the profile tip after
+    // the points pointer, or immediately when this save awarded no points.
+    if (savePointsAwardedRef.current) {
+      profileTipAfterPointsRef.current = true;
+    } else {
+      setShowListCreateMapTip(true);
+    }
   }, [addToListTarget, dismissCreateListTourTip, setShowListCreateMapTip]);
 
   // When initial coords are provided (e.g. from ?city= or ?lat=&lng=), center the map on them.
@@ -597,9 +606,13 @@ export default function InteractiveMap({
       setLocationCheckinsError(null);
       setHasUserCheckedInAtLocation(false);
       setSavedVisitStatus(null);
+      if (pendingSaveToListTourTipRef.current) {
+        pendingSaveToListTourTipRef.current = false;
+        setShowSaveToListTourTip(true);
+      }
       setShowCheckInModal(true);
     },
-    [walletAddress]
+    [walletAddress, setShowSaveToListTourTip]
   );
 
   // Handle deep link to specific location via placeId or placeName URL param
@@ -931,10 +944,6 @@ export default function InteractiveMap({
     }
 
     if (matchedMarker) {
-      if (followFromSearchTour && walletAddress) {
-        pendingSaveToListTourTipRef.current = false;
-        setShowSaveToListTourTip(true);
-      }
       openCheckInForMarker(matchedMarker);
       return;
     }
@@ -1095,6 +1104,10 @@ export default function InteractiveMap({
     setSavedVisitStatus(null);
     setPopupInfo(null);
     setPendingMapCreateMarker(null);
+    savePointsAwardedRef.current = false;
+    profileTipAfterPointsRef.current = false;
+    setSavePointsTip(null);
+    dismissListCreateMapTip();
   };
 
   /** Throws after toasting when the save fails so callers can revert. */
@@ -1612,14 +1625,11 @@ export default function InteractiveMap({
     setSelectedMarker(marker);
   };
 
-  const isDrawerMinimized = Boolean(
-    pendingMapCreateMarker || showLocationForm || showListCreateMapTip
-  );
+  const isDrawerMinimized = Boolean(pendingMapCreateMarker || showLocationForm);
   const isMobileDrawerCollapsed = Boolean(
     pendingMapCreateMarker ||
-    popupInfo ||
-    showLocationForm ||
-    showListCreateMapTip
+    (popupInfo && !keepListsDrawerExpanded) ||
+    showLocationForm
   );
   const [isListDetailOpen, setIsListDetailOpen] = useState(false);
   const [mobileSheetLayout, setMobileSheetLayout] =
@@ -1667,7 +1677,7 @@ export default function InteractiveMap({
    * Desktop (xl): centered panel beside the lists rail.
    */
   const checkInModalShellClassName = cn(
-    'fixed inset-x-0 bottom-0 z-[80] flex h-auto max-h-[92dvh] w-full max-w-none flex-col gap-0 overflow-hidden rounded-t-2xl border-none bg-transparent p-0 shadow-none',
+    'fixed inset-x-0 bottom-0 z-[80] flex h-auto max-h-[92dvh] w-full max-w-none flex-col gap-0 overflow-visible rounded-t-2xl border-none bg-transparent p-0 shadow-none',
     'xl:bottom-0 xl:top-0 xl:h-auto xl:w-auto xl:max-h-none xl:items-center xl:justify-center xl:rounded-none xl:data-[state=closed]:slide-out-to-bottom-0 xl:data-[state=open]:slide-in-from-bottom-0',
     desktopMapPanelInsetClassName
   );
@@ -1679,7 +1689,7 @@ export default function InteractiveMap({
   );
 
   const checkInModalPanelClassName = cn(
-    'flex min-h-0 w-full max-w-none flex-col overflow-hidden rounded-t-2xl bg-white pt-0',
+    'flex min-h-0 w-full max-w-none flex-col overflow-visible rounded-t-2xl bg-white pt-0',
     checkInSuccess ? 'h-[92dvh] pb-0' : 'max-h-[92dvh] pb-2',
     'xl:mx-0 xl:flex xl:h-[954px] xl:max-h-[calc(100dvh-90px)] xl:w-[505px] xl:max-w-[505px] xl:shrink-0 xl:flex-col xl:items-center xl:justify-center xl:rounded-none'
   );
@@ -1986,12 +1996,14 @@ export default function InteractiveMap({
               onClose={() => {
                 dismissCreateListTourTip();
                 setAddToListTarget(null);
+                setKeepListsDrawerExpanded(false);
               }}
               onReturnToCheckIn={() => {
                 const target = addToListTarget;
                 if (!target) return;
                 setShowLocationForm(false);
                 setPendingMapCreateMarker(null);
+                setKeepListsDrawerExpanded(false);
                 setPopupInfo(null);
                 setSelectedMarker(target);
                 setAddToListTarget(null);
@@ -2000,7 +2012,10 @@ export default function InteractiveMap({
                 setShowCheckInModal(true);
               }}
               onSaved={({ pointsEarned }) => {
-                if (pointsEarned > 0) setSavePointsTip(pointsEarned);
+                if (pointsEarned > 0) {
+                  savePointsAwardedRef.current = true;
+                  setSavePointsTip(pointsEarned);
+                }
               }}
               onListCreated={handleListCreated}
               createListTip={
@@ -2020,37 +2035,6 @@ export default function InteractiveMap({
           </div>
         </div>
       )}
-
-      {showListCreateMapTip && !addToListTarget ? (
-        <div className={mapCardBottomOverlayClassName}>
-          <div className="pointer-events-auto w-full max-w-[361px]">
-            <MapYellowTip onDismiss={dismissListCreateMapTip}>
-              You&apos;re in!{' '}
-              <Link
-                href="/dashboard"
-                className="underline underline-offset-2"
-                onClick={() => dismissListCreateMapTip()}
-              >
-                Go to your profile
-              </Link>{' '}
-              to view your lists
-            </MapYellowTip>
-          </div>
-        </div>
-      ) : null}
-
-      {savePointsTip != null && !addToListTarget ? (
-        <div className={mapCardBottomOverlayClassName}>
-          <div className="pointer-events-auto w-full max-w-[361px]">
-            <MapYellowTip
-              pointer="top"
-              onDismiss={() => setSavePointsTip(null)}
-            >
-              You earned {savePointsTip} PTS for saving a spot to a list
-            </MapYellowTip>
-          </div>
-        </div>
-      ) : null}
 
       {pendingMapCreateMarker && !popupInfo && (
         <div className={mapCardBottomOverlayClassName}>
@@ -2088,6 +2072,42 @@ export default function InteractiveMap({
         locationCheckinsError={locationCheckinsError}
         savedVisitStatus={savedVisitStatus}
         savedToList={savedToList}
+        postSaveTip={
+          savePointsTip != null ? (
+            <MapYellowTip
+              className="absolute bottom-full left-0 z-30 mb-2.5 w-[min(18rem,calc(100vw-2rem))]"
+              pointer="bottom"
+              pointerAlign="start"
+              onDismiss={() => {
+                savePointsAwardedRef.current = false;
+                setSavePointsTip(null);
+                if (profileTipAfterPointsRef.current) {
+                  profileTipAfterPointsRef.current = false;
+                  setShowListCreateMapTip(true);
+                }
+              }}
+            >
+              You earned {savePointsTip} PTS for saving a spot to a list
+            </MapYellowTip>
+          ) : showListCreateMapTip ? (
+            <MapYellowTip
+              className="absolute bottom-full left-0 z-30 mb-2.5 w-[min(20rem,calc(100vw-2rem))]"
+              pointer="bottom"
+              pointerAlign="start"
+              onDismiss={dismissListCreateMapTip}
+            >
+              You&apos;re in!{' '}
+              <Link
+                href="/dashboard"
+                className="underline underline-offset-2"
+                onClick={() => dismissListCreateMapTip()}
+              >
+                Go to your profile
+              </Link>{' '}
+              to view your lists
+            </MapYellowTip>
+          ) : null
+        }
         onSelectVisitStatus={async (visitStatus) => {
           if (!checkInTarget) return;
           await saveVisitStatus(checkInTarget, visitStatus);
@@ -2108,6 +2128,7 @@ export default function InteractiveMap({
           if (!checkInTarget) return;
           if (showSaveToListTourTip) {
             setShowCreateListTourTip(true);
+            setKeepListsDrawerExpanded(true);
           }
           postTourFirstSearchTipRef.current = false;
           handleDismissSaveToListTourTip();

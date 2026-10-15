@@ -107,4 +107,41 @@ describe('LocationCheckInDialog save-to-list tour tip', () => {
     );
     expect(screen.getByText('ada')).toBeInTheDocument();
   });
+
+  it('shows the points pointer above the footer after a list save', () => {
+    render(
+      <LocationCheckInDialog
+        open
+        onClose={vi.fn()}
+        overlayClassName=""
+        shellClassName=""
+        panelClassName=""
+        checkInSuccess={false}
+        checkInTarget={target}
+        isCheckingIn={false}
+        checkInPointsEarned={0}
+        checkInTotalPoints={0}
+        savedVisitStatus={null}
+        onSelectVisitStatus={vi.fn(async () => undefined)}
+        onSaveToList={vi.fn()}
+        postSaveTip={
+          <MapYellowTip
+            pointer="bottom"
+            pointerAlign="start"
+            onDismiss={vi.fn()}
+          >
+            You earned 100 PTS for saving a spot to a list
+          </MapYellowTip>
+        }
+      />
+    );
+
+    expect(
+      screen.getByText('You earned 100 PTS for saving a spot to a list')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('map-yellow-tip-pointer')).toHaveAttribute(
+      'data-pointer',
+      'bottom'
+    );
+  });
 });

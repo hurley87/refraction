@@ -443,6 +443,7 @@ describe('AddToListDrawer create flow', () => {
 
   it('adds the spot and hands off when onListCreated is provided', async () => {
     const onClose = vi.fn();
+    const onReturnToCheckIn = vi.fn();
     const onListCreated = vi.fn();
     const fetchMock = vi
       .spyOn(global, 'fetch')
@@ -476,7 +477,7 @@ describe('AddToListDrawer create flow', () => {
       });
 
     const user = userEvent.setup();
-    renderDrawer({ onClose, onListCreated });
+    renderDrawer({ onClose, onReturnToCheckIn, onListCreated });
 
     await user.click(
       screen.getByRole('button', { name: /new collection|create new list/i })
@@ -492,7 +493,8 @@ describe('AddToListDrawer create flow', () => {
       expect(onListCreated).toHaveBeenCalledWith('list-1', {
         isFirstList: true,
       });
-      expect(onClose).toHaveBeenCalled();
+      expect(onReturnToCheckIn).toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
     });
 
     const addCall = fetchMock.mock.calls.find(
