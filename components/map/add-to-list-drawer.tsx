@@ -404,7 +404,7 @@ export default function AddToListDrawer({
           console.error('Failed to add location to new list', error);
         }
         onListCreated(createdId, { isFirstList });
-        onClose();
+        onReturnToCheckIn();
         return;
       }
 

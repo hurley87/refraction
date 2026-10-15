@@ -44,6 +44,8 @@ type LocationCheckInDialogProps = {
   locationCheckinsError?: string | null;
   /** Welcome-tour pointer above the save button. */
   saveToListTip?: ReactNode;
+  /** Points award, then the profile tip, after a spot is saved to a list. */
+  postSaveTip?: ReactNode;
 };
 export function LocationCheckInDialog({
   open,
@@ -64,6 +66,7 @@ export function LocationCheckInDialog({
   isLoadingLocationCheckins = false,
   locationCheckinsError = null,
   saveToListTip,
+  postSaveTip,
 }: LocationCheckInDialogProps) {
   const [visitStatus, setVisitStatus] = useState<'want_to_try' | 'been' | null>(
     null
@@ -124,7 +127,7 @@ export function LocationCheckInDialog({
       >
         <div className={panelClassName}>
           <div
-            className="flex w-full shrink-0 justify-center bg-white pb-1 pt-2 xl:hidden"
+            className="flex w-full shrink-0 justify-center overflow-hidden rounded-t-2xl bg-white pb-1 pt-2 xl:hidden"
             aria-hidden
           >
             <span className="h-1 w-10 rounded-full bg-[#DBDBDB]" />
@@ -375,8 +378,9 @@ export function LocationCheckInDialog({
           </div>
           {/* Footer */}
           {!checkInSuccess ? (
-            <div className="sticky bottom-0 z-20 w-full border-t border-[#DBDBDB] bg-white px-4 py-2">
-              <div className="flex w-full items-center justify-between gap-2 self-stretch">
+            <div className="sticky bottom-0 z-30 w-full overflow-visible border-t border-[#DBDBDB] bg-white px-4 py-2">
+              <div className="relative flex w-full items-center justify-between gap-2 self-stretch">
+                {postSaveTip}
                 <div className="flex self-stretch items-center gap-2 border border-[#DBDBDB] pl-2 pr-4">
                   <svg
                     width="16"
