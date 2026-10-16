@@ -639,7 +639,7 @@ export default function AddToListDrawer({
               </div>
             ) : lists.length === 0 ? (
               <p className="body-small px-4 py-6 text-center text-[#757575]">
-                No lists yet. Create your first list to save this location.
+                No lists yet. Create your first list to save this spot.
               </p>
             ) : (
               lists.map((list) => {
@@ -669,7 +669,7 @@ export default function AddToListDrawer({
                         {list.title}
                       </span>
                       <span className="label-small uppercase tracking-wide text-[#757575]">
-                        {`${list.location_count} LOCATION${list.location_count === 1 ? '' : 'S'}`}
+                        {`${list.location_count} SPOT${list.location_count === 1 ? '' : 'S'}`}
                         {alreadySaved ? ' · SAVED' : ''}
                       </span>
                     </div>
@@ -686,7 +686,7 @@ export default function AddToListDrawer({
                           ? `Already saved to ${list.title}`
                           : isSelected
                             ? `Remove ${list.title} from selection`
-                            : `Add location to ${list.title}`
+                            : `Add spot to ${list.title}`
                       }
                       className={cn(
                         'flex size-10 shrink-0 items-center justify-center',

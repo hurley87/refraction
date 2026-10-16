@@ -26,7 +26,7 @@ describe('MapCard save-to-list tip', () => {
       'bottom'
     );
     expect(
-      screen.getByRole('button', { name: 'Save location to a list' })
+      screen.getByRole('button', { name: 'Save spot to a list' })
     ).toBeInTheDocument();
   });
 });

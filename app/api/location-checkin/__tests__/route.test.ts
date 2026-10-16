@@ -384,7 +384,7 @@ describe('Location Checkin API Route', () => {
         const json = await response.json();
 
         expect(response.status).toBe(500);
-        expect(json.error).toContain('Failed to process');
+        expect(json.error).toContain('Failed to check in at this spot');
       });
     });
   });

@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     let locationId = await withDbRetry(() => getLocationIdByPlaceId(placeId));
     if (locationId == null) {
       if (!location) {
-        return apiError('Location not found', 404);
+        return apiError('Spot not found', 404);
       }
 
       const locationInfo: Omit<Location, 'id' | 'created_at' | 'category'> = {
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (locationId == null) {
-      return apiError('Location not found', 404);
+      return apiError('Spot not found', 404);
     }
 
     const resolvedLocationId = locationId;
@@ -125,6 +125,6 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ placeId, savedListCount, pointsEarned });
   } catch (error) {
     console.error('Failed to add location to lists:', error);
-    return apiError('Failed to add location to lists', 500);
+    return apiError('Failed to add spot to lists', 500);
   }
 }

@@ -64,9 +64,7 @@ export default function Transactions({
           height={8}
           className="w-4 h-4"
         />
-        <h2 className="label-small text-[#7D7D7D]">
-          TRANSACTIONS
-        </h2>
+        <h2 className="label-small text-[#7D7D7D]">TRANSACTIONS</h2>
       </div>
 
       {/* Loading State */}
@@ -106,7 +104,7 @@ export default function Transactions({
             No activity yet
           </p>
           <p className="text-sm text-gray-500 font-grotesk mt-1">
-            Check in at locations to start earning points
+            Check in at spots to start earning points
           </p>
           {showEmptyStateAction && (
             <Link
@@ -165,9 +163,7 @@ export default function Transactions({
           {activities.length >= 20 && (
             <div className="mt-4 pt-3 border-t border-gray-100">
               <button className="w-full h-[40px] bg-[#ededed] hover:bg-gray-200 text-[#313131] px-4 rounded-full transition-colors duration-200 flex items-center justify-center">
-                <span className="body-small uppercase">
-                  Load More
-                </span>
+                <span className="body-small uppercase">Load More</span>
               </button>
             </div>
           )}

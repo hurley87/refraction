@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
     return apiSuccess({ locations: data || [] });
   } catch (error) {
     console.error('Locations API error:', error);
-    return apiError('Failed to fetch locations', 500);
+    return apiError('Failed to fetch spots', 500);
   }
 }
 
@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingLocation) {
-      return apiError('Location already exists for this place_id', 409);
+      return apiError('A spot already exists for this place', 409);
     }
 
     // Check if user has already created too many locations this week
@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
       existingLocations.length >= MAX_LOCATIONS_PER_WEEK
     ) {
       return apiError(
-        `You can only add ${MAX_LOCATIONS_PER_WEEK} locations per week. Come back next week!`,
+        `You can only add ${MAX_LOCATIONS_PER_WEEK} spots per week. Come back next week!`,
         429
       );
     }
@@ -353,7 +353,7 @@ export async function POST(request: NextRequest) {
 
     if (locationError) {
       if (isDuplicateKeyError(locationError)) {
-        return apiError('Location already exists for this place_id', 409);
+        return apiError('A spot already exists for this place', 409);
       }
       throw locationError;
     }
@@ -451,8 +451,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Create location API error:', error);
     if (isDuplicateKeyError(error)) {
-      return apiError('Location already exists for this place_id', 409);
+      return apiError('A spot already exists for this place', 409);
     }
-    return apiError('Failed to create location', 500);
+    return apiError('Failed to create spot', 500);
   }
 }

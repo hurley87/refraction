@@ -114,7 +114,7 @@ export const useLocationGame = () => {
       },
       onError: (error: any) => {
         if (error.alreadyCheckedIn) {
-          toast.error("You've already checked in at this location!");
+          toast.error("You've already checked in at this spot!");
         } else {
           toast.error(error.error || 'Failed to check in');
         }

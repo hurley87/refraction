@@ -138,7 +138,7 @@ export function MapSaveToListButton({
           ? savedLabel
             ? savedLabel
             : `Added to ${savedListCount} list${savedListCount === 1 ? '' : 's'}. Manage lists`
-          : 'Save location to a list'
+          : 'Save spot to a list'
       }
     >
       <span className="label-medium uppercase text-[#171717]">{label}</span>

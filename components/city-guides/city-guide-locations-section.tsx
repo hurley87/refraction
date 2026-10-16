@@ -286,7 +286,7 @@ export function CityGuideLocationsSection({
                     name={location.name}
                     description={description}
                     imageSrc={location.coin_image_url ?? null}
-                    imageAlt={`${location.name} — location photo`}
+                    imageAlt={`${location.name} — spot photo`}
                     contributorName={contributorLineForLocation(
                       location.place_id,
                       overrides,

@@ -73,7 +73,7 @@ export function MapCreateLocationDrawer({
             <div className="px-3 pb-3 pt-0">
               <div className="flex flex-col gap-3">
                 <p className="m-0 title3 text-[#000000] font-semibold">
-                  {formData.name || 'Location Name'}
+                  {formData.name || 'Spot name'}
                 </p>
                 {/* Name Field */}
                 <div className="flex flex-col gap-1.5">
@@ -86,7 +86,7 @@ export function MapCreateLocationDrawer({
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Enter location name"
+                    placeholder="Enter spot name"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -302,13 +302,13 @@ export function MapCreateLocationDrawer({
                     {creationPoints}
                   </p>
                   <p className="text-[10px] text-white/70 uppercase tracking-[0.3px] font-medium mt-1">
-                    Points for creating location
+                    Points for creating a spot
                   </p>
                 </div>
 
                 <div className="flex flex-col items-center gap-2 mt-2">
                   <p className="text-[11px] text-white/90 text-center leading-relaxed px-4">
-                    Your location is on the map for the community to find.
+                    Your spot is on the map for the community to find.
                   </p>
                 </div>
 

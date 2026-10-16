@@ -33,7 +33,7 @@ export function CityGuideLocationCard({
         'box-border flex min-h-[617px] w-full max-w-[361px] shrink-0 flex-col gap-4 border-t border-[var(--Borders-Light-Border,#DBDBDB)] pb-6 pt-6 opacity-100',
         isLast && 'border-b border-[var(--Borders-Light-Border,#DBDBDB)]'
       )}
-      aria-label={`Location: ${name}`}
+      aria-label={`Spot: ${name}`}
     >
       <div className="h-[345px] w-full max-w-[361px] shrink-0 overflow-hidden bg-neutral-200">
         {imageSrc ? (

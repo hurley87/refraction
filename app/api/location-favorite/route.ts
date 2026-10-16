@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     const locationId = await getLocationIdByPlaceId(placeId);
     if (locationId == null) {
-      return apiError('Location not found', 404);
+      return apiError('Spot not found', 404);
     }
 
     if (favorited) {

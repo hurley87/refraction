@@ -82,7 +82,7 @@ export function LocationSearchDialog({
         <div className="relative px-4 py-4 pb-8">
           <LocationSearch
             key={open ? 'open' : 'closed'}
-            placeholder="Search for a location"
+            placeholder="Search for a spot"
             defaultExpanded
             keepExpanded
             dropdownTheme="light"

@@ -152,7 +152,7 @@ describe('AddToListDrawer create flow', () => {
       'bg-[#171717]'
     );
     expect(
-      screen.getByRole('button', { name: 'Add location to Other' })
+      screen.getByRole('button', { name: 'Add spot to Other' })
     ).toBeEnabled();
   });
 
@@ -198,7 +198,7 @@ describe('AddToListDrawer create flow', () => {
       'Great natural wine'
     );
     await user.click(
-      await screen.findByRole('button', { name: 'Add location to Existing' })
+      await screen.findByRole('button', { name: 'Add spot to Existing' })
     );
     await user.click(screen.getByRole('button', { name: /^save$/i }));
 
@@ -604,13 +604,11 @@ describe('AddToListDrawer create flow', () => {
     expect(screen.queryByText(/add to \d+ list/i)).not.toBeInTheDocument();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Add location to One' })
+      await screen.findByRole('button', { name: 'Add spot to One' })
     );
     expect(screen.getByText('Add to 1 list')).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: 'Add location to Two' })
-    );
+    await user.click(screen.getByRole('button', { name: 'Add spot to Two' }));
     expect(screen.getByText('Add to 2 lists')).toBeInTheDocument();
     expect(screen.queryByText('Add to 1 list')).not.toBeInTheDocument();
   });
