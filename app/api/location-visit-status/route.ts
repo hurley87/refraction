@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     let locationId = await getLocationIdByPlaceId(placeId);
     if (locationId == null) {
       if (!location) {
-        return apiError('Location not found', 404);
+        return apiError('Spot not found', 404);
       }
 
       const locationInfo: Omit<Location, 'id' | 'created_at' | 'category'> = {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (locationId == null) {
-      return apiError('Location not found', 404);
+      return apiError('Spot not found', 404);
     }
 
     await setPlayerVisitStatus(player.id, locationId, visitStatus, comment, {

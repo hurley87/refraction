@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       const creator = location.creator_wallet_address?.trim() ?? '';
       const requester = walletAddress.trim();
       if (!sameWalletAddress(creator, requester)) {
-        return apiError('This location is not available for check-ins', 403);
+        return apiError('This spot is not available for check-ins', 403);
       }
     }
 
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (existingCheckin && existingCheckin.visit_status !== 'want_to_try') {
-      return apiError('You have already checked in at this location', 409);
+      return apiError('You have already checked in at this spot', 409);
     }
 
     await syncCampaignMonitorOnFirstCheckin({
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Location checkin API error:', error);
-    return apiError('Failed to process location checkin', 500);
+    return apiError('Failed to check in at this spot', 500);
   }
 }
 

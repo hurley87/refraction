@@ -1293,7 +1293,7 @@ export default function LocationListsDrawer({
                       SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT ? 'pr-2' : undefined
                     }
                   >
-                    <dt className="label-small text-[#757575]">Locations</dt>
+                    <dt className="label-small text-[#757575]">Spots</dt>
                     <dd className="title5 text-[#171717]">
                       {listLocationsCount(personalListDetail.locations)}
                     </dd>
@@ -1472,8 +1472,8 @@ export default function LocationListsDrawer({
                   {isCustomListDetailView &&
                   listLocationsCount(selectedCustomList?.locations) === 0 ? (
                     <p className="body-small text-[#757575]">
-                      No locations in this list yet. Open a spot on the map to
-                      add one.
+                      No spots in this list yet. Open a spot on the map to add
+                      one.
                     </p>
                   ) : null}
                 </div>
@@ -1529,7 +1529,7 @@ export default function LocationListsDrawer({
                           </div>
                         ) : (
                           <p className="body-small text-[#757575]">
-                            No locations yet
+                            No spots yet
                           </p>
                         )}
                       </div>
@@ -1626,7 +1626,7 @@ export default function LocationListsDrawer({
           <DialogDescription className="body-medium text-base leading-relaxed text-white/90 mapHd:text-lg">
             {`Delete "${selectedCustomList?.title ?? 'this list'}"? Its ${listLocationsCount(
               selectedCustomList?.locations
-            )} saved location${
+            )} saved spot${
               listLocationsCount(selectedCustomList?.locations) === 1 ? '' : 's'
             } will be removed from the list. This can't be undone.`}
           </DialogDescription>
@@ -1691,7 +1691,7 @@ export default function LocationListsDrawer({
           <button
             type="button"
             className="group flex w-full items-center justify-center py-2"
-            aria-label="Discover minimized while a location is open"
+            aria-label="Discover minimized while a spot is open"
           >
             <span className="h-[3px] w-8 rounded-full bg-black/10 transition-colors group-hover:bg-black/20" />
           </button>
@@ -1732,7 +1732,7 @@ export default function LocationListsDrawer({
           className="group flex w-full shrink-0 touch-none items-center justify-center py-3"
           aria-label={
             collapseForMapCard
-              ? 'Discover minimized while a location is open'
+              ? 'Discover minimized while a spot is open'
               : isSheetFull
                 ? 'Pull down to shrink lists drawer'
                 : 'Pull up for full screen lists drawer'

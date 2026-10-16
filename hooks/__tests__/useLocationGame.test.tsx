@@ -140,7 +140,7 @@ describe('useLocationGame', () => {
       });
 
       expect(toast.error).toHaveBeenCalledWith(
-        "You've already checked in at this location!"
+        "You've already checked in at this spot!"
       );
     });
 

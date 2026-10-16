@@ -334,7 +334,7 @@ export function useAddLocationToLists(walletAddress: string | undefined) {
       });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to add location to lists');
+        throw new Error(result.error || 'Failed to add spot to lists');
       }
       return (result.data ?? result) as {
         placeId: string;
@@ -348,7 +348,7 @@ export function useAddLocationToLists(walletAddress: string | undefined) {
       });
     },
     onError: () => {
-      toast.error('Failed to add location to lists');
+      toast.error('Failed to add spot to lists');
     },
   });
 }
@@ -372,7 +372,7 @@ export function useRemoveLocationFromCustomList(
       });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to remove location from list');
+        throw new Error(result.error || 'Failed to remove spot from list');
       }
       return (result.data ?? result) as {
         placeId: string;
@@ -387,7 +387,7 @@ export function useRemoveLocationFromCustomList(
       });
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to remove location from list');
+      toast.error(error.message || 'Failed to remove spot from list');
     },
   });
 }

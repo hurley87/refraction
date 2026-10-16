@@ -169,7 +169,7 @@ export function LocationCheckInDialog({
                       });
                   }}
                   className="absolute left-2 top-2 z-10 flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90"
-                  aria-label="Share Location"
+                  aria-label="Share spot"
                 >
                   <svg
                     className="size-6 shrink-0"
@@ -226,7 +226,7 @@ export function LocationCheckInDialog({
                   <div className="flex w-full shrink-0 flex-col items-start gap-0 self-stretch px-4 pb-0 pt-0">
                     <div className="flex w-full items-center gap-3 bg-[#ffffff] pb-4 pt-4">
                       <h3 className="min-w-0 flex-1 line-clamp-1 leading-tight tracking-[-0.3px] text-[#1a1a1a]">
-                        {checkInTarget.name || 'Selected Location'}
+                        {checkInTarget.name || 'Selected spot'}
                       </h3>
                       <div
                         role="radiogroup"

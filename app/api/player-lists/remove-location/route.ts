@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     const locationId = await getLocationIdByPlaceId(placeId);
     if (locationId == null) {
-      return apiError('Location not found', 404);
+      return apiError('Spot not found', 404);
     }
 
     const removed = await removeLocationFromCustomList(
@@ -57,6 +57,6 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ placeId, listId, savedListCount });
   } catch (error) {
     console.error('Failed to remove location from list:', error);
-    return apiError('Failed to remove location from list', 500);
+    return apiError('Failed to remove spot from list', 500);
   }
 }

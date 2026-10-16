@@ -79,7 +79,7 @@ function getEventName(activityType: string): string {
     transaction_complete: 'Transaction Complete',
     social_share: 'Social Share',
     referral_signup: 'Referral Signup',
-    location_creation: 'Location Creation',
+    location_creation: 'Spot Creation',
     // Add more activity types as needed
   };
 

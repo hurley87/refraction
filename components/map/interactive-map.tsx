@@ -834,7 +834,7 @@ export default function InteractiveMap({
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
       // Still allow creating even if reverse geocoding fails
-      const fallbackAddress = `Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+      const fallbackAddress = `Spot (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
       const newMarker: MarkerData = {
         latitude,
         longitude,
@@ -955,7 +955,7 @@ export default function InteractiveMap({
         latitude,
         longitude,
         place_id: id,
-        name: name?.trim() || 'Selected location',
+        name: name?.trim() || 'Selected spot',
         address:
           placeFormatted?.trim() ||
           name?.trim() ||
@@ -971,7 +971,7 @@ export default function InteractiveMap({
       latitude,
       longitude,
       place_id: id || `search-${latitude.toFixed(5)}-${longitude.toFixed(5)}`,
-      name: name?.trim() || 'Selected location',
+      name: name?.trim() || 'Selected spot',
       address:
         placeFormatted?.trim() ||
         name?.trim() ||
@@ -1146,7 +1146,7 @@ export default function InteractiveMap({
     }
 
     if (!checkInTarget) {
-      toast.error('Select a location before checking in');
+      toast.error('Select a spot before checking in');
       return;
     }
 
@@ -1177,7 +1177,7 @@ export default function InteractiveMap({
 
       if (!response.ok) {
         if (response.status === 409) {
-          toast.info("You've already checked in at this location!");
+          toast.info("You've already checked in at this spot!");
           setHasUserCheckedInAtLocation(true);
           setPopupInfo(null);
           handleCloseCheckInModal();
@@ -1234,7 +1234,7 @@ export default function InteractiveMap({
 
   const handleBusinessDetailsNext = () => {
     if (!formData.name.trim()) {
-      toast.error('Location name is required');
+      toast.error('Spot name is required');
       return;
     }
 
@@ -1254,7 +1254,7 @@ export default function InteractiveMap({
 
   const handleCreateLocation = async () => {
     if (!selectedMarker || !walletAddress) {
-      toast.error('Please select a location and connect your wallet');
+      toast.error('Please select a spot and connect your wallet');
       return;
     }
 
@@ -1262,7 +1262,7 @@ export default function InteractiveMap({
     // The backend is the source of truth and will return 409 if duplicate exists
     const existingMarker = findExistingMarker(selectedMarker.place_id);
     if (existingMarker) {
-      toast.info('This location already exists—try checking in instead!');
+      toast.info('This spot already exists—try checking in instead!');
       setSelectedMarker(existingMarker);
       setPopupInfo(existingMarker);
       setShowLocationForm(false);
@@ -1289,7 +1289,7 @@ export default function InteractiveMap({
           const errorResult = await uploadResponse.json().catch(() => ({}));
           throw new Error(
             errorResult.error ||
-              'Failed to upload location image. Please try again.'
+              'Failed to upload spot image. Please try again.'
           );
         }
         const uploadResponseData = await uploadResponse.json();
@@ -1339,14 +1339,14 @@ export default function InteractiveMap({
         if (response.status === 429) {
           toast.error(
             result.error ||
-              'You can only add 300 locations per week. Come back next week!'
+              'You can only add 300 spots per week. Come back next week!'
           );
           handleCloseLocationForm();
           return;
         }
         if (response.status === 409) {
           // Location already exists - fetch full location details and show it
-          toast.info('This location already exists—try checking in instead!');
+          toast.info('This spot already exists—try checking in instead!');
 
           // Helper function to handle showing existing location
           const showExistingLocation = (marker: MarkerData) => {
@@ -1418,13 +1418,13 @@ export default function InteractiveMap({
             };
             showExistingLocation(existingMarker);
           } else {
-            toast.error('Location already exists, but could not load details');
+            toast.error('Spot already exists, but could not load details');
           }
 
           setIsCreatingLocation(false);
           return;
         }
-        throw new Error(result.error || 'Failed to create location');
+        throw new Error(result.error || 'Failed to create spot');
       }
 
       const payload = result.data ?? result;
@@ -1490,7 +1490,7 @@ export default function InteractiveMap({
       });
 
       toast.success(
-        `Location created! +${creationPoints} point${creationPoints === 1 ? '' : 's'}`
+        `Spot created! +${creationPoints} point${creationPoints === 1 ? '' : 's'}`
       );
       // Close the create drawer without wiping the place — keep it selected so
       // dismissing check-in still lands on the map card (+ post-tour list tip).
@@ -1515,7 +1515,7 @@ export default function InteractiveMap({
       handleStartCheckIn(markerForCheckIn);
     } catch (error) {
       console.error('Error creating location:', error);
-      toast.error('Failed to create location: ' + (error as Error).message);
+      toast.error('Failed to create spot: ' + (error as Error).message);
     } finally {
       setIsCreatingLocation(false);
     }
@@ -1804,7 +1804,7 @@ export default function InteractiveMap({
             left: 'max(8px, env(safe-area-inset-left, 0px))',
             top: 'calc(env(safe-area-inset-top, 0px) + 5.5rem + 8px)',
           }}
-          aria-label="Close create location form"
+          aria-label="Close create spot form"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -2163,7 +2163,7 @@ export default function InteractiveMap({
           isCreatingLocation={isCreatingLocation}
           isFormComplete={isCreateLocationFormComplete}
           creationPoints={pointsEarned.creation}
-          locationName={formData.name || selectedMarker?.name || 'Location'}
+          locationName={formData.name || selectedMarker?.name || 'Spot'}
           onClose={handleCloseLocationForm}
           onNext={handleBusinessDetailsNext}
           setFormData={setFormData}

@@ -298,7 +298,7 @@ describe('InteractiveMap characterization', () => {
       'false'
     );
     expect(
-      screen.getByRole('button', { name: /save location to a list/i })
+      screen.getByRole('button', { name: /save spot to a list/i })
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Check In' })
@@ -313,7 +313,7 @@ describe('InteractiveMap characterization', () => {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /save location to a list/i })
+      screen.getByRole('button', { name: /save spot to a list/i })
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /check-in/i })
@@ -331,7 +331,7 @@ describe('InteractiveMap characterization', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /^been$/i })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /save location to a list/i })
+      screen.getByRole('button', { name: /save spot to a list/i })
     ).toBeInTheDocument();
     expect(screen.queryByTestId('add-to-list-drawer')).not.toBeInTheDocument();
   });
@@ -387,7 +387,7 @@ describe('InteractiveMap characterization', () => {
       await screen.findByRole('button', { name: 'Marker at Test Location' })
     );
     await user.click(
-      await screen.findByRole('button', { name: /save location to a list/i })
+      await screen.findByRole('button', { name: /save spot to a list/i })
     );
 
     expect(await screen.findByTestId('add-to-list-drawer')).toBeInTheDocument();
@@ -404,7 +404,7 @@ describe('InteractiveMap characterization', () => {
       await screen.findByRole('button', { name: 'Marker at Test Location' })
     );
     await user.click(
-      await screen.findByRole('button', { name: /save location to a list/i })
+      await screen.findByRole('button', { name: /save spot to a list/i })
     );
     await user.click(
       await screen.findByRole('button', { name: 'Back to check-in' })

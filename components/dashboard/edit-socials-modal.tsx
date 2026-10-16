@@ -706,7 +706,7 @@ export default function EditSocialsModal({
         }}
         title={
           FAVORITE_PLACE_FIELDS.find((f) => f.key === searchField)
-            ?.searchTitle ?? 'Search location'
+            ?.searchTitle ?? 'Search spot'
         }
         onSelect={(place) => {
           if (!searchField) return;
