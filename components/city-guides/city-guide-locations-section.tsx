@@ -21,6 +21,7 @@ import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import { apiClientBearerGet } from '@/lib/api/privy-bearer-client';
 import type { CityGuideLocationSection } from '@/lib/db/guides';
 import type { CityGuideLocationGateMeta } from '@/lib/guides/city-guide-locations';
+import { PAYWALLED_CONTENT_CLASS } from '@/lib/seo/paywalled-content';
 
 /**
  * A closing Radix dialog keeps its focus trap and pointer-events lock until the
@@ -308,62 +309,63 @@ export function CityGuideLocationsSection({
         })
       )}
 
-      {showGate ? (
-        <div ref={gateSentinelRef} className="h-px w-full" aria-hidden />
-      ) : null}
-
       {locationGate ? (
-        <Dialog open={isGateOpen} onOpenChange={setIsGateOpen}>
-          <DialogContent className="max-w-[361px] gap-6 rounded-none border border-white/10 bg-[#171717] p-6 text-white">
-            <DialogHeader className="space-y-2 text-left">
-              <p className="label-small uppercase text-[#DBDBDB]">
-                {gateContributorName} • {locationGate.totalCount} RECCOS
-              </p>
-              <DialogTitle className="title3 uppercase text-white">
-                THE REST OF THIS LIST IS MEMBERS ONLY
-              </DialogTitle>
-            </DialogHeader>
+        <div className={PAYWALLED_CONTENT_CLASS}>
+          {showGate ? (
+            <div ref={gateSentinelRef} className="h-px w-full" aria-hidden />
+          ) : null}
+          <Dialog open={isGateOpen} onOpenChange={setIsGateOpen}>
+            <DialogContent className="max-w-[361px] gap-6 rounded-none border border-white/10 bg-[#171717] p-6 text-white">
+              <DialogHeader className="space-y-2 text-left">
+                <p className="label-small uppercase text-[#DBDBDB]">
+                  {gateContributorName} • {locationGate.totalCount} RECCOS
+                </p>
+                <DialogTitle className="title3 uppercase text-white">
+                  THE REST OF THIS LIST IS MEMBERS ONLY
+                </DialogTitle>
+              </DialogHeader>
 
-            <DialogDescription asChild>
-              <div className="flex flex-col gap-4 text-left">
-                <span className="body-medium text-white">
-                  Unlock the other {locationGate.hiddenCount} of{' '}
-                  {gateContributorName}&apos;s spots
-                  {locationGate.teaserSummary
-                    ? ` including ${locationGate.teaserSummary}.`
-                    : '.'}
-                </span>
-                <span className="body-medium text-[#DBDBDB]">
-                  IRL membership is free, and unlocks every city guide, the full
-                  map, and member rewards.
-                </span>
-              </div>
-            </DialogDescription>
+              <DialogDescription asChild>
+                <div className="flex flex-col gap-4 text-left">
+                  <span className="body-medium text-white">
+                    Unlock the other {locationGate.hiddenCount} of{' '}
+                    {gateContributorName}&apos;s spots
+                    {locationGate.teaserSummary
+                      ? ` including ${locationGate.teaserSummary}.`
+                      : '.'}
+                  </span>
+                  <span className="body-medium text-[#DBDBDB]">
+                    IRL membership is free, and unlocks every city guide, the
+                    full map, and member rewards.
+                  </span>
+                </div>
+              </DialogDescription>
 
-            <button
-              type="button"
-              onClick={handleGateSignupClick}
-              disabled={isUnlocking}
-              className="label-large flex h-11 w-full items-center justify-between bg-[var(--IRL-Yellow,#FFF200)] px-4 py-2 uppercase text-[#171717] transition-opacity hover:opacity-90 disabled:opacity-60"
-            >
-              <span>{isUnlocking ? 'UNLOCKING…' : 'BECOME A MEMBER'}</span>
-              <svg
-                width={24}
-                height={24}
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="size-6 shrink-0"
-                aria-hidden
+              <button
+                type="button"
+                onClick={handleGateSignupClick}
+                disabled={isUnlocking}
+                className="label-large flex h-11 w-full items-center justify-between bg-[var(--IRL-Yellow,#FFF200)] px-4 py-2 uppercase text-[#171717] transition-opacity hover:opacity-90 disabled:opacity-60"
               >
-                <path
-                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-          </DialogContent>
-        </Dialog>
+                <span>{isUnlocking ? 'UNLOCKING…' : 'BECOME A MEMBER'}</span>
+                <svg
+                  width={24}
+                  height={24}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="size-6 shrink-0"
+                  aria-hidden
+                >
+                  <path
+                    d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            </DialogContent>
+          </Dialog>
+        </div>
       ) : null}
     </>
   );

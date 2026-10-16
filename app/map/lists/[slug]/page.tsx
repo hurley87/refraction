@@ -12,9 +12,16 @@ import {
   buildCuratedListMapHref,
   normalizeCuratedListSlug,
 } from '@/lib/location-lists/curated-list-url';
-import { getMetadataBaseForRequest } from '@/lib/metadata/request-base';
+import {
+  getMetadataBaseForRequest,
+  PRODUCTION_METADATA_ORIGIN,
+} from '@/lib/metadata/request-base';
 import { parseLatLng } from '@/lib/utils/map-bounds';
 import { sanitizeInternalReturnPath } from '@/lib/utils/safe-return-path';
+import {
+  PAYWALLED_CONTENT_CLASS,
+  paywalledContentJsonLd,
+} from '@/lib/seo/paywalled-content';
 import type { LocationList } from '@/lib/types';
 
 interface CuratedListMapPageProps {
@@ -94,21 +101,38 @@ export default async function CuratedListMapPage({
   const parsedCoords = parseLatLng(searchParams.lat, searchParams.lng);
 
   const guideReturnHref = sanitizeInternalReturnPath(searchParams.returnTo);
+  const pageUrl = new URL(
+    buildCuratedListMapHref(list.slug),
+    PRODUCTION_METADATA_ORIGIN
+  ).href;
+  const paywallJsonLd = paywalledContentJsonLd({
+    type: 'WebPage',
+    url: pageUrl,
+    name: listPageTitle(list),
+  });
 
   return (
-    <AuthWrapper requireUsername unauthenticatedUI="map-onboarding">
-      <MapListViewedTracker
-        mapListSlug={list.slug}
-        returnTo={guideReturnHref}
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(paywallJsonLd) }}
       />
-      <div className="font-grotesk h-full w-full">
-        <InteractiveMap
-          initialCuratedListId={list.id}
-          guideReturnHref={guideReturnHref}
-          initialLatitude={parsedCoords?.latitude ?? firstCoords?.latitude}
-          initialLongitude={parsedCoords?.longitude ?? firstCoords?.longitude}
+      <AuthWrapper requireUsername unauthenticatedUI="map-onboarding">
+        <MapListViewedTracker
+          mapListSlug={list.slug}
+          returnTo={guideReturnHref}
         />
-      </div>
-    </AuthWrapper>
+        <div
+          className={`${PAYWALLED_CONTENT_CLASS} font-grotesk h-full w-full`}
+        >
+          <InteractiveMap
+            initialCuratedListId={list.id}
+            guideReturnHref={guideReturnHref}
+            initialLatitude={parsedCoords?.latitude ?? firstCoords?.latitude}
+            initialLongitude={parsedCoords?.longitude ?? firstCoords?.longitude}
+          />
+        </div>
+      </AuthWrapper>
+    </>
   );
 }

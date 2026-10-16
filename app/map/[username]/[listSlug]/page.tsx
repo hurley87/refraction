@@ -19,6 +19,10 @@ import {
   profilePathForPlayer,
 } from '@/lib/username';
 import { sanitizeInternalReturnPath } from '@/lib/utils/safe-return-path';
+import {
+  PAYWALLED_CONTENT_CLASS,
+  paywalledContentJsonLd,
+} from '@/lib/seo/paywalled-content';
 
 interface SharedPublicListPageProps {
   params: {
@@ -141,6 +145,15 @@ export default async function SharedPublicListPage({
   }
 
   const jsonLd = publicListItemListJsonLd(list);
+  const pageUrl = buildPublicListShareUrl({
+    username: list.owner.username?.trim() || username,
+    listSlug: list.slug || listSlug,
+  });
+  const paywallJsonLd = paywalledContentJsonLd({
+    type: 'WebPage',
+    url: pageUrl,
+    name: publicListPageTitle(list),
+  });
 
   return (
     <>
@@ -148,8 +161,14 @@ export default async function SharedPublicListPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(paywallJsonLd) }}
+      />
       <AuthWrapper requireUsername unauthenticatedUI="map-onboarding">
-        <div className="font-grotesk h-full w-full">
+        <div
+          className={`${PAYWALLED_CONTENT_CLASS} font-grotesk h-full w-full`}
+        >
           <InteractiveMap
             initialPublicProfileListId={list.id}
             guideReturnHref={guideReturnHref}
