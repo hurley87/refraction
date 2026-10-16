@@ -5,7 +5,18 @@ import InteractiveMap from '@/components/map/interactive-map';
 import AuthWrapper from '@/components/auth/auth-wrapper';
 import { useSearchParams } from 'next/navigation';
 import { getFeaturedCityCoordinates } from '@/lib/featured-cities';
+import { PRODUCTION_METADATA_ORIGIN } from '@/lib/metadata/request-base';
+import {
+  PAYWALLED_CONTENT_CLASS,
+  paywalledContentJsonLd,
+} from '@/lib/seo/paywalled-content';
 import { sanitizeInternalReturnPath } from '@/lib/utils/safe-return-path';
+
+const MAP_PAYWALL_JSON_LD = paywalledContentJsonLd({
+  type: 'WebPage',
+  url: `${PRODUCTION_METADATA_ORIGIN}/interactive-map`,
+  name: 'IRL map',
+});
 
 function InteractiveMapContent() {
   const searchParams = useSearchParams();
@@ -48,20 +59,30 @@ function InteractiveMapContent() {
   }, [cityParam, latParam, lngParam]);
 
   return (
-    <AuthWrapper requireUsername unauthenticatedUI="map-onboarding">
-      <div className="font-grotesk h-full w-full">
-        <InteractiveMap
-          initialPlaceId={placeId}
-          initialPlaceName={placeName}
-          initialLatitude={initialLatitude}
-          initialLongitude={initialLongitude}
-          deepLinkMapCardOnly={mapCardOnlyDeepLink}
-          guideReturnHref={guideReturnHref}
-          initialCustomListId={customListId}
-          initialPublicProfileListId={publicProfileListId}
-        />
-      </div>
-    </AuthWrapper>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(MAP_PAYWALL_JSON_LD),
+        }}
+      />
+      <AuthWrapper requireUsername unauthenticatedUI="map-onboarding">
+        <div
+          className={`${PAYWALLED_CONTENT_CLASS} font-grotesk h-full w-full`}
+        >
+          <InteractiveMap
+            initialPlaceId={placeId}
+            initialPlaceName={placeName}
+            initialLatitude={initialLatitude}
+            initialLongitude={initialLongitude}
+            deepLinkMapCardOnly={mapCardOnlyDeepLink}
+            guideReturnHref={guideReturnHref}
+            initialCustomListId={customListId}
+            initialPublicProfileListId={publicProfileListId}
+          />
+        </div>
+      </AuthWrapper>
+    </>
   );
 }
 

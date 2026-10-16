@@ -15,6 +15,8 @@ import { DraftPreviewBanner } from '@/components/city-guides/draft-preview-banne
 import { getCityGuidePageData } from '@/lib/db/guides';
 import { buildGuideArticleMetadata } from '@/lib/guides/article-metadata';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
+import { PRODUCTION_METADATA_ORIGIN } from '@/lib/metadata/request-base';
+import { paywalledContentJsonLd } from '@/lib/seo/paywalled-content';
 import {
   buildCuratedListMapHref,
   hrefWithReturnTo,
@@ -74,6 +76,16 @@ export default async function CityGuideBySlugPage({
     : null;
   const leadParagraphs = row.lead_paragraphs?.filter((p) => p.trim()) ?? [];
   const headline = row.lead_headline?.trim() ?? '';
+  const paywallJsonLd = locationGate
+    ? paywalledContentJsonLd({
+        type: 'Article',
+        url: `${PRODUCTION_METADATA_ORIGIN}${returnPath}`,
+        name: cityGuideDisplayTitle({
+          title_prefix: row.title_prefix,
+          city_name: row.city_name,
+        }),
+      })
+    : null;
   const mapImage = row.map_image_url ? (
     <CityGuideTexturedImage
       src={row.map_image_url}
@@ -86,6 +98,12 @@ export default async function CityGuideBySlugPage({
 
   return (
     <div className="min-h-screen w-full bg-[#F5F5F5] font-grotesk">
+      {paywallJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(paywallJsonLd) }}
+        />
+      ) : null}
       {showDraftPreviewBanner ? <DraftPreviewBanner guideId={row.id} /> : null}
       <div className="mx-auto w-full max-w-[393px] rounded-[48px] bg-[var(--Backgrounds-Background,#FFF)] shadow-sm">
         <header className="sticky top-0 z-30 rounded-t-[48px] bg-[var(--Backgrounds-Background,#FFF)] pt-[max(8px,env(safe-area-inset-top))]">

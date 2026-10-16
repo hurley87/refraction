@@ -136,10 +136,11 @@ describe('CityGuideLocationsSection', () => {
 
   it('opens the gate modal once the reader reaches the end of the free spots', async () => {
     const user = userEvent.setup();
-    render(<CityGuideLocationsSection {...baseProps} />);
+    const { container } = render(<CityGuideLocationsSection {...baseProps} />);
 
     expect(screen.getByText('Public spot')).toBeTruthy();
     expect(screen.queryByText('Alice • 3 RECCOS')).toBeNull();
+    expect(container.querySelector('.irl-member-gated-content')).toBeTruthy();
 
     act(() => setSentinelIntersecting?.(true));
 
