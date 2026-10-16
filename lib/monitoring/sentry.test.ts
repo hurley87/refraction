@@ -8,6 +8,7 @@ import {
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
   isPrivyEmbeddedWalletHttpsNoise,
+  isPrivyErrorCodeExtensibilityNoise,
   isPrivyWalletProviderOnNoise,
   isStorageSecurityError,
   isWalletConnectSessionNoise,
@@ -167,6 +168,19 @@ describe('isPrivyEmbeddedWalletHttpsNoise', () => {
       )
     ).toBe(true);
     expect(isPrivyEmbeddedWalletHttpsNoise('TypeError: fetch failed')).toBe(
+      false
+    );
+  });
+});
+
+describe('isPrivyErrorCodeExtensibilityNoise', () => {
+  it('detects Privy privyErrorCode assignment on non-extensible errors (JAVASCRIPT-NEXTJS-29)', () => {
+    expect(
+      isPrivyErrorCodeExtensibilityNoise(
+        'TypeError: Cannot add property privyErrorCode, object is not extensible'
+      )
+    ).toBe(true);
+    expect(isPrivyErrorCodeExtensibilityNoise('TypeError: fetch failed')).toBe(
       false
     );
   });
@@ -757,6 +771,31 @@ describe('sentryBeforeSend', () => {
           {
             type: 'Error',
             value: 'Error: Embedded wallet is only available over HTTPS',
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'app:///chunks/node_modules_@privy-io_react-auth_dist_esm_privy-provider-BG8GtKO6_mjs.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Privy privyErrorCode non-extensible noise (JAVASCRIPT-NEXTJS-29)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              'TypeError: Cannot add property privyErrorCode, object is not extensible',
             stacktrace: {
               frames: [
                 {
