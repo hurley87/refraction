@@ -4,12 +4,17 @@ import {
   parseEditorialBlocks,
 } from '@/lib/guides/block-schema';
 import {
+  applyPublicLocationGate,
   hubListTitle,
   guideKindToUi,
   resolveHubAuthorCredits,
   toGuideContributorUi,
 } from '@/lib/db/guides';
-import type { GuideContributorRow, GuideRow } from '@/lib/db/guides';
+import type {
+  CityGuidePageData,
+  GuideContributorRow,
+  GuideRow,
+} from '@/lib/db/guides';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockFrom = vi.fn((): any => ({}));
@@ -262,5 +267,55 @@ describe('parseEditorialBlocks', () => {
       { type: 'subtitleTitle3', text: '  Sub  ' },
     ]);
     expect(out).toEqual([{ type: 'typography', style: 'title3', text: 'Sub' }]);
+  });
+});
+
+describe('applyPublicLocationGate', () => {
+  const credits = new Map([
+    ['public-spot', 'Alice'],
+    ['gated-spot', 'Bob'],
+  ]);
+
+  function pageData(visibleCount: number | null): CityGuidePageData {
+    return {
+      row: {
+        unauthenticated_visible_location_count: visibleCount,
+        gated_location_teaser_summary: 'two more rooms',
+      } as GuideRow,
+      contributors: [],
+      contributorNames: ['Alice'],
+      locationSections: [
+        {
+          heading: null,
+          defaultContributorName: 'Alice',
+          locations: [
+            { location: { place_id: 'public-spot', name: 'Public spot' } },
+            { location: { place_id: 'gated-spot', name: 'Gated spot' } },
+          ],
+        },
+      ] as CityGuidePageData['locationSections'],
+      locationContributorByPlaceId: credits,
+      locationGate: null,
+    };
+  }
+
+  it('keeps every spot and its contributor credit on a gated guide', () => {
+    const data = pageData(1);
+    const gated = applyPublicLocationGate(data);
+
+    expect(gated.locationSections).toBe(data.locationSections);
+    expect(gated.locationContributorByPlaceId).toBe(credits);
+    expect(gated.locationGate).toEqual({
+      visibleCount: 1,
+      hiddenCount: 1,
+      totalCount: 2,
+      teaserSummary: 'two more rooms',
+      primaryContributorName: 'Alice',
+    });
+  });
+
+  it('leaves an ungated guide unchanged', () => {
+    const data = pageData(null);
+    expect(applyPublicLocationGate(data)).toBe(data);
   });
 });
