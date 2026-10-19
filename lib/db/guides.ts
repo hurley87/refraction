@@ -15,7 +15,6 @@ import { twitterAvatarUrl } from '@/lib/profile/twitter-avatar';
 import { guideReadHref } from '@/lib/guides/guide-paths';
 import {
   buildCityGuideLocationGateMeta,
-  filterLocationContributorOverrides,
   sliceCityGuideLocationSections,
   type CityGuideLocationGateMeta,
 } from '@/lib/guides/city-guide-locations';
@@ -653,7 +652,10 @@ export type CityGuidePageData = {
 export type GetGuidePageOptions = {
   /** HMAC token from /api/admin/guides/:id/preview-link — required to view drafts on public routes. */
   previewToken?: string | null;
-  /** Public responses strip gated locations; authenticated APIs request full. */
+  /**
+   * Public pages include every spot and a gate for the ones past the free
+   * count. Authenticated unlock requests ask for the same full list.
+   */
   locationAudience?: 'public' | 'full';
 };
 
@@ -759,7 +761,10 @@ async function buildCityGuidePageDataFromRow(
   };
 }
 
-function applyPublicLocationGate(data: CityGuidePageData): CityGuidePageData {
+/** Attach gate metadata without removing the spots past the free count. */
+export function applyPublicLocationGate(
+  data: CityGuidePageData
+): CityGuidePageData {
   const sliced = sliceCityGuideLocationSections(
     data.locationSections,
     data.row.unauthenticated_visible_location_count
@@ -768,15 +773,14 @@ function applyPublicLocationGate(data: CityGuidePageData): CityGuidePageData {
 
   return {
     ...data,
-    locationSections: sliced.sections,
-    locationContributorByPlaceId: filterLocationContributorOverrides(
-      data.locationContributorByPlaceId,
-      sliced.sections
-    ),
     locationGate: buildCityGuideLocationGateMeta(
       data.row,
       data.contributorNames[0] ?? null,
-      sliced
+      {
+        hiddenCount: sliced.hiddenCount,
+        visibleCount: sliced.visibleCount,
+        totalCount: sliced.totalCount,
+      }
     ),
   };
 }

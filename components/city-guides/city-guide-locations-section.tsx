@@ -136,7 +136,9 @@ export function CityGuideLocationsSection({
   /**
    * Wait for an EVM wallet so the unlock API can upsert `players` with the
    * Privy login email and fire `signup_from_gate` for net-new players
-   * (guides never force username / POST /api/player).
+   * (guides never force username / POST /api/player). Sign-in already
+   * reveals the gated spots; this request records the membership, it does
+   * not load them.
    */
   useEffect(() => {
     if (
@@ -186,13 +188,26 @@ export function CityGuideLocationsSection({
     (total, section) => total + section.locations.length,
     0
   );
-  const showGate = Boolean(locationGate && !fullLocations);
+  const orderedSpots = useMemo(
+    () =>
+      nonEmptySections.flatMap((section) =>
+        section.locations.map((entry) => ({ section, entry }))
+      ),
+    [nonEmptySections]
+  );
+  const freeCount = locationGate?.visibleCount ?? orderedSpots.length;
+  const freeSpots = locationGate
+    ? orderedSpots.slice(0, freeCount)
+    : orderedSpots;
+  const gatedSpots = locationGate ? orderedSpots.slice(freeCount) : [];
+  /** Server HTML hides these spots. Sign-in reveals them without another fetch. */
+  const revealGatedSpots = authenticated;
+  const showGate = Boolean(locationGate) && !authenticated;
   /**
-   * Members never see the prompt: wait for Privy to resolve the session before
-   * arming it, so a signed-in reader does not get a flash of the gate while
-   * their full location list is still loading.
+   * Members never see the prompt. Wait for Privy to resolve the session before
+   * arming it, so a signed-in reader does not get a flash of the gate.
    */
-  const canPromptGate = showGate && ready && !authenticated;
+  const canPromptGate = showGate && ready;
 
   /**
    * Prompt membership whenever the reader reaches the end of the free
@@ -259,58 +274,65 @@ export function CityGuideLocationsSection({
     loginTimeoutRef.current = setTimeout(login, GATE_CLOSE_DURATION_MS);
   };
 
+  const renderSpot = (
+    spot: (typeof orderedSpots)[number],
+    index: number,
+    options?: { hidden?: boolean }
+  ) => {
+    const { section, entry } = spot;
+    const location = entry.location;
+    const description =
+      entry.quote?.trim() ||
+      location.description?.trim() ||
+      location.address?.trim() ||
+      '—';
+
+    return (
+      <div
+        key={entry.membership_id}
+        className={options?.hidden ? 'hidden' : undefined}
+      >
+        <CityGuideLocationCard
+          name={location.name}
+          description={description}
+          imageSrc={location.coin_image_url ?? null}
+          imageAlt={`${location.name} — spot photo`}
+          contributorName={contributorLineForLocation(
+            location.place_id,
+            overrides,
+            section.defaultContributorName,
+            contributorNames
+          )}
+          mapHref={interactiveMapHrefForLocation(
+            returnPath,
+            location.place_id,
+            location.latitude,
+            location.longitude
+          )}
+          isLast={index === orderedSpots.length - 1}
+        />
+      </div>
+    );
+  };
+
   return (
     <>
-      {totalVisibleCount === 0 && !showGate ? (
+      {totalVisibleCount === 0 && !locationGate ? (
         <p className="body-medium mt-6 text-[#757575]">
           No venues linked to this guide yet. Assign each contributor a venue
           list in Admin → Guides, or add venues in Admin → Location Lists.
         </p>
       ) : (
-        nonEmptySections.map((section, sectionIndex) => {
-          const isLastSection = sectionIndex === nonEmptySections.length - 1;
-          return (
-            <div key={`venue-section-${sectionIndex}`}>
-              {section.locations.map((entry, index) => {
-                const location = entry.location;
-                const description =
-                  entry.quote?.trim() ||
-                  location.description?.trim() ||
-                  location.address?.trim() ||
-                  '—';
-                const isLast =
-                  isLastSection && index === section.locations.length - 1;
-
-                return (
-                  <CityGuideLocationCard
-                    key={entry.membership_id}
-                    name={location.name}
-                    description={description}
-                    imageSrc={location.coin_image_url ?? null}
-                    imageAlt={`${location.name} — spot photo`}
-                    contributorName={contributorLineForLocation(
-                      location.place_id,
-                      overrides,
-                      section.defaultContributorName,
-                      contributorNames
-                    )}
-                    mapHref={interactiveMapHrefForLocation(
-                      returnPath,
-                      location.place_id,
-                      location.latitude,
-                      location.longitude
-                    )}
-                    isLast={isLast}
-                  />
-                );
-              })}
-            </div>
-          );
-        })
+        freeSpots.map((spot, index) => renderSpot(spot, index))
       )}
 
       {locationGate ? (
         <div className={PAYWALLED_CONTENT_CLASS}>
+          {gatedSpots.map((spot, index) =>
+            renderSpot(spot, freeSpots.length + index, {
+              hidden: !revealGatedSpots,
+            })
+          )}
           {showGate ? (
             <div ref={gateSentinelRef} className="h-px w-full" aria-hidden />
           ) : null}

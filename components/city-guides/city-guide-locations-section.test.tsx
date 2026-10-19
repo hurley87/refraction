@@ -406,4 +406,60 @@ describe('CityGuideLocationsSection', () => {
       '/api/city-guides/berlin/locations'
     );
   });
+
+  it('keeps gated spots in the page and hides them until sign-in', () => {
+    const { container } = render(
+      <CityGuideLocationsSection
+        {...baseProps}
+        initialLocationSections={[
+          section('Public spot'),
+          section('Gated spot'),
+        ]}
+      />
+    );
+
+    const gated = screen.getByText('Gated spot');
+    expect(gated.closest('.hidden')).toBeTruthy();
+    expect(gated.closest('.irl-member-gated-content')).toBeTruthy();
+    expect(screen.getByText('Public spot').closest('.hidden')).toBeNull();
+    expect(container.querySelector('.irl-member-gated-content')).toBeTruthy();
+  });
+
+  it('shows gated spots as soon as the reader is signed in', () => {
+    authenticated = true;
+    mockBearerGet.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <CityGuideLocationsSection
+        {...baseProps}
+        initialLocationSections={[
+          section('Public spot'),
+          section('Gated spot'),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Gated spot').closest('.hidden')).toBeNull();
+    expect(
+      screen.getByText('Gated spot').closest('.irl-member-gated-content')
+    ).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('renders every spot without a paywall block when the guide is not gated', () => {
+    const { container } = render(
+      <CityGuideLocationsSection
+        {...baseProps}
+        locationGate={null}
+        initialLocationSections={[
+          section('Public spot'),
+          section('Gated spot'),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Public spot').closest('.hidden')).toBeNull();
+    expect(screen.getByText('Gated spot').closest('.hidden')).toBeNull();
+    expect(container.querySelector('.irl-member-gated-content')).toBeNull();
+  });
 });
