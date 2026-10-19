@@ -11,6 +11,8 @@ import {
   DEFAULT_LINK_PREVIEW_IMAGE_HEIGHT,
   DEFAULT_LINK_PREVIEW_IMAGE_WIDTH,
 } from '@/lib/metadata/request-base';
+import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/seo/site-identity';
+import { siteJsonLdScript } from '@/lib/seo/site-json-ld';
 import Script from 'next/script';
 import Image from 'next/image';
 
@@ -26,14 +28,12 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase,
-    title: 'IRL',
-    description:
-      "Culture's rewards program. Music, Art, Events. Access Worldwide.",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
     /** Favicon: `app/icon.svg` (Next injects `<link rel="icon" href="/icon?…">`). */
     openGraph: {
-      title: 'IRL',
-      description:
-        "Culture's rewards program. Music, Art, Events. Access Worldwide.",
+      title: SITE_NAME,
+      description: SITE_DESCRIPTION,
       url: new URL('/', metadataBase).href,
       images: [
         {
@@ -47,9 +47,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'IRL',
-      description:
-        "Culture's rewards program. Music, Art, Events. Access Worldwide.",
+      title: SITE_NAME,
+      description: SITE_DESCRIPTION,
       images: [imageUrl],
     },
     appleWebApp: {
@@ -77,6 +76,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={spaceGrotesk.variable}>
       <head>
+        <script
+          id="irl-site-jsonld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: siteJsonLdScript() }}
+        />
         {/* Inline script (not next/script beforeInteractive): avoids hydration mismatch — Next injects beforeInteractive children via __next_s with empty SSR markup. */}
         <script
           id="suppress-extension-errors"

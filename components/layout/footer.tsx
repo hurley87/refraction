@@ -3,6 +3,11 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
+import {
+  IRL_INSTAGRAM_URL,
+  IRL_TELEGRAM_URL,
+  IRL_X_URL,
+} from '@/lib/seo/site-identity';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
@@ -73,7 +78,7 @@ export default function Footer() {
   const SocialIcons = () => (
     <div className="flex w-auto items-center justify-center gap-[var(--sds-size-space-800)]">
       <a
-        href="https://x.com/irl_energy"
+        href={IRL_X_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-white/10"
@@ -94,7 +99,7 @@ export default function Footer() {
       </a>
 
       <a
-        href="https://www.instagram.com/irl_energy/"
+        href={IRL_INSTAGRAM_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-white/10"
@@ -117,7 +122,7 @@ export default function Footer() {
 
       {/* Telegram */}
       <a
-        href="https://t.me/irlnetwork"
+        href={IRL_TELEGRAM_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-white/10"
