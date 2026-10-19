@@ -456,6 +456,17 @@ export function isPrivyEmbeddedWalletHttpsNoise(message: string): boolean {
   return lower.includes('embedded wallet is only available over https');
 }
 
+/**
+ * Privy's `PrivyError` constructor assigns `this.privyErrorCode` while normalizing
+ * auth/wallet failures. Some runtimes hand back a non-extensible `Error` (re-thrown
+ * frozen objects, extension payloads). Assigning `privyErrorCode` then throws —
+ * SDK edge case during failure handling, not an app bug.
+ */
+export function isPrivyErrorCodeExtensibilityNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('privyerrorcode') && lower.includes('not extensible');
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -560,6 +571,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     isWalletExtensionOnboardingNoise(message) ||
     isPrivyWalletProviderOnNoise(message) ||
     isPrivyEmbeddedWalletHttpsNoise(message) ||
+    isPrivyErrorCodeExtensibilityNoise(message) ||
     isWebkitMessageHandlersNoise(message) ||
     isAndroidJavascriptBridgeNoise(message) ||
     isWalletConnectSessionNoise(message) ||
