@@ -158,7 +158,7 @@ export default function Hero() {
 
             {/* Headline block */}
             <h1 className="mt-[23px] flex flex-col justify-center self-stretch text-white">
-              Your Global Guide To What&apos;s Good
+              Recommendations from people with taste, not algorithms
             </h1>
 
             <p className="mt-[239px] title3 text-[#a9a9a9] uppercase">
