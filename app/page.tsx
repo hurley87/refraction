@@ -6,6 +6,7 @@ import {
   type HomepageFeaturedEvent,
 } from '@/lib/home/featured-event';
 import { listFeaturedDiceEventIds } from '@/lib/db/featured-dice-event';
+import VenueCTA from '@/components/home/venue-cta';
 
 // Temporarily hidden — re-enable import and JSX block below to restore
 // import Hero from '@/components/home/hero';
@@ -78,18 +79,25 @@ export default async function Home() {
           <CityGuidesCoverSection />
         </div>
 
-        {/* Upcoming Events */}
+      
+        {/* Rewards */}
         <div className="py-0">
+          <RewardsSection />
+        </div>
+
+        {/* Venue CTA */}
+        <div className="py-0">
+          <VenueCTA />
+        </div>
+
+          {/* Upcoming Events */}
+          <div className="py-0">
           <IRLTourSection
             featuredEvent={featuredEvent}
             featuredDiceEventIds={featuredDiceEventIds}
           />
         </div>
 
-        {/* Rewards */}
-        <div className="py-0">
-          <RewardsSection />
-        </div>
 
         {/* Footer */}
         <Footer />

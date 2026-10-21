@@ -130,7 +130,7 @@ export default function CityGuidesCoverSection() {
           </div>
           <div className="flex items-center gap-2 self-stretch py-4">
             <div className="title1 text-left font-normal text-white">
-              Your global guide to what's good.
+              Recommendations from people with taste, not algorithms
             </div>
           </div>
         </div>
@@ -204,10 +204,10 @@ export default function CityGuidesCoverSection() {
               <h2 className="title4 text-left text-white">City Guides</h2>
             </div>
             <p className="title0 text-left text-white">
-              Your global guide to what&apos;s good.
+              Recommendations from people with taste, not algorithms
             </p>
           </div>
-          <ViewAllGuidesButton className="inline-flex w-[243px] shrink-0" />
+          <ViewAllGuidesButton className="inline-flex w-[243px] shrink-0 pt-2" />
         </div>
 
         {/* Column 2: featured cover */}
