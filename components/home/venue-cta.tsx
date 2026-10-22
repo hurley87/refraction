@@ -8,15 +8,8 @@ import { WelcomeEllipse } from '../shared/welcome-ellipse';
  * `mapName` is the spot name on the map when it differs from the label.
  * `placeId` is the spot on the "Part of the IRL Venue Network" map list; it wins
  * over the name, since several map spots can share a name (e.g. Standard Time).
- * `href` is an offsite link for partners that are not spots on the map.
  */
-type Venue = {
-  name: string;
-  city: string;
-  mapName?: string;
-  placeId?: string;
-  href?: string;
-};
+type Venue = { name: string; city: string; mapName?: string; placeId?: string };
 
 const VENUES: Venue[] = [
   {
@@ -57,16 +50,8 @@ const VENUES: Venue[] = [
     city: 'Mexico City',
     placeId: 'dXJuOm1ieGFkcjpmZGFiOGFjZi0wNmNiLTRhMzItOTRhNS1lYTQ0NWY4ZDUyNTI',
   },
-  {
-    name: 'Ice Cream Sundays',
-    city: 'Singapore',
-    href: 'https://www.instagram.com/icecreamsundays_/',
-  },
-  {
-    name: 'Iceland Eclipse',
-    city: 'Iceland',
-    href: 'https://icelandeclipse.com/',
-  },
+  { name: 'Ice Cream Sundays', city: 'Singapore' },
+  { name: 'Iceland Eclipse', city: 'Iceland' },
   { name: 'Jolene', city: 'Miami', placeId: 'vn-jolene-miami' },
   {
     name: 'La Cale',
@@ -173,41 +158,19 @@ function VenueNameColumns({
           key={column[0].name}
           className="label-large flex w-[109px] flex-col xl:label-large gap-3 xl:min-w-0 xl:flex-1 xl:w-auto"
         >
-          {column.map((venue) => {
-            const label = `${venue.name}, ${venue.city}`;
-            const content = (
-              <>
-                <span className="label-small font-medium leading-[10px] xl:label-medium xl:leading-[11px]">
-                  ({venue.city})
-                </span>
-                {venue.name}
-              </>
-            );
-            if (venue.href) {
-              return (
-                <a
-                  key={venue.name}
-                  href={venue.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-col"
-                  aria-label={label}
-                >
-                  {content}
-                </a>
-              );
-            }
-            return (
-              <Link
-                key={venue.name}
-                href={venueMapHref(venue.mapName ?? venue.name, venue.placeId)}
-                className="flex flex-col"
-                aria-label={label}
-              >
-                {content}
-              </Link>
-            );
-          })}
+          {column.map((venue) => (
+            <Link
+              key={venue.name}
+              href={venueMapHref(venue.mapName ?? venue.name, venue.placeId)}
+              className="flex flex-col"
+              aria-label={`${venue.name}, ${venue.city}`}
+            >
+              <span className="label-small font-medium leading-[10px] xl:label-medium xl:leading-[11px]">
+                ({venue.city})
+              </span>
+              {venue.name}
+            </Link>
+          ))}
         </div>
       ))}
     </div>
