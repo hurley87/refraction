@@ -85,11 +85,14 @@ export default async function RewardsSection() {
         <div className="flex w-full max-w-[361px] flex-col items-start">
           <div className="flex w-full items-center gap-2">
             <WelcomeEllipse />
-            <h2 className="title4 text-left text-white">Membership unlocks the world of IRL</h2>
+            <h2 className="title4 text-left text-white">
+              Membership unlocks the world of IRL
+            </h2>
           </div>
           <div className="flex items-center gap-2 self-stretch py-4">
             <div className="title1 text-left font-normal text-white">
-            From welcome drinks to guest list spots and hotel discounts, we got you.
+              From welcome drinks to guest list spots and hotel discounts, we
+              got you.
             </div>
           </div>
         </div>
@@ -146,26 +149,29 @@ export default async function RewardsSection() {
         <ViewAllRewardsButton className="inline-flex w-full max-w-[361px]" />
       </div>
 
-      <div className="hidden h-[1080px] w-full items-center justify-center gap-8 self-stretch px-[var(--sds-size-space-0)] py-[120px] xl:flex">
-        <div className="flex h-[708px] flex-col items-start gap-2">
-          <div className="flex h-[270px] w-[460px] shrink-0 flex-col items-start">
-            <div className="flex items-center gap-2">
+      <div className="mx-auto hidden h-[1080px] w-full max-w-[1440px] items-center gap-8 px-8 py-[120px] xl:flex">
+        <div className="flex h-[708px] min-w-0 flex-1 flex-col items-start gap-2">
+          <div className="flex h-[270px] w-full min-w-0 flex-col items-start">
+            <div className="flex min-w-0 items-center gap-2">
               <WelcomeEllipse />
-              <h2 className="title4 text-left text-white">Membership unlocks the world of IRL</h2>
+              <h2 className="title4 min-w-0 text-left text-white">
+                Membership unlocks the world of IRL
+              </h2>
             </div>
-            <p className="title1 text-left text-white">
-              From welcome drinks to guest list spots and hotel discounts, we got you.
+            <p className="title1 w-full min-w-0 text-left text-white">
+              From welcome drinks to guest list spots and hotel discounts, we
+              got you.
             </p>
           </div>
-          <ViewAllRewardsButton className="inline-flex w-[243px] shrink-0" />
+          <ViewAllRewardsButton className="inline-flex w-[243px] max-w-full shrink-0" />
         </div>
 
         {heroPerk ? (
           <Link
             href={perkHref(heroPerk)}
-            className="flex h-[709px] w-[460px] shrink-0 flex-col items-start gap-2"
+            className="flex h-[709px] min-w-0 flex-1 flex-col items-start gap-2"
           >
-            <div className="relative h-[577px] w-[460px] shrink-0 overflow-hidden bg-[#1a1a1a]">
+            <div className="relative h-[577px] w-full overflow-hidden bg-[#1a1a1a]">
               <Image
                 src={perkImage(heroPerk)}
                 alt={heroPerk.title}
@@ -182,14 +188,14 @@ export default async function RewardsSection() {
         ) : null}
 
         {desktopGridPerks.length > 0 ? (
-          <div className="flex h-[710px] w-[460px] shrink-0 flex-wrap content-start items-start gap-[var(--sds-size-space-800)] pb-[var(--sds-size-space-600)]">
+          <div className="flex h-[710px] min-w-0 flex-1 flex-wrap content-start items-start gap-8 pb-[var(--sds-size-space-600)]">
             {desktopGridPerks.map((perk) => (
               <Link
                 key={perk.id}
                 href={perkHref(perk)}
-                className="flex w-[214px] shrink-0 flex-col items-start gap-4"
+                className="flex w-[calc(50%-16px)] min-w-0 flex-col items-start gap-4"
               >
-                <div className="relative aspect-square h-[214px] self-stretch overflow-hidden bg-[#1a1a1a]">
+                <div className="relative aspect-square w-full overflow-hidden bg-[#1a1a1a]">
                   <Image
                     src={perkImage(perk)}
                     alt={perk.title}
