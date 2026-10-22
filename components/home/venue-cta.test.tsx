@@ -44,5 +44,19 @@ describe('VenueCTA', () => {
       venueMapHref('dubble', 'vn-dubble-amsterdam')
     );
     expect(dubble.querySelector('span')?.textContent).toBe('(Amsterdam)');
+
+    const iceCream = screen.getAllByRole('link', {
+      name: 'Ice Cream Sundays, Singapore',
+    })[0];
+    expect(iceCream.getAttribute('href')).toBe(
+      'https://www.instagram.com/icecreamsundays_/'
+    );
+    expect(iceCream.getAttribute('target')).toBe('_blank');
+
+    const eclipse = screen.getAllByRole('link', {
+      name: 'Iceland Eclipse, Iceland',
+    })[0];
+    expect(eclipse.getAttribute('href')).toBe('https://icelandeclipse.com/');
+    expect(eclipse.getAttribute('target')).toBe('_blank');
   });
 });
