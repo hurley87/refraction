@@ -6,40 +6,127 @@ import { WelcomeEllipse } from '../shared/welcome-ellipse';
 /**
  * Venue network card. Mobile: 3 columns · Desktop (xl+): 6 columns.
  * `mapName` is the spot name on the map when it differs from the label.
+ * `placeId` is the spot on the "Part of the IRL Venue Network" map list; it wins
+ * over the name, since several map spots can share a name (e.g. Standard Time).
  */
-const VENUES: { name: string; city: string; mapName?: string }[] = [
-  { name: 'Arroz Estudios', city: 'Lisbon' },
-  { name: 'Bar San Francisco', city: 'Amsterdam' },
-  { name: 'Below Breakglass', city: 'Montreal' },
-  { name: 'Dear Eleanor', city: 'Miami' },
-  { name: 'Dila @ Dedaena', city: 'Tbilisi' },
-  { name: 'dubble', city: 'Amsterdam' },
-  { name: 'Floyd', city: 'Miami', mapName: 'Floyd Miami' },
-  { name: 'Hotel Volga', city: 'Mexico City' },
+type Venue = { name: string; city: string; mapName?: string; placeId?: string };
+
+const VENUES: Venue[] = [
+  {
+    name: 'Arroz Estudios',
+    city: 'Lisbon',
+    placeId:
+      'dXJuOm1ieGFkci1zdHI6OTlmODVhNGItYzcxZi00ODIwLTkyMjMtNmFhMTFmMGQ2YzI3',
+  },
+  {
+    name: 'Bar San Francisco',
+    city: 'Amsterdam',
+    placeId: 'dXJuOm1ieHBvaTplNzljOWMzYy1hMTY0LTQ0N2UtYmYxMS1kMjVmM2ZkMTViMDk',
+  },
+  {
+    name: 'Below Breakglass',
+    city: 'Montreal',
+    placeId: 'vn-below-breakglass-montreal',
+  },
+  {
+    name: 'Dear Eleanor',
+    city: 'Miami',
+    placeId: 'dXJuOm1ieHBvaTpiMGJmODQyNi1hYWY4LTQyNTgtOGE5My00MjRjZWViYmI2NjQ',
+  },
+  {
+    name: 'Dila @ Dedaena',
+    city: 'Tbilisi',
+    placeId: 'vn-dila-dedaena-tbilisi',
+  },
+  { name: 'dubble', city: 'Amsterdam', placeId: 'vn-dubble-amsterdam' },
+  {
+    name: 'Floyd',
+    city: 'Miami',
+    mapName: 'Floyd Miami',
+    placeId: 'dXJuOm1ieHBvaTpiYjFjYTczMC04ODVmLTRiZmItODNmMy1hYTBlOTkyMGI5ZDM',
+  },
+  {
+    name: 'Hotel Volga',
+    city: 'Mexico City',
+    placeId: 'dXJuOm1ieGFkcjpmZGFiOGFjZi0wNmNiLTRhMzItOTRhNS1lYTQ0NWY4ZDUyNTI',
+  },
   { name: 'Ice Cream Sundays', city: 'Singapore' },
   { name: 'Iceland Eclipse', city: 'Iceland' },
-  { name: 'Jolene', city: 'Miami' },
-  { name: 'La Cale', city: 'Rabat' },
-  { name: 'LINEA', city: 'Milan' },
-  { name: 'LoLo', city: 'Austin' },
-  { name: 'Loop51', city: 'Amsterdam' },
-  { name: 'Minos Sound Room', city: 'Mexico City' },
-  { name: 'NILE', city: 'Toronto' },
-  { name: 'Panke', city: 'Berlin' },
-  { name: 'Platform 9', city: 'Vancouver' },
-  { name: 'Plot', city: 'Los Angeles' },
-  { name: 'Public Records', city: 'NYC' },
-  { name: 'RASA', city: 'Singapore', mapName: 'RASA Space' },
-  { name: 'Rhythm', city: 'Toronto' },
-  { name: 'RUSH', city: 'Victoria' },
-  { name: 'Shadowplay', city: 'Bangkok', mapName: 'Shadowplay Bangkok' },
-  { name: 'Standard Time', city: 'Toronto' },
-  { name: 'Vespers', city: 'London' },
+  { name: 'Jolene', city: 'Miami', placeId: 'vn-jolene-miami' },
+  {
+    name: 'La Cale',
+    city: 'Rabat',
+    placeId:
+      'dXJuOm1ieGFkci1zdHI6YjBkZTYxYWYtNzMwNC00ZTNkLWFkNjktNmZjYTRhNTVhNDhm',
+  },
+  { name: 'LINEA', city: 'Milan', placeId: 'vn-linea-milano' },
+  {
+    name: 'LoLo',
+    city: 'Austin',
+    placeId: 'dXJuOm1ieGFkcjpmMmNjZjZlOC0xNGIyLTRlZjgtYTlmYy1lZDE5Y2Q4Y2U2MmY',
+  },
+  { name: 'Loop51', city: 'Amsterdam', placeId: 'vn-loop51-amsterdam' },
+  {
+    name: 'Minos Sound Room',
+    city: 'Mexico City',
+    placeId: 'dXJuOm1ieHBvaTo1YjFjMTY4NC1lZWRjLTRhYjgtODU2ZC0wOTY4ZjIxMmZlN2M',
+  },
+  {
+    name: 'NILE',
+    city: 'Toronto',
+    mapName: 'Nile',
+    placeId: '999adj-nile-1485-dundas',
+  },
+  {
+    name: 'Panke',
+    city: 'Berlin',
+    placeId: 'dXJuOm1ieGFkcjo4MTZmMjA5OC0zYzc5LTQyZmQtOTJkMy1iZjNlNDNiZDFjNTc',
+  },
+  {
+    name: 'Platform 9',
+    city: 'Vancouver',
+    placeId: 'dXJuOm1ieGFkcjpjNjE3NmMxZS1kYTA1LTRlNTgtOWYzMS1jM2NlYmUyMjE2NmM',
+  },
+  {
+    name: 'Plot',
+    city: 'Los Angeles',
+    placeId: 'dXJuOm1ieGFkcjphZWVmNGY5NC0yNjI1LTQ4MjAtYTU0NS04NmE1ODAyNGM5ZjU',
+  },
+  {
+    name: 'Public Records',
+    city: 'NYC',
+    placeId: 'dXJuOm1ieHBvaTo0MGYyMTI1NS1kYmE3LTQxNTMtYTFjYS1lYjIxY2YxZmI2Njg',
+  },
+  {
+    name: 'RASA',
+    city: 'Singapore',
+    mapName: 'RASA Space',
+    placeId: 'dXJuOm1ieHBvaTpiZGU2NWVlNi04NzcxLTRiNzItODRiYy0zZWE1OTY5MWJhOTY',
+  },
+  { name: 'Rhythm', city: 'Toronto', placeId: 'toronto-rhythm' },
+  { name: 'RUSH', city: 'Victoria', placeId: 'vn-rush-victoria-bc' },
+  {
+    name: 'Shadowplay',
+    city: 'Bangkok',
+    mapName: 'Shadowplay Bangkok',
+    placeId: 'dXJuOm1ieHBvaTo1MmJhYzljOC1jZTFiLTRlMDgtOWVhOS01M2FkZmRiYjY1Y2U',
+  },
+  {
+    name: 'Standard Time',
+    city: 'Toronto',
+    placeId: 'dXJuOm1ieGFkcjpjMDNmMjFmNi0zMGQ2LTRhZTAtYmJhYy1mZWZiYTQ0MzUzMTE',
+  },
+  {
+    name: 'Vespers',
+    city: 'London',
+    placeId: 'dXJuOm1ieHBvaTpiOTdlYTJmYy1iZDQ1LTQ1NWItOTQ3YS0xNDIxNDJmNGJlNTM',
+  },
 ];
 
 /** Deep link that opens this spot on the interactive map. */
-export function venueMapHref(mapName: string): string {
+export function venueMapHref(mapName: string, placeId?: string): string {
   const query = new URLSearchParams({
+    ...(placeId ? { placeId } : {}),
     name: mapName,
     returnTo: '/',
   });
@@ -61,7 +148,7 @@ function VenueNameColumns({
   columns,
   className,
 }: {
-  columns: (typeof VENUES)[];
+  columns: Venue[][];
   className?: string;
 }) {
   return (
@@ -69,16 +156,16 @@ function VenueNameColumns({
       {columns.map((column) => (
         <div
           key={column[0].name}
-          className="label-small flex w-[109px] flex-col gap-3 xl:min-w-0 xl:flex-1 xl:w-auto"
+          className="label-large flex w-[109px] flex-col xl:label-large gap-3 xl:min-w-0 xl:flex-1 xl:w-auto"
         >
           {column.map((venue) => (
             <Link
               key={venue.name}
-              href={venueMapHref(venue.mapName ?? venue.name)}
+              href={venueMapHref(venue.mapName ?? venue.name, venue.placeId)}
               className="flex flex-col"
               aria-label={`${venue.name}, ${venue.city}`}
             >
-              <span className="text-[8px] font-medium leading-[10px] xl:text-[9px] xl:leading-[11px]">
+              <span className="label-small font-medium leading-[10px] xl:label-medium xl:leading-[11px]">
                 ({venue.city})
               </span>
               {venue.name}
@@ -94,22 +181,39 @@ export default function VenueCTA() {
   return (
     <section className="relative flex w-full justify-center bg-[#131313]">
       <div
-        className="flex h-[964px] w-full flex-col items-center justify-between px-4 py-16 xl:px-8 xl:py-[120px]"
+        className="flex w-full flex-col items-center justify-between px-4 py-16 xl:px-8 xl:py-[120px]"
         style={{
           background:
             'linear-gradient(90deg, #D7D7D7 0.48%, #B3B3B3 37.02%, #919191 79.81%)',
         }}
       >
-        <div className="flex w-[361px] max-w-full items-center gap-2 xl:w-[952px]">
-          <WelcomeEllipse />
-          <h2 className="title4 text-left text-black">IRL VENUE NETWORK</h2>
+        <div className="flex w-[361px] max-w-full flex-col items-start xl:w-full xl:max-w-[1100px]">
+          <div className="flex items-center gap-2">
+            <WelcomeEllipse />
+            <h3 className="title4 text-left text-black">
+              The IRL Venue Network
+            </h3>
+          </div>
+          <h4 className="w-full pt-16 text-[#171717] xl:max-w-[952px]">
+            A network for like-minded independent venues. We promote, support
+            and connect clubs, listening bars and in-between spaces across
+            cities with programming, sponsors, and funding support.
+          </h4>
+          <h5 className="w-full pt-4 text-[#171717] xl:max-w-[952px]">
+            Run a venue?
+            <br />
+            <a
+              href="https://airtable.com/app6NdM2sO6HCxGv2/pagHBO8wciWJ5g8mp/form?prefill_How%20did%20you%20hear%20about%20the%20IRL%20Venue%20Network%3F=irl.energy%20homepage&hide_How%20did%20you%20hear%20about%20the%20IRL%20Venue%20Network%3F=true"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline transition-opacity hover:opacity-80"
+            >
+              Apply to join the network →
+            </a>
+          </h5>
         </div>
-        <h3 className="w-[361px] max-w-full text-[#171717] xl:w-[952px] xl:font-['Special_Gothic_SemiExpanded',sans-serif] xl:text-[42px] xl:font-medium xl:leading-[40px]">
-          The first wave of the IRL Venue Network. Clubs, listening bars,
-          galleries, coffee clubs and artist-run rooms, across four continents.
-        </h3>
 
-        <div className="flex w-[361px] max-w-full flex-col text-[#171717] xl:w-full xl:max-w-[1100px] xl:items-center">
+        <div className="flex w-[361px] max-w-full flex-col text-[#171717] xl:w-full xl:max-w-[1100px] xl:items-center pt-16">
           <VenueNameColumns
             columns={MOBILE_VENUES_COLUMNS}
             className="flex w-full justify-between xl:hidden"
