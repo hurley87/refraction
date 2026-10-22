@@ -195,28 +195,35 @@ export default function CityGuidesCoverSection() {
       </div>
 
       {/* Desktop layout — three columns */}
-      <div className="hidden h-[1080px] w-full items-center justify-center gap-8 self-stretch px-[var(--sds-size-space-0)] py-[120px] xl:flex">
+      <div className="mx-auto hidden h-[1080px] w-full max-w-[1440px] items-center gap-8 px-8 py-[120px] xl:flex">
         {/* Column 1: title + CTA */}
-        <div className="flex h-[708px] flex-col items-start gap-2">
-          <div className="flex h-[270px] w-[460px] shrink-0 flex-col items-start">
+        <div className="flex h-[708px] min-w-0 flex-1 flex-col items-start gap-2">
+          <div
+            className="flex h-[270px] w-full min-w-0 flex-col items-start"
+            style={{ containerType: 'inline-size' }}
+          >
             <div className="flex items-center gap-2">
               <WelcomeEllipse />
               <h2 className="title4 text-left text-white">City Guides</h2>
             </div>
-            <p className="title0 text-left text-white">
+            {/* Scale with the column so "Recommendations" stays inside it. */}
+            <p
+              className="title0 w-full min-w-0 text-left text-white"
+              style={{ fontSize: 'min(64px, 11.2cqi)', lineHeight: 1.05 }}
+            >
               Recommendations from people with taste, not algorithms
             </p>
           </div>
-          <ViewAllGuidesButton className="inline-flex w-[243px] shrink-0 pt-2" />
+          <ViewAllGuidesButton className="inline-flex w-[243px] max-w-full shrink-0 pt-2" />
         </div>
 
         {/* Column 2: featured cover */}
         {heroGuide ? (
           <Link
             href={guideReadHref(heroGuide.slug, heroGuide.kind)}
-            className="flex h-[709px] w-[460px] shrink-0 flex-col items-start gap-2"
+            className="flex h-[709px] min-w-0 flex-1 flex-col items-start gap-2"
           >
-            <div className="relative h-[577px] w-[460px] shrink-0 overflow-hidden bg-[#1a1a1a]">
+            <div className="relative h-[577px] w-full overflow-hidden bg-[#1a1a1a]">
               <Image
                 src={heroGuide.src}
                 alt={heroGuide.alt}
@@ -234,14 +241,14 @@ export default function CityGuidesCoverSection() {
         ) : null}
 
         {/* Column 3: remaining guides grid */}
-        <div className="flex h-[710px] w-[460px] shrink-0 flex-wrap content-start items-start gap-[var(--sds-size-space-800)] pb-[var(--sds-size-space-600)]">
+        <div className="flex h-[710px] min-w-0 flex-1 flex-wrap content-start items-start gap-8 pb-[var(--sds-size-space-600)]">
           {carouselGuides.map((guide) => (
             <Link
               key={guide.slug}
               href={guideReadHref(guide.slug, guide.kind)}
-              className="flex w-[214px] shrink-0 flex-col items-start gap-4"
+              className="flex w-[calc(50%-16px)] min-w-0 flex-col items-start gap-4"
             >
-              <div className="relative aspect-square h-[214px] self-stretch overflow-hidden bg-[#1a1a1a]">
+              <div className="relative aspect-square w-full overflow-hidden bg-[#1a1a1a]">
                 <Image
                   src={guide.src}
                   alt={guide.alt}
