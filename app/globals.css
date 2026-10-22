@@ -96,6 +96,14 @@
     font-family: 'Special Gothic SemiExpanded', sans-serif;
   }
 
+  h5 {
+    font-size: 14px !important; /* 16px */
+    line-height: 14px !important; /* 24px - better line height */
+    letter-spacing: 0 !important;
+    font-weight: 500 !important;
+    font-family: 'Special Gothic SemiExpanded', sans-serif;
+  }
+
   .hero-text {
     text-shadow: 0 0 26.7px #fff;
     font-family: 'ABC-Monument-Grotesk', sans-serif;

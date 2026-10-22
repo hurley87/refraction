@@ -8,6 +8,12 @@ describe('venueMapHref', () => {
       '/interactive-map?name=Floyd+Miami&returnTo=%2F'
     );
   });
+
+  it('includes the place id when the venue has one', () => {
+    expect(venueMapHref('Rhythm', 'toronto-rhythm')).toBe(
+      '/interactive-map?placeId=toronto-rhythm&name=Rhythm&returnTo=%2F'
+    );
+  });
 });
 
 describe('VenueCTA', () => {
@@ -15,12 +21,18 @@ describe('VenueCTA', () => {
     render(<VenueCTA />);
 
     const floyd = screen.getAllByRole('link', { name: 'Floyd, Miami' })[0];
-    expect(floyd.getAttribute('href')).toBe(venueMapHref('Floyd Miami'));
+    expect(floyd.getAttribute('href')).toBe(
+      venueMapHref(
+        'Floyd Miami',
+        'dXJuOm1ieHBvaTpiYjFjYTczMC04ODVmLTRiZmItODNmMy1hYTBlOTkyMGI5ZDM'
+      )
+    );
     expect(floyd.textContent?.replace(/\s+/g, '')).toBe('(Miami)Floyd');
     const city = floyd.querySelector('span');
-    expect(city?.textContent).toBe('(Miami)');
+    if (!city) throw new Error('Expected a city label on the Floyd link');
+    expect(city.textContent).toBe('(Miami)');
     expect(
-      city?.compareDocumentPosition(
+      city.compareDocumentPosition(
         floyd.childNodes[floyd.childNodes.length - 1]
       ) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -28,7 +40,9 @@ describe('VenueCTA', () => {
     const dubble = screen.getAllByRole('link', {
       name: 'dubble, Amsterdam',
     })[0];
-    expect(dubble.getAttribute('href')).toBe(venueMapHref('dubble'));
+    expect(dubble.getAttribute('href')).toBe(
+      venueMapHref('dubble', 'vn-dubble-amsterdam')
+    );
     expect(dubble.querySelector('span')?.textContent).toBe('(Amsterdam)');
   });
 });
