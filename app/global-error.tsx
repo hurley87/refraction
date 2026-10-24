@@ -3,7 +3,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 
-import { normalizeError } from '@/lib/monitoring/capture-handled-exception';
+import { prepareGlobalErrorForSentry } from '@/lib/monitoring/global-error-sentry';
 
 export default function GlobalError({
   error,
@@ -11,10 +11,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
 }) {
   useEffect(() => {
-    const normalized = normalizeError(error);
+    const { error: normalized, digest } = prepareGlobalErrorForSentry(error);
     Sentry.withScope((scope) => {
-      if (error?.digest) {
-        scope.setTag('next.error_digest', error.digest);
+      if (digest) {
+        scope.setTag('next.error_digest', digest);
+        scope.setFingerprint(['next-global-error', digest]);
       }
       Sentry.captureException(normalized);
     });
