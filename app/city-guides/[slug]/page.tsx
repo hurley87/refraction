@@ -9,6 +9,7 @@ import { CityGuideArticleHeroImage } from '@/components/city-guides/city-guide-a
 import { CityGuideLocationsSection } from '@/components/city-guides/city-guide-locations-section';
 import { CityGuideTexturedImage } from '@/components/city-guides/city-guide-textured-image';
 import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
+import { CityGuideRewardsBar } from '@/components/city-guides/city-guide-rewards-bar';
 import { CityGuideArticleTitle } from '@/components/city-guides/city-guide-article-title';
 import { GuideArticleContributorsSection } from '@/components/city-guides/guide-article-contributors-section';
 import { DraftPreviewBanner } from '@/components/city-guides/draft-preview-banner';
@@ -123,8 +124,10 @@ export default async function CityGuideBySlugPage({
           <CityGuideArticleMetaRow
             guideKind="city-guide"
             contributors={contributors}
-            className="mb-8"
+            className="mb-4"
           />
+
+          <CityGuideRewardsBar className="-mx-4 mb-4 w-[calc(100%+2rem)]" />
 
           <CityGuideArticleHeroImage
             src={row.hero_image_url}
