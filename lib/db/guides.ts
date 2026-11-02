@@ -11,6 +11,7 @@ import {
   resolveContributorInstagramProfileUrl,
 } from '@/lib/guides/contributor-instagram';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
+import { shouldApplyCityGuideLocationGate } from '@/lib/guides/city-guide-location-gate';
 import { twitterAvatarUrl } from '@/lib/profile/twitter-avatar';
 import { guideReadHref } from '@/lib/guides/guide-paths';
 import {
@@ -653,8 +654,8 @@ export type GetGuidePageOptions = {
   /** HMAC token from /api/admin/guides/:id/preview-link — required to view drafts on public routes. */
   previewToken?: string | null;
   /**
-   * Public pages include every spot and a gate for the ones past the free
-   * count. Authenticated unlock requests ask for the same full list.
+   * `full` skips the membership gate (unlock requests). Public pages apply it
+   * only while `CITY_GUIDE_LOCATION_GATE_ENABLED` is on.
    */
   locationAudience?: 'public' | 'full';
 };
@@ -815,7 +816,9 @@ export async function getCityGuidePageData(
   const row = rowOrTimeout;
   if (!row) return null;
   const data = await buildCityGuidePageDataFromRow(row);
-  if (!data || options?.locationAudience === 'full') return data;
+  if (!data || !shouldApplyCityGuideLocationGate(options?.locationAudience)) {
+    return data;
+  }
   return applyPublicLocationGate(data);
 }
 
