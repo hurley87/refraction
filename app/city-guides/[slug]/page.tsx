@@ -16,6 +16,7 @@ import { DraftPreviewBanner } from '@/components/city-guides/draft-preview-banne
 import { getCityGuidePageData } from '@/lib/db/guides';
 import { buildGuideArticleMetadata } from '@/lib/guides/article-metadata';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
+import { CITY_GUIDE_LOCATION_GATE_ENABLED } from '@/lib/guides/city-guide-location-gate';
 import { PRODUCTION_METADATA_ORIGIN } from '@/lib/metadata/request-base';
 import { paywalledContentJsonLd } from '@/lib/seo/paywalled-content';
 import {
@@ -77,16 +78,17 @@ export default async function CityGuideBySlugPage({
     : null;
   const leadParagraphs = row.lead_paragraphs?.filter((p) => p.trim()) ?? [];
   const headline = row.lead_headline?.trim() ?? '';
-  const paywallJsonLd = locationGate
-    ? paywalledContentJsonLd({
-        type: 'Article',
-        url: `${PRODUCTION_METADATA_ORIGIN}${returnPath}`,
-        name: cityGuideDisplayTitle({
-          title_prefix: row.title_prefix,
-          city_name: row.city_name,
-        }),
-      })
-    : null;
+  const paywallJsonLd =
+    CITY_GUIDE_LOCATION_GATE_ENABLED && locationGate
+      ? paywalledContentJsonLd({
+          type: 'Article',
+          url: `${PRODUCTION_METADATA_ORIGIN}${returnPath}`,
+          name: cityGuideDisplayTitle({
+            title_prefix: row.title_prefix,
+            city_name: row.city_name,
+          }),
+        })
+      : null;
   const mapImage = row.map_image_url ? (
     <CityGuideTexturedImage
       src={row.map_image_url}
