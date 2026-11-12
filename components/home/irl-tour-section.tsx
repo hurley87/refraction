@@ -215,7 +215,7 @@ function ViewAllEventsLink() {
       className="inline-flex h-5 shrink-0 items-center gap-2 border-b border-solid border-[#FFF]"
     >
       <span className="label-large whitespace-nowrap uppercase text-white">
-        View All Events
+       Explore Events
       </span>
       <RightArrowIcon className="h-4 w-4 shrink-0 text-white" />
     </Link>
@@ -566,7 +566,7 @@ export default function IRLTourSection({
             type="button"
             className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 uppercase text-[#171717]"
           >
-            <span className="whitespace-nowrap">Browse Events</span>
+            <span className="whitespace-nowrap">Explore Events</span>
             <svg
               width={24}
               height={24}

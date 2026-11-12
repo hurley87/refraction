@@ -506,7 +506,7 @@ function EventsFilterSortFields({
           >
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-[#171717] label-large uppercase">
-                {selectedCity === 'all' ? 'Location' : selectedCityLabel}
+                {selectedCity === 'all' ? 'City' : selectedCityLabel}
               </span>
             </span>
             <EventsFilterDropdownIcon
@@ -1365,8 +1365,7 @@ export default function EventsPage() {
         <div className="flex max-w-[1440px] flex-1 basis-0 items-center gap-[var(--sds-size-space-800)]">
           <h2 className="h-8 w-[108px] shrink-0 text-[#171717]">Events</h2>
           <p className="title4 flex h-8 min-w-0 flex-1 basis-0 flex-col justify-end text-[#171717]">
-            Local knowledge, on the calendar. The nights our city editors
-            don&apos;t want you to miss.
+          A curated global resource for the best clubs.
           </p>
         </div>
       </section>
@@ -1461,7 +1460,7 @@ export default function EventsPage() {
                   onClick={() => setSortModalOpen(true)}
                   className="label-small uppercase text-[var(--Text-Primary-Text,#171717)]"
                 >
-                  FILTER
+                  CHOOSE YOUR CITY
                 </button>
                 <EventsAppliedFilters filters={appliedFilters} />
               </div>
@@ -1547,8 +1546,7 @@ export default function EventsPage() {
       >
         <h3 className="shrink-0 text-[#171717]">Events</h3>
         <p className="title6 min-w-0 flex-1 text-[#171717]">
-          Local knowledge, on the calendar. The nights our city editors
-          don&apos;t want you to miss.
+          A curated global resource for the best clubs.
         </p>
       </section>
 
@@ -1590,7 +1588,7 @@ export default function EventsPage() {
                   onClick={() => setFilterDrawerOpen(true)}
                   className="label-small uppercase text-[var(--Text-Primary-Text,#171717)]"
                 >
-                  FILTER
+                  CHOOSE YOUR CITY
                 </button>
                 <EventsAppliedFilters filters={appliedFilters} />
               </div>
