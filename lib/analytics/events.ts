@@ -106,6 +106,11 @@ export const ANALYTICS_EVENTS = {
   /** Admin ops dashboard for sponsored activations (IRL-62 / FR-9). */
   SPONSORED_ACTIVATION_ADMIN_DASHBOARD_VIEWED:
     'sponsored_activation_admin_dashboard_viewed',
+
+  /** IRL Card pre-launch waitlist (/irl-card/waitlist). Never carries email or form values. */
+  IRL_CARD_WAITLIST_VIEWED: 'irl_card_waitlist_viewed',
+  IRL_CARD_WAITLIST_JOINED: 'irl_card_waitlist_joined',
+  IRL_CARD_WAITLIST_FAILED: 'irl_card_waitlist_failed',
 } as const;
 
 export type AnalyticsEventName =

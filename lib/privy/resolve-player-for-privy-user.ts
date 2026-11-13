@@ -83,6 +83,44 @@ async function ensurePlayerEmail(
 }
 
 /**
+ * Read-only lookup of the existing player for a Privy session (EVM, Stellar,
+ * Solana, Aptos wallets, then email). Never creates or updates a player.
+ */
+export async function findExistingPlayerForPrivyUser(
+  evmWalletAddress: string | null,
+  privyUser: User
+): Promise<Player | null> {
+  if (evmWalletAddress?.trim()) {
+    const normalized =
+      tryNormalizeEvmAddress(evmWalletAddress.trim()) ??
+      evmWalletAddress.trim();
+    const byEvm = await getPlayerByWallet(normalized);
+    if (byEvm?.id) return byEvm;
+  }
+
+  const lookups: Array<
+    [string | null, (address: string) => Promise<Player | null>]
+  > = [
+    [linkedWalletAddress(privyUser, 'stellar'), getPlayerByStellarWallet],
+    [linkedWalletAddress(privyUser, 'solana'), getPlayerBySolanaWallet],
+    [linkedWalletAddress(privyUser, 'aptos'), getPlayerByAptosWallet],
+  ];
+  for (const [address, lookup] of lookups) {
+    if (!address) continue;
+    const player = await lookup(address);
+    if (player?.id) return player;
+  }
+
+  const email = privyLoginEmail(privyUser);
+  if (email) {
+    const byEmail = await getPlayerByEmail(email);
+    if (byEmail?.id) return byEmail;
+  }
+
+  return null;
+}
+
+/**
  * Finds the player row that owns points for this Privy session, even when the
  * user checked in with Stellar/Solana and `players.wallet_address` was never set.
  * Creates a player when needed and backfills missing email from Privy.

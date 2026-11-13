@@ -23,6 +23,7 @@ const STATIC_PATHS = [
   '/stripecommons',
   '/stripecommons/artwork',
   '/stellar',
+  '/irl-card/waitlist',
 ] as const;
 
 /** Placeholder slugs that are published but should not be crawled. */
