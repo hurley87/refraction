@@ -3,7 +3,13 @@
  * @see https://www.campaignmonitor.com/api/v3-3/subscribers/
  */
 
-const CREATESEND_API_BASE = 'https://api.createsend.com/api/v3.3';
+import {
+  CREATESEND_API_BASE,
+  createSendAuthHeader,
+  logCampaignMonitor,
+  redactEmailForLog,
+  redactListIdForLog,
+} from './client';
 
 /** CreateSend rate-limits repeat adds for the same address; coalesce hot paths. */
 const SUBSCRIBE_DEDUPE_MS = 15 * 60 * 1000;
@@ -44,42 +50,6 @@ function isConfigured(): boolean {
   const key = process.env.CAMPAIGN_MONITOR_API_KEY?.trim();
   const listId = process.env.CAMPAIGN_MONITOR_LIST_ID?.trim();
   return Boolean(key && listId);
-}
-
-function redactEmailForLog(email: string): string {
-  const trimmed = email.trim();
-  const at = trimmed.lastIndexOf('@');
-  if (at <= 0 || at === trimmed.length - 1) {
-    return '(invalid-email)';
-  }
-  return `***@${trimmed.slice(at + 1)}`;
-}
-
-function redactListIdForLog(listId: string): string {
-  const s = listId.trim();
-  if (s.length <= 8) {
-    return '(short-id)';
-  }
-  return `${s.slice(0, 4)}…${s.slice(-4)} (len=${s.length})`;
-}
-
-function logCampaignMonitor(
-  level: 'info' | 'warn' | 'error',
-  message: string,
-  meta: Record<string, unknown>
-): void {
-  const line = JSON.stringify({
-    source: 'campaign_monitor',
-    message,
-    ...meta,
-  });
-  if (level === 'error') {
-    console.error(line);
-  } else if (level === 'warn') {
-    console.warn(line);
-  } else {
-    console.info(line);
-  }
 }
 
 /**
@@ -138,7 +108,6 @@ async function addCampaignMonitorSubscriberOnce(
     body.Name = name.slice(0, 250);
   }
 
-  const auth = Buffer.from(`${apiKey}:x`, 'utf8').toString('base64');
   const url = `${CREATESEND_API_BASE}/subscribers/${encodeURIComponent(listId)}.json`;
 
   markSubscribeAttempt(emailKey);
@@ -157,7 +126,7 @@ async function addCampaignMonitorSubscriberOnce(
     res = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${auth}`,
+        Authorization: createSendAuthHeader(apiKey),
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
