@@ -138,8 +138,21 @@ export default function RootLayout({
       return false;
     }
   }, true);
+  function unwrapUnhandledRejectionReason(reason) {
+    if (!reason || typeof reason !== 'object') return reason;
+    if ('reason' in reason && reason.reason != null) return reason.reason;
+    if (
+      'detail' in reason &&
+      reason.detail &&
+      typeof reason.detail === 'object' &&
+      'reason' in reason.detail
+    ) {
+      return reason.detail.reason;
+    }
+    return reason;
+  }
   window.addEventListener('unhandledrejection', function(event) {
-    const reason = event.reason;
+    const reason = unwrapUnhandledRejectionReason(event.reason);
     if (reason && typeof reason === 'object' && reason != null && 'code' in reason) {
       const code = reason.code;
       const numericCode =
