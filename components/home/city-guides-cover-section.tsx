@@ -128,10 +128,14 @@ export default function CityGuidesCoverSection() {
             <WelcomeEllipse />
             <h2 className="title4 text-left text-white">City Guides</h2>
           </div>
-          <div className="flex items-center gap-2 self-stretch py-4">
+          <div className="flex flex-col items-start gap-3 self-stretch py-4">
             <div className="title1 text-left font-normal text-white">
-              Recommendations from people with taste, not algorithms
+              Where to go out, from the people who know.
             </div>
+            <p className="title4 text-left font-normal text-[#A9A9A9]">
+              Local knowledge for days out and nights that follow, around the
+              world.
+            </p>
           </div>
         </div>
 
@@ -199,19 +203,23 @@ export default function CityGuidesCoverSection() {
         {/* Column 1: title + CTA */}
         <div className="flex h-[708px] min-w-0 flex-1 flex-col items-start gap-2">
           <div
-            className="flex h-[270px] w-full min-w-0 flex-col items-start"
+            className="flex min-h-[270px] w-full min-w-0 flex-col items-start"
             style={{ containerType: 'inline-size' }}
           >
             <div className="flex items-center gap-2">
               <WelcomeEllipse />
               <h2 className="title4 text-left text-white">City Guides</h2>
             </div>
-            {/* Scale with the column so "Recommendations" stays inside it. */}
+            {/* Scale with the column so the longest word stays inside it. */}
             <p
               className="title0 w-full min-w-0 text-left text-white"
               style={{ fontSize: 'min(64px, 11.2cqi)', lineHeight: 1.05 }}
             >
-              Recommendations from people with taste, not algorithms
+              Where to go out, from the people who know.
+            </p>
+            <p className="title3 mt-4 w-full min-w-0 text-left font-normal text-[#A9A9A9]">
+              Local knowledge for days out and nights that follow, around the
+              world.
             </p>
           </div>
           <ViewAllGuidesButton className="inline-flex w-[243px] max-w-full shrink-0 pt-2" />
