@@ -195,9 +195,7 @@ export default function VenueCTA() {
             </h3>
           </div>
           <h4 className="w-full pt-16 text-[#171717] xl:max-w-[952px]">
-            A network for like-minded independent venues. We promote, support
-            and connect clubs, listening bars and in-between spaces across
-            cities with programming, sponsors, and funding support.
+            Explore a selection from our growing network. Click a venue to discover more.
           </h4>
           <h5 className="w-full pt-4 text-[#171717] xl:max-w-[952px]">
             Run a venue?
