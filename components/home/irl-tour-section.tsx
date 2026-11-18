@@ -215,7 +215,7 @@ function ViewAllEventsLink() {
       className="inline-flex h-5 shrink-0 items-center gap-2 border-b border-solid border-[#FFF]"
     >
       <span className="label-large whitespace-nowrap uppercase text-white">
-       Explore Events
+        Explore Events
       </span>
       <RightArrowIcon className="h-4 w-4 shrink-0 text-white" />
     </Link>
@@ -536,7 +536,9 @@ export default function IRLTourSection({
             <span className="title4 text-white">IRL Picks</span>
           </div>
 
-          <h2 className="title1 text-left text-white">Upcoming Events</h2>
+          <h2 className="title1 text-left text-white">
+            A curated global resource for the best clubs.
+          </h2>
         </div>
 
         {mobileHeroEvent ? (
@@ -586,13 +588,15 @@ export default function IRLTourSection({
       <div className="hidden w-full flex-col items-center gap-8 self-stretch px-[var(--sds-size-space-0)] py-[120px] xl:flex">
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-16">
           <div className="flex items-end justify-between self-stretch">
-            <div className="flex h-[95px] flex-col items-start">
+            <div className="flex min-h-[95px] flex-col items-start">
               <div className="flex w-[363px] items-center gap-2">
                 <WelcomeEllipse />
                 <span className="title4 text-white">IRL Picks</span>
               </div>
               <div className="flex items-center gap-2 py-4">
-                <h2 className="title0 text-left text-white">Upcoming Events</h2>
+                <h2 className="title0 text-left text-white">
+                  A curated global resource for the best clubs.
+                </h2>
               </div>
             </div>
             <ViewAllEventsLink />
