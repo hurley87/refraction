@@ -594,7 +594,7 @@ export default function IRLTourSection({
                 <span className="title4 text-white">IRL Picks</span>
               </div>
               <div className="flex items-center gap-2 py-4">
-                <h2 className="title0 text-left text-white">
+                <h2 className="title1 text-left text-white">
                   A curated global resource for the best clubs.
                 </h2>
               </div>
