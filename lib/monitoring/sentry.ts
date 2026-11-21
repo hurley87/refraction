@@ -217,7 +217,7 @@ function shouldDropStorageSecurityError(
   event: SentryEventLike,
   hint?: EventHint
 ): boolean {
-  if (isStorageSecurityError(hint?.originalException)) {
+  if (rejectionReasonCandidates(event, hint).some(isStorageSecurityError)) {
     return true;
   }
 
@@ -260,7 +260,7 @@ function shouldDropIndexedDbNoiseError(
   event: SentryEventLike,
   hint?: EventHint
 ): boolean {
-  if (isIndexedDbNoiseError(hint?.originalException)) {
+  if (rejectionReasonCandidates(event, hint).some(isIndexedDbNoiseError)) {
     return true;
   }
 
@@ -305,15 +305,148 @@ function serializedRejectionFromEvent(
   return isPlainRecord(serialized) ? serialized : null;
 }
 
+/**
+ * Browser extensions sometimes surface `PromiseRejectionEvent` payloads as
+ * `CustomEvent` objects (`detail.reason` / `detail.promise`). Sentry may report
+ * the shell as `CustomEvent: Event CustomEvent (type=unhandledrejection)…`.
+ *
+ * @see https://github.com/getsentry/sentry-javascript/pull/2429
+ */
+export function unwrapUnhandledRejectionReason(error: unknown): unknown {
+  if (!isPlainRecord(error)) {
+    return error;
+  }
+
+  if ('reason' in error && error.reason !== undefined) {
+    return error.reason;
+  }
+
+  if ('detail' in error) {
+    const detail = error.detail;
+    if (isPlainRecord(detail) && 'reason' in detail) {
+      return detail.reason;
+    }
+  }
+
+  return error;
+}
+
+function rejectionReasonCandidates(
+  event: SentryEventLike,
+  hint?: EventHint
+): unknown[] {
+  const seen = new Set<unknown>();
+  const out: unknown[] = [];
+
+  const push = (value: unknown) => {
+    if (seen.has(value)) return;
+    seen.add(value);
+    out.push(value);
+  };
+
+  if (hint?.originalException !== undefined) {
+    push(hint.originalException);
+    push(unwrapUnhandledRejectionReason(hint.originalException));
+  }
+
+  const serialized = serializedRejectionFromEvent(event);
+  if (serialized) {
+    push(serialized);
+    push(unwrapUnhandledRejectionReason(serialized));
+  }
+
+  return out;
+}
+
+function messageFromRejectionReason(reason: unknown): string {
+  if (reason instanceof Error) {
+    return reason.message;
+  }
+  if (typeof reason === 'string') {
+    return reason;
+  }
+  if (isPlainRecord(reason) && typeof reason.message === 'string') {
+    return reason.message;
+  }
+  return '';
+}
+
+function isCustomEventUnhandledRejectionTitle(event: SentryEventLike): boolean {
+  const primary = event.exception?.values?.[0];
+  if (!primary) return false;
+
+  if ((primary.type ?? '').toLowerCase() === 'customevent') {
+    return true;
+  }
+
+  const value = (primary.value ?? '').toLowerCase();
+  return value.includes('customevent') && value.includes('unhandledrejection');
+}
+
+/**
+ * After unwrapping extension-wrapped rejections, re-use the same environmental
+ * filters we apply to normal unhandled rejections (NEXTJS-2B).
+ */
+function isEnvironmentalUnhandledRejectionReason(reason: unknown): boolean {
+  if (isEip1193ProviderNoise(reason)) return true;
+  if (isAbortError(reason)) return true;
+  if (isFetchNetworkError(reason)) return true;
+  if (isIndexedDbNoiseError(reason)) return true;
+  if (isStorageSecurityError(reason)) return true;
+
+  const message = messageFromRejectionReason(reason);
+  if (!message) return false;
+
+  if (isCefSharpBotNoise(message)) return true;
+  if (isWalletConnectSessionNoise(message)) return true;
+  if (isWalletExtensionOnboardingNoise(message)) return true;
+  if (isPrivyWalletProviderOnNoise(message)) return true;
+  if (isPrivyEmbeddedWalletHttpsNoise(message)) return true;
+  if (isWebkitMessageHandlersNoise(message)) return true;
+  if (isAndroidJavascriptBridgeNoise(message)) return true;
+  if (isWalletExtensionEthereumConflict(message)) return true;
+
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('extension context invalidated') ||
+    lower.includes('could not establish connection') ||
+    lower.includes('receiving end does not exist') ||
+    lower.includes('runtime.lasterror') ||
+    lower.includes('asynchronous response by returning true') ||
+    lower.includes('message channel closed before a response was received') ||
+    lower.includes('message port closed before a response was received') ||
+    lower.includes('called from a webpage must specify an extension id') ||
+    lower.includes('invalid call to runtime.sendmessage')
+  );
+}
+
+function shouldDropCustomEventUnhandledRejectionNoise(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (!isCustomEventUnhandledRejectionTitle(event)) {
+    const wrapped = rejectionReasonCandidates(event, hint).some((reason) => {
+      if (!isPlainRecord(reason)) return false;
+      return (
+        reason.type === 'unhandledrejection' &&
+        'detail' in reason &&
+        isPlainRecord(reason.detail) &&
+        'reason' in reason.detail
+      );
+    });
+    if (!wrapped) return false;
+  }
+
+  return rejectionReasonCandidates(event, hint).some(
+    isEnvironmentalUnhandledRejectionReason
+  );
+}
+
 function shouldDropEip1193ProviderNoise(
   event: SentryEventLike,
   hint?: EventHint
 ): boolean {
-  if (isEip1193ProviderNoise(hint?.originalException)) {
-    return true;
-  }
-  const fromExtra = serializedRejectionFromEvent(event);
-  return isEip1193ProviderNoise(fromExtra);
+  return rejectionReasonCandidates(event, hint).some(isEip1193ProviderNoise);
 }
 
 /**
@@ -399,8 +532,9 @@ function shouldDropCefSharpBotNoise(
   hint?: EventHint
 ): boolean {
   if (
-    typeof hint?.originalException === 'string' &&
-    isCefSharpBotNoise(hint.originalException)
+    rejectionReasonCandidates(event, hint).some(
+      (reason) => typeof reason === 'string' && isCefSharpBotNoise(reason)
+    )
   ) {
     return true;
   }
@@ -460,7 +594,7 @@ function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
 ): boolean {
-  if (isAbortError(hint?.originalException)) {
+  if (rejectionReasonCandidates(event, hint).some(isAbortError)) {
     return true;
   }
 
@@ -471,7 +605,7 @@ function shouldDropFetchNetworkError(
   event: SentryEventLike,
   hint?: EventHint
 ): boolean {
-  if (isFetchNetworkError(hint?.originalException)) {
+  if (rejectionReasonCandidates(event, hint).some(isFetchNetworkError)) {
     return true;
   }
 
@@ -507,6 +641,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   event: T,
   hint?: EventHint
 ): T | null {
+  if (shouldDropCustomEventUnhandledRejectionNoise(event, hint)) {
+    return null;
+  }
+
   if (shouldDropEip1193ProviderNoise(event, hint)) {
     return null;
   }

@@ -14,6 +14,7 @@ import {
   isWalletExtensionOnboardingNoise,
   isWebkitMessageHandlersNoise,
   sentryBeforeSend,
+  unwrapUnhandledRejectionReason,
 } from '@/lib/monitoring/sentry';
 
 describe('isAbortError', () => {
@@ -940,5 +941,91 @@ describe('sentryBeforeSend', () => {
     };
 
     expect(sentryBeforeSend(event)).toEqual(event);
+  });
+});
+
+describe('unwrapUnhandledRejectionReason', () => {
+  it('unwraps PromiseRejectionEvent-style reason', () => {
+    const inner = { code: 4001, message: 'User rejected the request.' };
+    expect(unwrapUnhandledRejectionReason({ reason: inner })).toEqual(inner);
+  });
+
+  it('unwraps CustomEvent detail.reason (extension-wrapped PRE)', () => {
+    const inner = new Error('Extension context invalidated.');
+    const wrapped = {
+      type: 'unhandledrejection',
+      detail: { reason: inner, promise: {} },
+    };
+    expect(unwrapUnhandledRejectionReason(wrapped)).toBe(inner);
+  });
+});
+
+describe('sentryBeforeSend CustomEvent unhandledrejection (JAVASCRIPT-NEXTJS-2B)', () => {
+  const customEventTitle =
+    'Event `CustomEvent` (type=unhandledrejection) captured as promise rejection';
+
+  it('drops extension noise nested inside CustomEvent detail.reason', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [{ type: 'CustomEvent', value: customEventTitle }],
+      },
+    };
+    const hint = {
+      originalException: {
+        type: 'unhandledrejection',
+        detail: {
+          reason: {
+            message: 'Extension context invalidated.',
+          },
+        },
+      },
+    };
+
+    expect(sentryBeforeSend(event, hint)).toBeNull();
+  });
+
+  it('drops EIP-1193 4001 nested inside CustomEvent shells', () => {
+    const event = {
+      exception: {
+        values: [{ type: 'CustomEvent', value: customEventTitle }],
+      },
+      request: { url: 'https://www.irl.energy/dashboard' },
+    };
+    const hint = {
+      originalException: {
+        type: 'unhandledrejection',
+        detail: {
+          reason: {
+            code: 4001,
+            message:
+              'MetaMask Tx Signature: User denied transaction signature.',
+          },
+        },
+      },
+    };
+
+    expect(sentryBeforeSend(event, hint)).toBeNull();
+  });
+
+  it('keeps CustomEvent shells when the inner reason is actionable', () => {
+    const event = {
+      exception: {
+        values: [{ type: 'CustomEvent', value: customEventTitle }],
+      },
+      request: { url: 'https://www.irl.energy/dashboard' },
+    };
+    const hint = {
+      originalException: {
+        type: 'unhandledrejection',
+        detail: {
+          reason: new Error(
+            'Cannot read properties of undefined (reading "foo")'
+          ),
+        },
+      },
+    };
+
+    expect(sentryBeforeSend(event, hint)).toEqual(event);
   });
 });
