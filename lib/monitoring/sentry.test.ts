@@ -8,6 +8,7 @@ import {
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
   isPrivyEmbeddedWalletHttpsNoise,
+  isPrivyEmbeddedWalletIframeNoise,
   isPrivyWalletProviderOnNoise,
   isStorageSecurityError,
   isWalletConnectSessionNoise,
@@ -154,6 +155,22 @@ describe('isAndroidJavascriptBridgeNoise', () => {
       )
     ).toBe(true);
     expect(isAndroidJavascriptBridgeNoise('TypeError: fetch failed')).toBe(
+      false
+    );
+  });
+});
+
+describe('isPrivyEmbeddedWalletIframeNoise', () => {
+  it('detects Privy embedded wallet iframe bridge not ready (JAVASCRIPT-NEXTJS-2C)', () => {
+    expect(
+      isPrivyEmbeddedWalletIframeNoise('Error: iframe not initialized')
+    ).toBe(true);
+    expect(
+      isPrivyEmbeddedWalletIframeNoise(
+        'Error: Embedded wallet proxy not initialized'
+      )
+    ).toBe(true);
+    expect(isPrivyEmbeddedWalletIframeNoise('TypeError: fetch failed')).toBe(
       false
     );
   });
@@ -738,6 +755,30 @@ describe('sentryBeforeSend', () => {
                 {
                   filename: 'app://navigation_performance_logger_android',
                   function: 'sendBeforeUnloadMessage',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Privy embedded wallet iframe not initialized noise (JAVASCRIPT-NEXTJS-2C)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Error: iframe not initialized',
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'app:///chunks/node_modules_@privy-io_react-auth_dist_esm_privy-provider-BG8GtKO6_mjs.js',
                 },
               ],
             },

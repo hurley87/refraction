@@ -456,6 +456,20 @@ export function isPrivyEmbeddedWalletHttpsNoise(message: string): boolean {
   return lower.includes('embedded wallet is only available over https');
 }
 
+/**
+ * Privy embedded wallets communicate with a hidden iframe via `postMessage`. When
+ * the iframe is not mounted, is tearing down, or is blocked, `contentWindow` is
+ * null and `@privy-io/react-auth` throws before wallet/MFA RPC — a navigation or
+ * modal-timing race, not application logic.
+ */
+export function isPrivyEmbeddedWalletIframeNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('iframe not initialized') ||
+    lower.includes('embedded wallet proxy not initialized')
+  );
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -560,6 +574,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     isWalletExtensionOnboardingNoise(message) ||
     isPrivyWalletProviderOnNoise(message) ||
     isPrivyEmbeddedWalletHttpsNoise(message) ||
+    isPrivyEmbeddedWalletIframeNoise(message) ||
     isWebkitMessageHandlersNoise(message) ||
     isAndroidJavascriptBridgeNoise(message) ||
     isWalletConnectSessionNoise(message) ||
