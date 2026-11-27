@@ -12,6 +12,7 @@ import {
   isStorageSecurityError,
   isWalletConnectSessionNoise,
   isWalletExtensionOnboardingNoise,
+  isMetaIabInnerFrameNoise,
   isWebkitMessageHandlersNoise,
   sentryBeforeSend,
 } from '@/lib/monitoring/sentry';
@@ -133,6 +134,22 @@ describe('isWebkitMessageHandlersNoise', () => {
       )
     ).toBe(true);
     expect(isWebkitMessageHandlersNoise('TypeError: fetch failed')).toBe(false);
+  });
+});
+
+describe('isMetaIabInnerFrameNoise', () => {
+  it('detects Meta in-app browser _META.IABInnerFrame probe failures (JAVASCRIPT-NEXTJS-2D)', () => {
+    expect(
+      isMetaIabInnerFrameNoise(
+        "TypeError: undefined is not an object (evaluating 'window._META.IABInnerFrame')"
+      )
+    ).toBe(true);
+    expect(
+      isMetaIabInnerFrameNoise(
+        "TypeError: undefined is not an object (evaluating 'window._META')"
+      )
+    ).toBe(true);
+    expect(isMetaIabInnerFrameNoise('TypeError: fetch failed')).toBe(false);
   });
 });
 
@@ -741,6 +758,23 @@ describe('sentryBeforeSend', () => {
                 },
               ],
             },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Meta IABInnerFrame in-app browser noise (JAVASCRIPT-NEXTJS-2D)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              "TypeError: undefined is not an object (evaluating 'window._META.IABInnerFrame')",
           },
         ],
       },

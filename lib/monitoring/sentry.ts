@@ -434,6 +434,16 @@ export function isAndroidJavascriptBridgeNoise(message: string): boolean {
 }
 
 /**
+ * Meta (Facebook, Instagram, Messenger) in-app browsers inject `window._META`
+ * for IAB inner-frame bridge code. When `_META` is missing or torn down during
+ * navigation, injected scripts throw — environmental noise, not app code.
+ */
+export function isMetaIabInnerFrameNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('iabinnerframe') || lower.includes('window._meta');
+}
+
+/**
  * Privy's PrivyProxyProvider subscribes to EIP-1193 events via `walletProvider.on`.
  * Some browser extensions inject partial providers (request-only, no event API),
  * which surfaces as `this.walletProvider?.on is not a function` inside
@@ -562,6 +572,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     isPrivyEmbeddedWalletHttpsNoise(message) ||
     isWebkitMessageHandlersNoise(message) ||
     isAndroidJavascriptBridgeNoise(message) ||
+    isMetaIabInnerFrameNoise(message) ||
     isWalletConnectSessionNoise(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
